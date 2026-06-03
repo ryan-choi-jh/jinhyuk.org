@@ -12,6 +12,9 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 
+const buttons = post.data.buttons ?? [];
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+
 const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 ---
@@ -21,5 +24,21 @@ const fmt = (d: Date) =>
     <h1>{post.data.title}</h1>
     <p class="post-meta">{fmt(post.data.date)}</p>
     <Content />
+
+    {buttons.length > 0 && (
+      <div class="essay-buttons">
+        {buttons.map((b) => (
+          <a
+            class="button"
+            href={b.href}
+            {...(isExternal(b.href)
+              ? { target: '_blank', rel: 'noopener noreferrer' }
+              : {})}
+          >
+            {b.label}
+          </a>
+        ))}
+      </div>
+    )}
   </article>
 </Base>

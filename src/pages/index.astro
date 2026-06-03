@@ -1,6 +1,19 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../keystatic.config';
+
+// Read the editable home-page content (intro + photo) that Keystatic manages.
+const reader = createReader(process.cwd(), keystaticConfig);
+const home = await reader.singletons.home.read();
+
+const introParagraphs = (home?.intro ?? '')
+  .split(/\n\s*\n/)
+  .map((p) => p.trim())
+  .filter(Boolean);
+const photo = home?.photo ?? '/home/ryan.jpg';
+const photoAlt = home?.photoAlt ?? 'Ryan Choi';
 
 const posts = (await getCollection('writing'))
   .filter((p) => !p.data.draft)
@@ -14,26 +27,7 @@ const fmt = (d: Date) =>
 <Base description="Ryan (Jin Hyuk) Choi — starting a company in San Francisco, writing in the open.">
   <h1 class="sr-only">Ryan Choi</h1>
 
-  <p>
-    Hi I'm Jin&nbsp;Hyuk — most people call me Ryan. I currently live in San
-    Francisco where I'm in the early, uncertain part of starting a company:
-    figuring out what's actually worth building.
-  </p>
-
-  <p>
-    Before this, I spent my career close to how companies get built, bought, and
-    sold. Tech M&amp;A at SVB and Moelis, then chief of staff at Artie
-    (YC&nbsp;S23), a data infra startup. I grew up between Korea and England,
-    studied PPE at Warwick, and voluntarily served two years in the Korean
-    military as a rifleman.
-  </p>
-
-  <p>
-    The things I keep coming back to are helping people through their hard parts,
-    and being honest about my own reasons for doing things. This site is where I
-    think in the open. Essays and notes, mostly written to understand something
-    rather than to claim I already have.
-  </p>
+  {introParagraphs.map((para) => <p>{para}</p>)}
 
   {posts.length > 0 && (
     <>
@@ -49,5 +43,14 @@ const fmt = (d: Date) =>
     </>
   )}
 
-  <img class="about-photo" src="/ryan.jpg" alt="Ryan Choi" width="1080" height="1440" />
+  {photo && (
+    <img
+      class="about-photo"
+      src={photo}
+      alt={photoAlt}
+      style="image-orientation: from-image;"
+      loading="lazy"
+      decoding="async"
+    />
+  )}
 </Base>

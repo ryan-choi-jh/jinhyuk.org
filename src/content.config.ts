@@ -9,6 +9,17 @@ const writing = defineCollection({
     date: z.coerce.date(),
     // Set to true to keep a post unpublished while you draft it.
     draft: z.boolean().optional().default(false),
+    // Optional call-to-action buttons shown at the end of the essay.
+    // Managed in the Keystatic editor; older posts without this just render none.
+    buttons: z
+      .array(
+        z.object({
+          label: z.string(),
+          href: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
   }),
 });
 
