@@ -1,0 +1,45 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const siteName = 'Ryan Choi';
+const fullTitle = title ? `${title} — ${siteName}` : siteName;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="site-nav">
+        <a href="/">Home</a>
+        <a href="/writing/">Writing</a>
+        <a href="/about/">About</a>
+      </nav>
+
+      <main>
+        <slot />
+      </main>
+
+      <footer class="site-footer">
+        <a href="https://x.com/ryanchoi_jh" target="_blank" rel="noopener noreferrer">Twitter</a> ·
+        <a href="https://www.linkedin.com/in/jinhyuk-ryan-choi/" target="_blank" rel="noopener noreferrer">LinkedIn</a> ·
+        <a href="https://github.com/ryan-choi-jh" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+        <a href="https://www.youtube.com/@ryanjhchoi" target="_blank" rel="noopener noreferrer">YouTube</a> ·
+        <a href="mailto:ryanchoi0125@gmail.com">Email</a>
+      </footer>
+    </div>
+  </body>
+</html>

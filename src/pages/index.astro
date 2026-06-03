@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('writing'))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 5);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+---
+
+<Base description="Ryan Choi — founder, writing about building companies.">
+  <h1>Ryan Choi</h1>
+  <p class="lead">
+    Founder in San Francisco. Building a company. Previously the first business
+    hire at Artie (YC&nbsp;S23), and before that tech M&amp;A at SVB and Moelis.
+  </p>
+  <p>
+    I write about building, going to market, and the gap between how things are
+    done and how they could be. <a href="/about/">More about me →</a>
+  </p>
+
+  {posts.length > 0 && (
+    <>
+      <h2>Recent writing</h2>
+      <ul class="post-list">
+        {posts.map((post) => (
+          <li>
+            <a href={`/writing/${post.id}/`}>{post.data.title}</a>
+            <span class="date">{fmt(post.data.date)}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
+</Base>
