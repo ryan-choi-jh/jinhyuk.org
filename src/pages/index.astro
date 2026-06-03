@@ -11,20 +11,35 @@ const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 ---
 
-<Base description="Ryan Choi — founder, writing about building companies.">
-  <h1>Ryan Choi</h1>
-  <p class="lead">
-    Founder in San Francisco. Building a company. Previously the first business
-    hire at Artie (YC&nbsp;S23), and before that tech M&amp;A at SVB and Moelis.
-  </p>
+<Base description="Ryan (Jin Hyuk) Choi — starting a company in San Francisco, writing in the open.">
+  <h1 class="sr-only">Ryan Choi</h1>
+
+  <img class="about-photo" src="/ryan.jpg" alt="Ryan Choi" width="1080" height="1440" />
+
   <p>
-    I write about building, going to market, and the gap between how things are
-    done and how they could be. <a href="/about/">More about me →</a>
+    Hi I'm Jin&nbsp;Hyuk — most people call me Ryan. I currently live in San
+    Francisco where I'm in the early, uncertain part of starting a company:
+    figuring out what's actually worth building.
+  </p>
+
+  <p>
+    Before this, I spent my career close to how companies get built, bought, and
+    sold. Tech M&amp;A at SVB and Moelis, then chief of staff at Artie
+    (YC&nbsp;S23), a data infra startup. I grew up between Korea and England,
+    studied PPE at Warwick, and voluntarily served two years in the Korean
+    military as a rifleman.
+  </p>
+
+  <p>
+    The things I keep coming back to are helping people through their hard parts,
+    and being honest about my own reasons for doing things. This site is where I
+    think in the open. Essays and notes, mostly written to understand something
+    rather than to claim I already have.
   </p>
 
   {posts.length > 0 && (
     <>
-      <h2>Recent writing</h2>
+      <h2>Writing</h2>
       <ul class="post-list">
         {posts.map((post) => (
           <li>
