@@ -3,18 +3,8 @@
   --muted: #6b6b6b;
   --link: #2563b0;
   --rule: #e5e5e5;
-  --bg: #fdfdfc;
+  --bg: #ffffff;
   --maxw: 640px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #e6e6e6;
-    --muted: #9a9a9a;
-    --link: #7aa7e0;
-    --rule: #2a2a2a;
-    --bg: #161616;
-  }
 }
 
 * { box-sizing: border-box; }
