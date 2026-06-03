@@ -2,9 +2,7 @@
 title: Who's Choosing
 date: 2026-06-02
 draft: false
-buttons:
-  - label: test
-    href: https://jinhyukchoi.vercel.app/writing/whos-choosing/
+buttons: []
 ---
 > **TL;DR**: I caught myself chasing an impressive-sounding idea I didn't actually want, and realized I've always been driven by who I become rather than the problem itself — which makes the problem dangerously interchangeable. So I've stopped asking what's most impressive and started asking what's real, what I'd help people get unstuck on, and whose world I can't stop thinking about.
 
