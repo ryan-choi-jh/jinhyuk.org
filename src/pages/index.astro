@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import SocialLinks from '../components/SocialLinks.astro';
 import { getCollection } from 'astro:content';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../keystatic.config';
@@ -25,7 +26,10 @@ const fmt = (d: Date) =>
 ---
 
 <Base description="Ryan (Jin Hyuk) Choi — starting a company in San Francisco, writing in the open.">
-  <h1 class="sr-only">Ryan Choi</h1>
+  <header class="profile">
+    <h1 class="name">Ryan Choi</h1>
+    <SocialLinks />
+  </header>
 
   {introParagraphs.map((para) => <p>{para}</p>)}
 
