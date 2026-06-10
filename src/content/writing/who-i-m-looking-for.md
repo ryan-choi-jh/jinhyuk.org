@@ -6,9 +6,9 @@ buttons:
   - label: Coffee on me ☕️
     href: mailto:ryanchoi0125@gmail.com
 ---
-# Who I'm Looking For
+# Who I'm Looking For: The Temporarily Stuck
 
-> **TL;DR**: I said I'd go interview people and watch for the workarounds they'd built. Before I got far, I caught myself aiming at the wrong person — the one being helped, not the one with the power to help — and tracing why led somewhere personal. The people I keep wanting to help are 약자, the ones at a disadvantage, and specifically the transitional kind: capable people caught mid-passage without a map. I haven't worked out what that means for what I build. I'm writing it down while it's still unresolved.
+> **TL;DR**: I said I'd go interview people and watch for the workarounds they'd built. Before I got far, I caught myself aiming at the wrong person — the one being helped, not the one with the power to help — and tracing why led somewhere personal. The people I keep wanting to help are 약자, the ones at a disadvantage, and specifically the transitional kind: capable people caught mid-passage without a map. I've got a few markets pulling at me and a plan to go find the people in them, but I still don't know what to build. I'm writing it down while it's unresolved.
 
 ## I caught myself aiming at the wrong person
 
@@ -44,13 +44,19 @@ Here's where I actually am, and I'd rather be honest than tidy about it.
 
 Caring about people at a disadvantage runs straight into a wall: they often can't pay you, and sometimes can't act for themselves at all. Which forces a question I haven't answered — whether you build *for* them, or for the people whose job is to help them. The one thing the "transitional" part seems to buy me is that these people aren't helpless; they keep enough agency to take help and act on it, which might mean I get to build for them directly. *Might*. I don't know yet.
 
-There's a more basic problem, too. I'm not surrounded by 약자. I live in San Francisco, where most of my friends work in tech and finance — close to the last place you'd go looking for people without power. So a real part of the next few weeks is just leaving the rooms I'm usually in and going to find them.
-
 I could force a resolution here. Pick a population, write a confident paragraph about why it's obviously the one, and move. I've done that before — it's most of what the first piece was about unlearning. So instead I'm going to sit in it for a bit and let the conversations decide, rather than deciding and then collecting conversations that agree.
+
+## I have a few places in mind, and a rule for the hard ones
+
+A few markets are pulling at me right now, and I'm letting them. Getting to the right care quickly when you're suddenly sick and lost in the system. The elderly who seem to age faster once the people around them thin out. A younger generation that's somehow lonelier than any before it, in the most connected world there's ever been.
+
+Some of these involve people who can't really act for themselves, which sounds like it breaks everything I just said about wanting capable people. It doesn't, *quite*. Where the person I ultimately care about can't act or pay, the temporarily-stuck person I'd actually be serving is usually the one trying to help them — the adult child suddenly thrust into caring for a parent, the counselor, the worn-out parent at the kitchen table. Those people are capable, and dropped into a passage they've never crossed, with no map. The same person I keep describing, one seat over.
+
+I don't know these people yet. They aren't in the rooms I usually sit in — I live in San Francisco, where most of my friends work in tech and finance, close to the last place you'd go looking for people without power. So this starts as desk research, not to find the answer but to find *them*: where they gather, who already tries to serve them, where that help breaks. Then I go and ask.
 
 ## Why I'm posting this unresolved
 
-This site is where I think in the open, and the open part only counts if I'm willing to publish the messy middle and not just the clean arrivals. Right now the messy middle *is* the content: I know how I want to look, I know the kind of person I want to look for, and I genuinely don't know yet what to build or who to sell it to. Naming that out loud is also how I keep myself from quietly resolving it the convenient way the moment no one's watching.
+I know how I want to look, I know the kind of person I want to look for, and I genuinely don't know yet what to build or who to sell it to. Naming that out loud is also how I keep myself from quietly resolving it the convenient way the moment no one's watching.
 
 So if you've ever been the capable one stuck in the middle of something with no map — or if helping people through exactly that passage is your job — I'd like to hear about it. Right now, that's the whole search.
 
