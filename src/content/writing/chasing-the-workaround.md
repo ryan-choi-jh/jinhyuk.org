@@ -3,7 +3,7 @@ title: Chasing the Workaround
 date: 2026-06-08
 draft: false
 buttons:
-  - label: Buy me coffee ☕️
+  - label: Coffee on me ☕️
     href: mailto:ryanchoi0125@gmail.com
 ---
 # Chasing the Workaround
@@ -55,5 +55,3 @@ And I've written down, before starting, what would make me walk away: if the stu
 The honest ending is that I might do all of this and find nothing, and have to cut again. A year ago that would have felt like failure. Now it feels like the job. The entire reason to set the rules in advance is so I get to be wrong cheaply and quickly instead of expensively and slowly.
 
 If you've ever caught yourself stuck on something at work and built some ugly little workaround to get through it, I'd genuinely like to hear about it. That's the whole search I'm focused on.
-
-"0"
