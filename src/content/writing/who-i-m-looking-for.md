@@ -59,5 +59,3 @@ I don't know these people yet. They aren't in the rooms I usually sit in — I l
 I know how I want to look, I know the kind of person I want to look for, and I genuinely don't know yet what to build or who to sell it to. Naming that out loud is also how I keep myself from quietly resolving it the convenient way the moment no one's watching.
 
 So if you've ever been the capable one stuck in the middle of something with no map — or if helping people through exactly that passage is your job — I'd like to hear about it. Right now, that's the whole search.
-
-"2"
