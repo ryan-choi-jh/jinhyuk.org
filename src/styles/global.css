@@ -90,14 +90,27 @@ hr {
 .site-nav a:hover { color: var(--ink); }
 
 /* --- homepage profile header --- */
-.profile { margin: 0 0 44px; }
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0 0 44px;
+}
+.avatar {
+  flex-shrink: 0;
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.profile-text { min-width: 0; }
 .name {
   font-family: "Times New Roman", Times, Georgia, serif;
   font-size: 2.7rem;
   font-weight: 400;
   letter-spacing: 0.01em;
   line-height: 1.05;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
 }
 .socials {
   display: flex;
@@ -170,15 +183,6 @@ hr {
   text-decoration: none;
   border-color: var(--ink);
   background: rgba(127, 127, 127, 0.05);
-}
-
-.about-photo {
-  display: block;
-  width: 100%;
-  max-width: 360px;
-  height: auto;
-  border-radius: 10px;
-  margin: 2.6em 0 0;
 }
 
 .sr-only {

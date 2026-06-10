@@ -27,8 +27,21 @@ const fmt = (d: Date) =>
 
 <Base description="Ryan (Jin Hyuk) Choi — starting a company in San Francisco, writing in the open.">
   <header class="profile">
-    <h1 class="name">Ryan Choi</h1>
-    <SocialLinks />
+    {photo && (
+      <img
+        class="avatar"
+        src={photo}
+        alt={photoAlt}
+        width="600"
+        height="600"
+        style="image-orientation: from-image;"
+        decoding="async"
+      />
+    )}
+    <div class="profile-text">
+      <h1 class="name">Ryan Choi</h1>
+      <SocialLinks />
+    </div>
   </header>
 
   {introParagraphs.map((para) => <p>{para}</p>)}
@@ -45,16 +58,5 @@ const fmt = (d: Date) =>
         ))}
       </ul>
     </>
-  )}
-
-  {photo && (
-    <img
-      class="about-photo"
-      src={photo}
-      alt={photoAlt}
-      style="image-orientation: from-image;"
-      loading="lazy"
-      decoding="async"
-    />
   )}
 </Base>
