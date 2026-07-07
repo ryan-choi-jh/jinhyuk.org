@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+import { createReader } from '@keystatic/core/reader';
+import keystaticConfig from '../../../keystatic.config';
+
+const reader = createReader(process.cwd(), keystaticConfig);
+
+const projects = (await reader.collections.projects.all())
+  .filter((p) => !p.entry.draft)
+  .sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1));
+
+const hostname = (url: string | null) => {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
+---
+
+<Base title="Projects" description="Things Ryan Choi has built.">
+  <h1>Projects</h1>
+
+  {projects.length === 0 ? (
+    <p class="lead">Nothing here yet. Soon.</p>
+  ) : (
+    <ul class="project-list">
+      {projects.map(({ slug, entry }) => (
+        <li class="project-card">
+          {entry.cover && (
+            <a href={`/projects/${slug}/`} class="project-thumb">
+              <img src={entry.cover} alt="" loading="lazy" />
+            </a>
+          )}
+          <div class="project-body">
+            <a href={`/projects/${slug}/`} class="project-title">{entry.title}</a>
+            {entry.summary && <p class="project-summary">{entry.summary}</p>}
+            {entry.url && (
+              <span class="project-url">{hostname(entry.url)}</span>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>

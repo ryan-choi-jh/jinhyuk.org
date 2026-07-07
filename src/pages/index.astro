@@ -21,6 +21,11 @@ const posts = (await getCollection('writing'))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, 5);
 
+const projects = (await reader.collections.projects.all())
+  .filter((p) => !p.entry.draft)
+  .sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1))
+  .slice(0, 5);
+
 const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 ---
@@ -45,6 +50,20 @@ const fmt = (d: Date) =>
   </header>
 
   {introParagraphs.map((para) => <p>{para}</p>)}
+
+  {projects.length > 0 && (
+    <>
+      <h2>Projects</h2>
+      <ul class="post-list">
+        {projects.map(({ slug, entry }) => (
+          <li>
+            <a href={`/projects/${slug}/`}>{entry.title}</a>
+            <span class="date">{fmt(new Date(`${entry.date}T00:00:00Z`))}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
 
   {posts.length > 0 && (
     <>
