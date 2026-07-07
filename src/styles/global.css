@@ -207,13 +207,10 @@ hr {
 .project-content figure { margin: 1.8em 0; }
 .project-content img,
 .project-content video {
-  max-width: 100%;
-  max-height: 560px;
-  width: auto;
+  width: 100%;
   height: auto;
   border-radius: 10px;
   display: block;
-  margin-inline: auto;
 }
 .project-content figcaption {
   margin-top: 8px;
