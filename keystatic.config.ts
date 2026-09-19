@@ -1,20 +1,12 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
 
-// In production (on Vercel) Keystatic uses GitHub mode: you log in with GitHub
-// and every save is committed to the repo, which triggers a Vercel rebuild.
-// Normal `npm run dev` uses local mode (edits files directly, no login).
-// For the one-time GitHub App setup, run `PUBLIC_KEYSTATIC_STORAGE=github npm run dev`
-// to force GitHub mode locally so the setup wizard appears.
-// NOTE: use import.meta.env (not process.env) — this file also runs in the
-// browser for the editor UI, where `process` does not exist.
-const useGitHub =
-  import.meta.env.PROD ||
-  import.meta.env.PUBLIC_KEYSTATIC_STORAGE === 'github';
-
+// The editor runs locally only (`npm run dev` → http://localhost:4321/keystatic)
+// and edits the files in src/content/ directly; commit + push to publish.
+// This config is also imported at build time by the pages (via
+// @keystatic/core/reader) to read that content, so keep the schema here in
+// sync with what the pages expect.
 export default config({
-  storage: useGitHub
-    ? { kind: 'github', repo: 'ryan-choi-jh/personal-site' }
-    : { kind: 'local' },
+  storage: { kind: 'local' },
 
   ui: {
     brand: { name: 'Ryan Choi' },

@@ -37,10 +37,24 @@ npm run dev
 Then open http://localhost:4321/ in your browser. Changes appear instantly as
 you save.
 
+## How to edit with the visual editor
+
+```
+npm run dev
+```
+
+Then open http://localhost:4321/keystatic. It edits the files in `src/content/`
+directly — commit and push when you're done.
+
+The editor only runs locally. The live site is plain static files on GitHub
+Pages, which can't run the server the editor needs to log in with GitHub.
+(Editing a `.md` file on github.com and committing works too, from any device.)
+
 ## How to publish changes
 
-If deploying with the Vercel CLI: `npm run build` then `vercel --prod`.
-(Or, once GitHub is connected, just push and it deploys automatically.)
+Push to `main`. GitHub Actions (`.github/workflows/deploy.yml`) builds the site
+and deploys it to GitHub Pages at https://jinhyuk.org — usually live within a
+minute or two.
 
 ## Where to edit things
 

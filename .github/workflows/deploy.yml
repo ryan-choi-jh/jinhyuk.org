@@ -1,0 +1,41 @@
+name: Deploy to GitHub Pages
+
+on:
+  # Every push to main (including Keystatic / GitHub web-editor commits) rebuilds the site.
+  push:
+    branches: [main]
+  # Also lets you re-run a deploy by hand from the Actions tab.
+  workflow_dispatch:
+
+# Allow this job to write the Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; a newer push cancels an in-flight one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install, build, and upload the site
+        uses: withastro/action@v3
+        with:
+          node-version: 22
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

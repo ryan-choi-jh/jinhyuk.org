@@ -1,8 +1,8 @@
 {
   "name": "Ryan Choi",
   "short_name": "Ryan Choi",
-  "description": "Ryan Choi's site — write and edit posts.",
-  "start_url": "/keystatic",
+  "description": "Ryan Choi's site.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
