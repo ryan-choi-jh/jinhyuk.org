@@ -21,9 +21,9 @@ const year = new Date().getFullYear();
     {description && <meta name="description" content={description} />}
     <meta name="color-scheme" content="light" />
 
+    <!-- No favicon on purpose; the empty data URL stops browsers requesting /favicon.ico. -->
+    <link rel="icon" href="data:," />
     <!-- Installable as a phone app (PWA). -->
-    <link rel="icon" href="/icons/icon-192-rc.png" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-rc.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
