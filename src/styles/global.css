@@ -936,7 +936,9 @@ article figcaption {
 }
 
 /* Phone screenshots size by height, so three of them sit side by side
-   instead of each one filling the column. */
+   instead of each one filling the column. 720px is the figure the Paper
+   palette is drawn at: three portrait phones then come to 1041px wide and
+   just fit the 1056 column. */
 .media-items--tall {
   align-items: flex-end;
 }
@@ -948,7 +950,7 @@ article figcaption {
 .media-items--tall img {
   width: auto;
   height: auto;
-  max-height: 560px;
+  max-height: 720px;
 }
 
 .media-item {
@@ -960,6 +962,9 @@ article figcaption {
   display: block;
   width: 100%;
   height: auto;
+  /* Same hairline the album tiles and film posters carry. Without it a
+     screenshot that's white to its edges dissolves into the page. */
+  border: 1px solid var(--media-edge);
 }
 
 .media-caption {
@@ -998,6 +1003,7 @@ article figcaption {
   display: block;
   width: 100%;
   height: auto;
+  border: 1px solid var(--media-edge);
 }
 
 /* ---------------------------------------------------------------------------
