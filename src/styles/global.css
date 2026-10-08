@@ -314,12 +314,18 @@ a {
   list-style: none;
 }
 
+/* Rules sit between rows only — nothing above the first or below the
+   last, so the list doesn't read as a boxed table. */
 .ledger li {
   display: flex;
   align-items: baseline;
   gap: 20px;
   padding: 20px 0;
   border-bottom: 1px solid var(--rule);
+}
+
+.ledger li:last-child {
+  border-bottom: 0;
 }
 
 .ledger-body {
