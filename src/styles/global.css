@@ -23,7 +23,7 @@
   --sans: 'Inter', system-ui, -apple-system, sans-serif;
   --sans-tight: 'Inter Tight', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --script: 'Allura', cursive;
+  --script: 'Sarina', cursive;
 }
 
 /* Dark mode. Values taken from the "Dark — …" artboards in the Paper file.
@@ -127,7 +127,9 @@ a {
 .wordmark {
   font-family: var(--script);
   font-weight: 400;
-  font-size: 26px;
+  /* Sarina is far heavier than the Allura it replaced, so it needs a
+     smaller size to sit level with the nav rather than shout over it. */
+  font-size: 22px;
   line-height: 30px;
   letter-spacing: 0;
   color: var(--ink);
