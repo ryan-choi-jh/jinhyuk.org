@@ -32,6 +32,10 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Always reserve room for the scrollbar. Without this, short pages
+     (Projects, Essays) have no scrollbar and tall ones (Photography,
+     Filmography) do, so the centred page shifts sideways as you navigate. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -40,8 +44,10 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-weight: 300;
-  font-size: 20px;
-  line-height: 40px;
+  /* 17.5px with the capped intro measure below keeps the first paragraph
+     to two lines. At 20px it wrapped "Artie." onto a third line. */
+  font-size: 17.5px;
+  line-height: 35px;
   letter-spacing: -0.02em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -129,8 +135,12 @@ a {
 /* ---------------------------------------------------------------------------
    Hero
    --------------------------------------------------------------------------- */
+/* The illustration bleeds into both page gutters: the ski scene runs off the
+   left edge and the pencil hangs below the grid, the way it does in Paper.
+   The export is a full 1440-wide page, gutters included, so the image sits
+   outside the content box on both sides. */
 .hero {
-  padding-top: 0;
+  margin-inline: calc(var(--gutter) * -1);
 }
 
 .hero img {
@@ -141,13 +151,19 @@ a {
 /* ---------------------------------------------------------------------------
    Intro / running prose
    --------------------------------------------------------------------------- */
+/* The hero export carries 44px of bleed below the grid so the pencil is
+   complete, so the gap here is 72px minus that to keep the designed rhythm. */
 .intro {
-  padding-top: 72px;
-  max-width: 1344px;
+  padding-top: 28px;
+  /* Capped so the line length — and therefore where the first paragraph
+     wraps — doesn't change with the window. At 17.5px this holds that
+     paragraph to two lines on any window down to about 1300px. Letting it
+     run the full 1344px made the wrap depend on the browser width. */
+  max-width: 1184px;
 }
 
 .intro p {
-  margin: 0 0 27px;
+  margin: 0 0 24px;
 }
 
 .intro p:last-child {
@@ -156,7 +172,7 @@ a {
 
 .intro .name {
   font-weight: 700;
-  margin-bottom: 27px;
+  margin-bottom: 24px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -615,8 +631,8 @@ article figcaption {
   }
 
   body {
-    font-size: 17px;
-    line-height: 30px;
+    font-size: 16px;
+    line-height: 28px;
   }
 
   .site-nav {
@@ -631,7 +647,10 @@ article figcaption {
     gap: 20px;
   }
 
-  .intro,
+  .intro {
+    padding-top: 16px;
+  }
+
   .masthead {
     padding-top: 40px;
   }
