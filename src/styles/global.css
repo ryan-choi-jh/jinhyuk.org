@@ -14,6 +14,7 @@
   --toggle-on: #f0f0f0;  /* filled cell behind the active theme icon */
   --toggle-off: #9a9a9a; /* the inactive theme icon */
   --code-bg: #f6f6f6;
+  --sheet: #ffffff;      /* the paper the hero grid sits on, white in both themes */
 
   --page: 1440px;        /* artboard width */
   --gutter: 48px;        /* artboard side padding */
@@ -197,17 +198,27 @@ a {
 /* ---------------------------------------------------------------------------
    Hero
    --------------------------------------------------------------------------- */
-/* The export is a full 1440-wide page: a white sheet running gutter to
-   gutter with the grid on it, transparent everywhere else. That one image
-   serves both themes — in dark mode the sheet reads as lit paper on the
-   dark ground. The skier is cropped at the grid border; only the pencil
-   breaks out, into the 44px of bleed below, which the reduced .intro
-   padding accounts for. */
+/* The image is exactly the grid's own width, so the grid lines up with the
+   content column — and therefore with the wordmark and the theme toggle —
+   at every window width. Don't bake the page gutters into the export: the
+   image's internal margins would scale with the image while the page's
+   gutters stay fixed, and the two only agree at exactly 1440px.
+
+   The white sheet around the grid is drawn here instead, so it can bleed
+   into both gutters while the grid itself stays put. In dark mode that
+   sheet is what reads as lit paper on the dark ground.
+
+   The skier is cropped at the grid border; only the pencil breaks out,
+   into the 44px of bleed below the grid that the export carries and the
+   reduced .intro padding accounts for. */
 .hero {
   margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  background: var(--sheet);
 }
 
 .hero img {
+  display: block;
   width: 100%;
   height: auto;
 }
