@@ -204,17 +204,20 @@ a {
    image's internal margins would scale with the image while the page's
    gutters stay fixed, and the two only agree at exactly 1440px.
 
-   The white sheet around the grid is drawn here instead, so it can bleed
-   into both gutters while the grid itself stays put. In dark mode that
-   sheet is what reads as lit paper on the dark ground.
+   The white sheet behind it is drawn here instead of being part of the
+   image. It runs the full width of the window, not just of the content
+   column, so on a screen wider than the 1440px cap there's no dark band
+   either side of it in dark mode. The box-shadow paints the sheet colour
+   outwards without affecting layout, and the clip-path keeps that paint
+   horizontal so it doesn't leak above or below.
 
    The skier is cropped at the grid border; only the pencil breaks out,
    into the 44px of bleed below the grid that the export carries and the
    reduced .intro padding accounts for. */
 .hero {
-  margin-inline: calc(var(--gutter) * -1);
-  padding-inline: var(--gutter);
   background: var(--sheet);
+  box-shadow: 0 0 0 100vmax var(--sheet);
+  clip-path: inset(0 -100vmax);
 }
 
 .hero img {
