@@ -283,9 +283,15 @@ a {
   color: var(--muted);
 }
 
+/* 100dvh rather than inset:0 so the overlay matches the *visible* viewport
+   on mobile. With inset:0 it spans the layout viewport, which on iOS runs
+   up behind Safari's URL bar and took the close button with it. */
 .lightbox {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100dvh;
   z-index: 100;
   display: none;
   align-items: center;
@@ -319,8 +325,10 @@ a {
 
 .lightbox-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  /* Sits clear of the notch and the browser chrome, as high as it can go
+     while staying fully visible. */
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -328,28 +336,31 @@ a {
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.14);
+  background: none;
   color: #ffffff;
   cursor: pointer;
+  /* Keeps the bare mark readable where the illustration behind is white. */
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
 }
 
 .lightbox-close svg {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
 }
 
 .lightbox-hint {
   position: absolute;
-  bottom: 24px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   left: 0;
   right: 0;
   text-align: center;
-  font-family: var(--sans-tight);
+  font-family: var(--nav);
   font-size: 11px;
+  font-weight: 500;
   line-height: 16px;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.62);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 /* Stops the page behind scrolling while the overlay is up. */
