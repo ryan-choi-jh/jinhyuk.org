@@ -286,7 +286,7 @@ a {
   font-family: var(--nav);
   font-size: 8px;
   font-weight: 400;
-  line-height: 16px;
+  line-height: 20px;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -940,6 +940,10 @@ article figcaption {
   .site-nav-links a {
     font-size: 11px;
     letter-spacing: 0.08em;
+  }
+
+  .hero {
+    padding-block: 12px 4px;
   }
 
   .intro {
