@@ -25,7 +25,7 @@ const introParagraphs = (home?.intro ?? '')
 ---
 
 <Base description="Ryan (Jin Hyuk) Choi — Korea born, England raised, San Francisco based.">
-  <div class="hero">
+  <div class="hero" tabindex="-1">
     <button class="hero-open" type="button" aria-label="Enlarge the illustration">
       <img
         src="/home/hero.webp"
@@ -44,7 +44,7 @@ const introParagraphs = (home?.intro ?? '')
     {introParagraphs.map((html) => <p set:html={html} />)}
   </div>
 
-  <div class="lightbox" id="hero-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, enlarged">
+  <div class="lightbox" id="hero-lightbox" tabindex="-1" role="dialog" aria-modal="true" aria-label="Illustration, enlarged">
     <div class="lightbox-stage">
       <img src="/home/hero.webp" alt="" width="2688" height="1648" loading="lazy" decoding="async" />
     </div>
@@ -59,23 +59,30 @@ const introParagraphs = (home?.intro ?? '')
   <script is:inline>
     (function () {
       var box = document.getElementById('hero-lightbox');
+      var hero = document.querySelector('.hero');
       var open = document.querySelector('.hero-open');
       var close = box && box.querySelector('.lightbox-close');
       var stage = box && box.querySelector('.lightbox-stage');
-      if (!box || !open || !close || !stage) return;
+      if (!box || !hero || !open || !close || !stage) return;
 
       function show() {
         box.classList.add('is-open');
         document.body.classList.add('is-locked');
         // Start in the middle of the illustration rather than at its left edge.
         stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
-        close.focus();
+        // Focus the overlay, not the close button: Safari counts a
+        // programmatic focus as keyboard-ish and would draw the button's
+        // focus ring over the artwork before anyone has touched it. A
+        // keyboard user tabs from here to the button and gets the ring.
+        box.focus();
       }
 
       function hide() {
         box.classList.remove('is-open');
         document.body.classList.remove('is-locked');
-        open.focus();
+        // Same reason: back to the hero container, so no ring is painted
+        // around the illustration. Tab from there reaches the trigger.
+        hero.focus();
       }
 
       open.addEventListener('click', show);

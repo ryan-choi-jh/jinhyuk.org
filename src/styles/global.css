@@ -253,6 +253,13 @@ a {
   clip-path: inset(0 -100vmax);
 }
 
+/* Focus lands here when the overlay closes (rather than on .hero-open,
+   where Safari paints a ring around the whole illustration because it
+   treats programmatic focus as keyboard-ish). */
+.hero:focus {
+  outline: none;
+}
+
 .hero img {
   display: block;
   width: 100%;
@@ -305,6 +312,13 @@ a {
   display: flex;
 }
 
+/* Focus moves to the overlay itself when it opens, so nothing is painted
+   over the artwork. Safari matches :focus-visible on programmatic focus,
+   so the close button can't hold focus without flashing its ring. */
+.lightbox:focus {
+  outline: none;
+}
+
 /* Scrolls sideways so the illustration can be dragged across at a size
    that's actually readable. */
 .lightbox-stage {
@@ -348,8 +362,8 @@ a {
   height: 18px;
 }
 
-/* Focus moves here when the overlay opens, so only show a ring for
-   keyboard users — and a white one, not the browser's blue on black. */
+/* Only show a ring for keyboard users who tab here — and a white one,
+   not the browser's blue on black. */
 .lightbox-close:focus {
   outline: none;
 }
