@@ -21,10 +21,29 @@ const isDev = process.argv.includes('dev');
 const isEditor = process.env.PUBLIC_EDITOR_BUILD === '1';
 const withKeystatic = isDev || isEditor;
 
+const EDITOR_ORIGIN = 'https://jinhyuk-editor.vercel.app';
+
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://jinhyuk.org',
+  site: isEditor ? EDITOR_ORIGIN : 'https://jinhyuk.org',
   output: isEditor ? 'server' : 'static',
   ...(isEditor ? { adapter: vercel() } : {}),
   integrations: withKeystatic ? [react(), keystatic()] : [],
+
+  // Astro ignores X-Forwarded-Host unless the domain is allowlisted, to stop
+  // host-header injection. Behind Vercel's proxy that meant every request
+  // looked like https://localhost, and Keystatic builds its GitHub OAuth
+  // redirect_uri from the request origin — so GitHub was being told to
+  // redirect back to localhost and login could never complete. The wildcard
+  // covers preview deployments, which get a generated subdomain.
+  ...(isEditor
+    ? {
+        security: {
+          allowedDomains: [
+            { hostname: 'jinhyuk-editor.vercel.app', protocol: 'https' },
+            { hostname: '**.vercel.app', protocol: 'https' },
+          ],
+        },
+      }
+    : {}),
 });
