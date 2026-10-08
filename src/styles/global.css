@@ -15,6 +15,7 @@
   --toggle-off: #9a9a9a; /* the inactive theme icon */
   --code-bg: #f6f6f6;
   --sheet: #ffffff;      /* the paper the hero grid sits on, white in both themes */
+  --media-edge: #e4e4e4; /* hairline around album tiles and film posters */
 
   --page: 1440px;        /* artboard width */
   --gutter: 48px;        /* artboard side padding */
@@ -45,6 +46,7 @@
   --toggle-on: #242424;
   --toggle-off: #6e6e6e;
   --code-bg: #1a1a1a;
+  --media-edge: #3b3b3b;
 }
 
 /* ---------------------------------------------------------------------------
@@ -257,6 +259,109 @@ a {
   height: auto;
 }
 
+/* The grid is legible on a desktop but tiny on a phone, so the whole
+   illustration opens full screen where it can be panned across. */
+.hero-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.hero-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 10px;
+  font-family: var(--sans-tight);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.hero-hint svg {
+  width: 11px;
+  height: 11px;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.lightbox.is-open {
+  display: flex;
+}
+
+/* Scrolls sideways so the illustration can be dragged across at a size
+   that's actually readable. */
+.lightbox-stage {
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.lightbox-stage img {
+  height: 72vh;
+  width: auto;
+  max-width: none;
+  margin: auto;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.lightbox-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.lightbox-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--sans-tight);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* Stops the page behind scrolling while the overlay is up. */
+body.is-locked {
+  overflow: hidden;
+}
+
 /* ---------------------------------------------------------------------------
    Intro / running prose
    --------------------------------------------------------------------------- */
@@ -398,6 +503,7 @@ a {
   width: 100%;
   aspect-ratio: 4 / 3;
   background: var(--placeholder);
+  border: 1px solid var(--media-edge);
   overflow: hidden;
 }
 
@@ -450,7 +556,7 @@ a {
   width: 100%;
   aspect-ratio: 16 / 9;
   background: var(--placeholder);
-  border: 0;
+  border: 1px solid var(--media-edge);
   padding: 0;
   cursor: pointer;
   overflow: hidden;
@@ -759,9 +865,25 @@ article figcaption {
   }
 
   .site-nav {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    gap: 14px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'mark toggle'
+      'links links';
+    align-items: center;
+    row-gap: 16px;
+    padding-bottom: 24px;
+  }
+
+  .wordmark {
+    grid-area: mark;
+  }
+
+  .theme-toggle {
+    grid-area: toggle;
+  }
+
+  .site-nav-links {
+    grid-area: links;
   }
 
   .site-nav-links {
@@ -804,6 +926,10 @@ article figcaption {
   .video-play {
     width: 52px;
     height: 52px;
+  }
+
+  .hero-hint {
+    display: flex;
   }
 
   .site-footer {

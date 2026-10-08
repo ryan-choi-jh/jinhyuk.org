@@ -26,18 +26,81 @@ const introParagraphs = (home?.intro ?? '')
 
 <Base description="Ryan (Jin Hyuk) Choi — Korea born, England raised, San Francisco based.">
   <div class="hero">
-    <img
-      src="/home/hero.webp"
-      alt="A Korean 원고지 manuscript grid filled with hand-drawn scenes from Ryan Choi's life, from a toddler swinging a golf club to a desk overlooking San Francisco."
-      width="2688"
-      height="1648"
-      fetchpriority="high"
-      decoding="async"
-    />
+    <button class="hero-open" type="button" aria-label="Enlarge the illustration">
+      <img
+        src="/home/hero.webp"
+        alt="A Korean 원고지 manuscript grid filled with hand-drawn scenes from Ryan Choi's life, from a toddler swinging a golf club to a desk overlooking San Francisco."
+        width="2688"
+        height="1648"
+        fetchpriority="high"
+        decoding="async"
+      />
+    </button>
+    <span class="hero-hint">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path
+          d="M6 1.5H1.5V6M10 1.5h4.5V6M6 14.5H1.5V10M10 14.5h4.5V10"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      TAP TO ENLARGE
+    </span>
   </div>
 
   <div class="intro">
     <p class="name">{name}</p>
     {introParagraphs.map((html) => <p set:html={html} />)}
   </div>
+
+  <div class="lightbox" id="hero-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, enlarged">
+    <div class="lightbox-stage">
+      <img src="/home/hero.webp" alt="" width="2688" height="1648" loading="lazy" decoding="async" />
+    </div>
+    <button class="lightbox-close" type="button" aria-label="Close">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </button>
+    <span class="lightbox-hint">DRAG TO PAN · PINCH TO ZOOM</span>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var box = document.getElementById('hero-lightbox');
+      var open = document.querySelector('.hero-open');
+      var close = box && box.querySelector('.lightbox-close');
+      var stage = box && box.querySelector('.lightbox-stage');
+      if (!box || !open || !close || !stage) return;
+
+      function show() {
+        box.classList.add('is-open');
+        document.body.classList.add('is-locked');
+        // Start in the middle of the illustration rather than at its left edge.
+        stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
+        close.focus();
+      }
+
+      function hide() {
+        box.classList.remove('is-open');
+        document.body.classList.remove('is-locked');
+        open.focus();
+      }
+
+      open.addEventListener('click', show);
+      close.addEventListener('click', hide);
+
+      // Clicking the backdrop closes; clicking the illustration itself doesn't.
+      box.addEventListener('click', function (e) {
+        if (e.target === box || e.target === stage) hide();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && box.classList.contains('is-open')) hide();
+      });
+    })();
+  </script>
 </Base>
