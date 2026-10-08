@@ -31,7 +31,23 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     {description && <meta name="description" content={description} />}
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Resolve the theme before first paint so there's no flash of the
+         wrong one. Honours a saved choice, otherwise the OS setting. -->
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var dark = saved
+            ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
 
     <meta property="og:title" content={fullTitle} />
     {description && <meta property="og:description" content={description} />}
@@ -65,7 +81,39 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
             </a>
           ))}
         </div>
-        <div aria-hidden="true"></div>
+        <div class="theme-toggle" role="group" aria-label="Colour theme">
+          <button type="button" data-theme-set="dark" aria-label="Dark theme">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button type="button" data-theme-set="light" aria-label="Light theme">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle
+                cx="12"
+                cy="12"
+                r="4.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
       </nav>
 
       <main>
@@ -77,5 +125,46 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
         <SocialLinks />
       </footer>
     </div>
+
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        var buttons = document.querySelectorAll('[data-theme-set]');
+
+        function paint() {
+          var current = root.dataset.theme;
+          buttons.forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b.dataset.themeSet === current));
+          });
+        }
+
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            root.dataset.theme = b.dataset.themeSet;
+            try {
+              localStorage.setItem('theme', b.dataset.themeSet);
+            } catch (e) {
+              /* private browsing — the choice just won't persist */
+            }
+            paint();
+          });
+        });
+
+        // Follow the OS while the visitor hasn't picked a side themselves.
+        try {
+          window
+            .matchMedia('(prefers-color-scheme: dark)')
+            .addEventListener('change', function (e) {
+              if (localStorage.getItem('theme')) return;
+              root.dataset.theme = e.matches ? 'dark' : 'light';
+              paint();
+            });
+        } catch (e) {
+          /* older browsers: no live OS switching */
+        }
+
+        paint();
+      })();
+    </script>
   </body>
 </html>

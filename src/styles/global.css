@@ -4,12 +4,16 @@
    sub-pages). Changing a value here changes it everywhere.
    --------------------------------------------------------------------------- */
 :root {
+  color-scheme: light;
   --ink: #111111;        /* body text, headings */
   --muted: #6b6b6b;      /* secondary text, nav */
   --rule: #e4e4e4;       /* hairline dividers */
   --accent: #ff5722;     /* dates and meta */
   --paper: #ffffff;      /* page background */
   --placeholder: #ededed;
+  --toggle-on: #f0f0f0;  /* filled cell behind the active theme icon */
+  --toggle-off: #9a9a9a; /* the inactive theme icon */
+  --code-bg: #f6f6f6;
 
   --page: 1440px;        /* artboard width */
   --gutter: 48px;        /* artboard side padding */
@@ -19,6 +23,22 @@
   --sans-tight: 'Inter Tight', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --script: 'Allura', cursive;
+}
+
+/* Dark mode. Values taken from the "Dark — …" artboards in the Paper file.
+   The theme is resolved to an explicit light/dark on <html> by an inline
+   script in Base.astro before first paint, so only one branch is needed. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #f2f2f2;
+  --muted: #8a8a8a;
+  --rule: #2a2a2a;
+  --accent: #f5a623;
+  --paper: #0f0f0f;
+  --placeholder: #1c1c1c;
+  --toggle-on: #242424;
+  --toggle-off: #6e6e6e;
+  --code-bg: #1a1a1a;
 }
 
 /* ---------------------------------------------------------------------------
@@ -132,12 +152,61 @@ a {
   color: var(--ink);
 }
 
+/* Theme toggle — a two-cell pill, the active half filled. */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  flex-shrink: 0;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+}
+
+.theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--toggle-off);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle button:hover {
+  color: var(--ink);
+}
+
+.theme-toggle button[aria-pressed='true'] {
+  background: var(--toggle-on);
+  color: var(--ink);
+}
+
+.theme-toggle svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* ---------------------------------------------------------------------------
    Hero
    --------------------------------------------------------------------------- */
-/* The illustration sits flush with the content column. Only the pencil
-   breaks out, hanging below the grid — the export carries 44px of bleed at
-   the bottom for it, which the reduced .intro padding below accounts for. */
+/* The export is a full 1440-wide page: a white sheet running gutter to
+   gutter with the grid on it, transparent everywhere else. That one image
+   serves both themes — in dark mode the sheet reads as lit paper on the
+   dark ground. The skier is cropped at the grid border; only the pencil
+   breaks out, into the 44px of bleed below, which the reduced .intro
+   padding accounts for. */
+.hero {
+  margin-inline: calc(var(--gutter) * -1);
+}
+
 .hero img {
   width: 100%;
   height: auto;
@@ -450,14 +519,14 @@ article hr {
 article code {
   font-family: var(--mono);
   font-size: 0.85em;
-  background: #f6f6f6;
+  background: var(--code-bg);
   padding: 2px 5px;
 }
 
 article pre {
   overflow-x: auto;
   padding: 16px;
-  background: #f6f6f6;
+  background: var(--code-bg);
   font-size: 14px;
   line-height: 22px;
 }
@@ -602,7 +671,7 @@ article figcaption {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink);
+  color: var(--muted);
   transition: color 0.15s ease;
 }
 
