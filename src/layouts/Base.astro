@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import SocialLinks from '../components/SocialLinks.astro';
 
 interface Props {
   title?: string;
@@ -10,6 +11,17 @@ const { title, description } = Astro.props;
 const siteName = 'Ryan Choi';
 const fullTitle = title ? `${title} — ${siteName}` : siteName;
 const year = new Date().getFullYear();
+
+// The nav. `match` decides which item is highlighted for the current URL.
+const nav = [
+  { label: 'PROJECTS', href: '/projects/', match: '/projects' },
+  { label: 'ESSAYS', href: '/essays/', match: '/essays' },
+  { label: 'PHOTOGRAPHY', href: '/photography/', match: '/photography' },
+  { label: 'FILMOGRAPHY', href: '/filmography/', match: '/filmography' },
+];
+
+const path = Astro.url.pathname;
+const isCurrent = (match: string) => path === match || path.startsWith(`${match}/`);
 ---
 
 <!doctype html>
@@ -21,21 +33,39 @@ const year = new Date().getFullYear();
     {description && <meta name="description" content={description} />}
     <meta name="color-scheme" content="light" />
 
+    <meta property="og:title" content={fullTitle} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={new URL('/home/hero.jpg', Astro.site)} />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <!-- No favicon on purpose; the empty data URL stops browsers requesting /favicon.ico. -->
     <link rel="icon" href="data:," />
-    <!-- Installable as a phone app (PWA). -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Ryan Choi" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Allura&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400&display=swap"
+    />
   </head>
   <body>
     <div class="wrap">
       <nav class="site-nav">
-        <a href="/">Home</a>
-        <a href="/projects/">Projects</a>
-        <a href="/writing/">Writing</a>
+        <a class="wordmark" href="/">Ryan Choi</a>
+        <div class="site-nav-links">
+          {nav.map((item) => (
+            <a href={item.href} aria-current={isCurrent(item.match) ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))}
+        </div>
+        <div aria-hidden="true"></div>
       </nav>
 
       <main>
@@ -43,7 +73,8 @@ const year = new Date().getFullYear();
       </main>
 
       <footer class="site-footer">
-        © {year} Ryan Choi
+        <span class="copyright">© {year} Ryan Choi</span>
+        <SocialLinks />
       </footer>
     </div>
   </body>

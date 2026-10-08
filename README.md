@@ -1,63 +1,82 @@
-# Personal site
+# jinhyuk.org
 
-A minimal, text-first personal website — built with [Astro](https://astro.build).
-Inspired by the plainness of paulgraham.com, patrickcollison.com, and
-blog.samaltman.com.
+Ryan Choi's personal site. Built with [Astro](https://astro.build), edited with
+[Keystatic](https://keystatic.com), deployed to GitHub Pages at
+<https://jinhyuk.org>.
 
-## How to add a new post
+The design lives in Paper ("Personal Site" file) — the landing page plus four
+section pages. `src/styles/global.css` holds the tokens that mirror it.
 
-1. Create a new file in `src/content/writing/`, e.g. `the-thing-i-learned.md`.
-   The filename (minus `.md`) becomes the URL: `/writing/the-thing-i-learned/`.
-2. Put this at the top of the file (the "frontmatter"):
+## Pages
 
-   ```
-   ---
-   title: "The thing I learned"
-   date: 2026-06-10
-   ---
+| Address | What it is | Where the content comes from |
+| --- | --- | --- |
+| `/` | Hero illustration + intro | `src/content/home.yaml` |
+| `/projects/` | List of projects | `src/content/projects/*.yaml` |
+| `/projects/<slug>/` | A project write-up | same |
+| `/essays/` | List of essays | `src/content/writing/*.md` |
+| `/essays/<slug>/` | An essay | same |
+| `/photography/` | Album grid | `src/data/photography.ts` |
+| `/filmography/` | Short films | `src/data/filmography.ts` |
 
-   Your writing goes here, in plain Markdown.
-   ```
+`/writing/` and `/writing/<slug>/` still work — they redirect to `/essays/`,
+because the essays lived there before the nav was renamed.
 
-3. That's it. The post shows up automatically on the home page and `/writing/`,
-   newest first.
-
-### Tips
-
-- To save a draft without publishing it, add `draft: true` under the date.
-- Markdown basics: `**bold**`, `*italic*`, `## Heading`, `[link](https://...)`,
-  `> quote`, and `- ` for bullet lists.
-
-## How to see it locally
+## Editing
 
 ```
 npm run dev
 ```
 
-Then open http://localhost:4321/ in your browser. Changes appear instantly as
-you save.
+Then <http://localhost:4321/keystatic> for the visual editor (home page,
+projects, essays). It edits the files in `src/content/` directly — commit and
+push when you're done. The editor only runs locally; the live site is static
+files on GitHub Pages, which can't run the server the editor needs.
 
-## How to edit with the visual editor
+Editing a `.md` file on github.com and committing works too, from any device.
+
+### Adding an essay by hand
+
+Create `src/content/writing/the-thing-i-learned.md`. The filename becomes the
+URL (`/essays/the-thing-i-learned/`).
 
 ```
-npm run dev
+---
+title: "The thing I learned"
+date: 2026-06-10
+---
+
+Your writing goes here, in plain Markdown.
 ```
 
-Then open http://localhost:4321/keystatic. It edits the files in `src/content/`
-directly — commit and push when you're done.
+Add `draft: true` under the date to keep it unpublished.
 
-The editor only runs locally. The live site is plain static files on GitHub
-Pages, which can't run the server the editor needs to log in with GitHub.
-(Editing a `.md` file on github.com and committing works too, from any device.)
+### Photography and filmography
 
-## How to publish changes
+These two aren't in Keystatic — they're small TypeScript files you edit
+directly.
 
-Push to `main`. GitHub Actions (`.github/workflows/deploy.yml`) builds the site
-and deploys it to GitHub Pages at https://jinhyuk.org — usually live within a
-minute or two.
+- **Photography** (`src/data/photography.ts`) is currently placeholders with no
+  images behind them. Put images in `public/photography/<slug>/` and point each
+  album's `cover` at one.
+- **Filmography** (`src/data/filmography.ts`) lists YouTube video IDs. Each film
+  needs a poster frame at `public/filmography/<id>.jpg` (1280×720). The page
+  shows that still and only loads the YouTube player when someone clicks, so
+  four embeds don't slow the page down.
 
-## Where to edit things
+### The hero illustration
 
-- Your name, bio, social links: `src/layouts/Base.astro` and `src/pages/index.astro`
-- The About page: `src/pages/about.astro`
-- Colors and fonts: `src/styles/global.css`
+`public/home/hero.webp` (with a `.jpg` twin for social previews) is exported
+from the Paper file at 2× — the "Grid hero" frame. Re-export and re-convert it
+there when the illustration changes.
+
+## Publishing
+
+Push to `main`. GitHub Actions (`.github/workflows/deploy.yml`) builds and
+deploys to GitHub Pages, usually live within a minute or two.
+
+## Where to change things
+
+- Colours, type, spacing: `src/styles/global.css` (tokens at the top)
+- Nav and footer: `src/layouts/Base.astro`
+- Social links: `src/components/SocialLinks.astro`

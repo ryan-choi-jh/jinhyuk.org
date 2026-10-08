@@ -1,44 +1,15 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 
+// Old essay addresses (/writing/<slug>/) redirect to the new ones
+// (/essays/<slug>/) so existing links and bookmarks keep working.
 export async function getStaticPaths() {
   const posts = await getCollection('writing');
   return posts
     .filter((p) => !p.data.draft)
-    .map((post) => ({ params: { slug: post.id }, props: { post } }));
+    .map((post) => ({ params: { slug: post.id } }));
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
-
-const buttons = post.data.buttons ?? [];
-const isExternal = (href: string) => /^https?:\/\//.test(href);
-
-const fmt = (d: Date) =>
-  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const { slug } = Astro.params;
+return Astro.redirect(`/essays/${slug}/`, 301);
 ---
-
-<Base title={post.data.title} description={post.data.title}>
-  <article>
-    <h1>{post.data.title}</h1>
-    <p class="post-meta">{fmt(post.data.date)}</p>
-    <Content />
-
-    {buttons.length > 0 && (
-      <div class="essay-buttons">
-        {buttons.map((b) => (
-          <a
-            class="button"
-            href={b.href}
-            {...(isExternal(b.href)
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {})}
-          >
-            {b.label}
-          </a>
-        ))}
-      </div>
-    )}
-  </article>
-</Base>

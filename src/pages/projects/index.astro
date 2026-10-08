@@ -9,37 +9,26 @@ const projects = (await reader.collections.projects.all())
   .filter((p) => !p.entry.draft)
   .sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1));
 
-const hostname = (url: string | null) => {
-  if (!url) return '';
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-};
+// Projects show year and month: 2026.07
+const fmt = (d: string) => d.slice(0, 7).replace('-', '.');
 ---
 
 <Base title="Projects" description="Things Ryan Choi has built.">
-  <h1>Projects</h1>
+  <div class="masthead">
+    <h1>Projects</h1>
+  </div>
 
   {projects.length === 0 ? (
-    <p class="lead">Nothing here yet. Soon.</p>
+    <p class="empty">Nothing here yet. Soon.</p>
   ) : (
-    <ul class="project-list">
+    <ul class="ledger">
       {projects.map(({ slug, entry }) => (
-        <li class="project-card">
-          {entry.cover && (
-            <a href={`/projects/${slug}/`} class="project-thumb">
-              <img src={entry.cover} alt="" loading="lazy" />
-            </a>
-          )}
-          <div class="project-body">
-            <a href={`/projects/${slug}/`} class="project-title">{entry.title}</a>
-            {entry.summary && <p class="project-summary">{entry.summary}</p>}
-            {entry.url && (
-              <span class="project-url">{hostname(entry.url)}</span>
-            )}
+        <li>
+          <div class="ledger-body">
+            <a class="ledger-title" href={`/projects/${slug}/`}>{entry.title}</a>
+            {entry.summary && <span class="ledger-summary">{entry.summary}</span>}
           </div>
+          <span class="ledger-date">{fmt(entry.date)}</span>
         </li>
       ))}
     </ul>

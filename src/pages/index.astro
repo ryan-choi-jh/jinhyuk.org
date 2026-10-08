@@ -1,81 +1,43 @@
 ---
 import Base from '../layouts/Base.astro';
-import SocialLinks from '../components/SocialLinks.astro';
-import { getCollection } from 'astro:content';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../keystatic.config';
 
-// Read the editable home-page content (intro + photo) that Keystatic manages.
+// Read the editable home-page content (name + intro) that Keystatic manages.
 const reader = createReader(process.cwd(), keystaticConfig);
 const home = await reader.singletons.home.read();
 
+const name = home?.name ?? 'Ryan Choi (최진혁)';
+
+// The intro is a plain textarea in the editor. Blank lines separate
+// paragraphs, and *asterisks* mark italics (used for film titles).
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const inlineItalics = (s: string) =>
+  escapeHtml(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
 const introParagraphs = (home?.intro ?? '')
   .split(/\n\s*\n/)
-  .map((p) => p.trim())
-  .filter(Boolean);
-const photo = home?.photo ?? '/home/ryan.jpg';
-const photoAlt = home?.photoAlt ?? 'Ryan Choi';
-
-const posts = (await getCollection('writing'))
-  .filter((p) => !p.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, 5);
-
-const projects = (await reader.collections.projects.all())
-  .filter((p) => !p.entry.draft)
-  .sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1))
-  .slice(0, 5);
-
-const fmt = (d: Date) =>
-  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  .map((p) => p.trim().replace(/\s*\n\s*/g, ' '))
+  .filter(Boolean)
+  .map(inlineItalics);
 ---
 
-<Base description="Ryan (Jin Hyuk) Choi — starting a company in San Francisco, writing in the open.">
-  <header class="profile">
-    {photo && (
-      <img
-        class="avatar"
-        src={photo}
-        alt={photoAlt}
-        width="600"
-        height="600"
-        style="image-orientation: from-image;"
-        decoding="async"
-      />
-    )}
-    <div class="profile-text">
-      <h1 class="name">Ryan Choi</h1>
-      <SocialLinks />
-    </div>
-  </header>
+<Base description="Ryan (Jin Hyuk) Choi — Korea born, England raised, San Francisco based.">
+  <div class="hero">
+    <img
+      src="/home/hero.webp"
+      alt="A Korean 원고지 manuscript grid filled with hand-drawn scenes from Ryan Choi's life, from a toddler swinging a golf club to a desk overlooking San Francisco."
+      width="2688"
+      height="1560"
+      fetchpriority="high"
+      decoding="async"
+    />
+  </div>
 
-  {introParagraphs.map((para) => <p>{para}</p>)}
-
-  {projects.length > 0 && (
-    <>
-      <h2>Projects</h2>
-      <ul class="post-list">
-        {projects.map(({ slug, entry }) => (
-          <li>
-            <a href={`/projects/${slug}/`}>{entry.title}</a>
-            <span class="date">{fmt(new Date(`${entry.date}T00:00:00Z`))}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  )}
-
-  {posts.length > 0 && (
-    <>
-      <h2>Writing</h2>
-      <ul class="post-list">
-        {posts.map((post) => (
-          <li>
-            <a href={`/writing/${post.id}/`}>{post.data.title}</a>
-            <span class="date">{fmt(post.data.date)}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  )}
+  <div class="intro">
+    <p class="name">{name}</p>
+    {introParagraphs.map((html) => <p set:html={html} />)}
+  </div>
 </Base>

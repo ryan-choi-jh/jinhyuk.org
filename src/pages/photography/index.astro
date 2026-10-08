@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { albums } from '../../data/photography';
+---
+
+<Base title="Photography" description="Photographs by Ryan Choi.">
+  <div class="masthead">
+    <h1>Photography</h1>
+  </div>
+
+  <ul class="cards cards--thirds">
+    {albums.map((album) => (
+      <li class="card">
+        <div class="card-media">
+          {album.cover && <img src={album.cover} alt={album.title} loading="lazy" />}
+        </div>
+        <div class="card-text">
+          <span class="card-title">{album.title}</span>
+          <span class="card-meta">{album.year}</span>
+        </div>
+      </li>
+    ))}
+  </ul>
+</Base>

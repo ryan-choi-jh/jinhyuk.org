@@ -1,0 +1,69 @@
+---
+import Base from '../../layouts/Base.astro';
+import { films } from '../../data/filmography';
+---
+
+<Base
+  title="Filmography"
+  description="Short films Ryan Choi acted in and directed, 2018 to 2019."
+>
+  <div class="masthead">
+    <h1>Filmography</h1>
+  </div>
+
+  <ul class="cards cards--halves">
+    {films.map((film) => (
+      <li class="card">
+        <button
+          class="video"
+          type="button"
+          data-video-id={film.id}
+          aria-label={`Play ${film.title}`}
+        >
+          <img
+            src={`/filmography/${film.id}.jpg`}
+            alt=""
+            width="1280"
+            height="720"
+            loading="lazy"
+            decoding="async"
+          />
+          <span class="video-play">
+            <svg viewBox="0 0 20 22" aria-hidden="true" focusable="false">
+              <path d="M19 11L1 21.4V0.6L19 11Z" fill="#111111" />
+            </svg>
+          </span>
+        </button>
+        <div class="card-text">
+          <span class="card-title">{film.title}</span>
+          {film.note && <span class="card-note">{film.note}</span>}
+          <span class="card-meta">{film.kind} · {film.year}</span>
+        </div>
+      </li>
+    ))}
+  </ul>
+</Base>
+
+<script>
+  // Swap the poster frame for the real YouTube player on click. Keeps four
+  // embeds off the page until someone actually wants to watch one.
+  document.querySelectorAll<HTMLButtonElement>('.video').forEach((button) => {
+    button.addEventListener(
+      'click',
+      () => {
+        const id = button.dataset.videoId;
+        if (!id) return;
+
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+        iframe.title = button.getAttribute('aria-label') ?? 'Video';
+        iframe.allow =
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+
+        button.replaceChildren(iframe);
+      },
+      { once: true }
+    );
+  });
+</script>

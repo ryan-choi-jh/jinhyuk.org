@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('writing'))
+  .filter((p) => !p.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// Essays show the full date: 2026.06.09
+const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '.');
+---
+
+<Base title="Essays" description="Essays by Ryan Choi.">
+  <div class="masthead">
+    <h1>Essays</h1>
+  </div>
+
+  {posts.length === 0 ? (
+    <p class="empty">Nothing published yet. Soon.</p>
+  ) : (
+    <ul class="ledger">
+      {posts.map((post) => (
+        <li>
+          <div class="ledger-body">
+            <a class="ledger-title" href={`/essays/${post.id}/`}>{post.data.title}</a>
+          </div>
+          <span class="ledger-date">{fmt(post.data.date)}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>

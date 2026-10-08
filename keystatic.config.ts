@@ -184,21 +184,17 @@ export default config({
       path: 'src/content/home',
       format: { data: 'yaml' },
       schema: {
+        name: fields.text({
+          label: 'Name',
+          description: 'The bold first line under the hero illustration.',
+          defaultValue: 'Ryan Choi (최진혁)',
+        }),
         intro: fields.text({
           label: 'Intro',
           description:
-            'The text at the top of your home page. Separate paragraphs with a blank line.',
+            'The text under your name. Separate paragraphs with a blank line. ' +
+            'Wrap words in *asterisks* to italicise them (used for film titles).',
           multiline: true,
-        }),
-        photo: fields.image({
-          label: 'Photo',
-          description: 'Upload straight from your phone — JPG, PNG or HEIC.',
-          directory: 'public/home',
-          publicPath: '/home/',
-        }),
-        photoAlt: fields.text({
-          label: 'Photo description (alt text)',
-          defaultValue: 'Ryan Choi',
         }),
       },
     }),
