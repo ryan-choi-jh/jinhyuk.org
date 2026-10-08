@@ -67,11 +67,11 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&display=swap"
     />
   </head>
   <body>
-    <div class="wrap">
+    <header class="site-header">
       <nav class="site-nav">
         <a class="wordmark" href="/">Ryan Choi</a>
         <div class="site-nav-links">
@@ -115,7 +115,9 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
           </button>
         </div>
       </nav>
+    </header>
 
+    <div class="wrap">
       <main>
         <slot />
       </main>

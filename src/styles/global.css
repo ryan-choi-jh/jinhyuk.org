@@ -22,7 +22,9 @@
 
   --sans: 'Inter', system-ui, -apple-system, sans-serif;
   --sans-tight: 'Inter Tight', 'Inter', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Code only. Nothing else uses a monospace any more — dates and meta
+     moved to --nav so the whole interface speaks in one voice. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   /* Nav only. A grotesque with a bit of wobble, so the navigation stops
      reading as developer-tooling mono next to the hand-drawn hero. */
   --nav: 'Bricolage Grotesque', system-ui, sans-serif;
@@ -111,7 +113,28 @@ a {
 .wrap {
   max-width: var(--page);
   margin: 0 auto;
-  padding: 32px var(--gutter) 80px;
+  padding: 0 var(--gutter) 80px;
+}
+
+/* The bar stays put while the page scrolls under it. It's outside .wrap so
+   the frosted panel spans the whole window rather than stopping at the
+   1440px content cap, while the nav inside it still lines up with the
+   column. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--paper) 68%, transparent);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+/* Without backdrop-filter the bar would be see-through with nothing
+   blurring behind it, so fall back to opaque. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .site-header {
+    background: var(--paper);
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -124,7 +147,9 @@ a {
   grid-template-columns: 1fr auto 1fr;
   align-items: baseline;
   gap: 24px;
-  padding-bottom: 16px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 32px var(--gutter) 16px;
 }
 
 .wordmark {
@@ -328,8 +353,9 @@ a {
 .ledger-date {
   flex-shrink: 0;
   text-align: right;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 16px;
   letter-spacing: 0.04em;
   color: var(--accent);
@@ -400,8 +426,9 @@ a {
 }
 
 .card-meta {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 18px;
   letter-spacing: 0.04em;
   color: var(--accent);
@@ -554,8 +581,9 @@ article pre code {
 
 .post-meta {
   margin: 10px 0 40px;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 16px;
   letter-spacing: 0.04em;
   color: var(--accent);
@@ -605,8 +633,9 @@ article figcaption {
   margin-bottom: 32px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--rule);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 16px;
   letter-spacing: 0.04em;
 }
