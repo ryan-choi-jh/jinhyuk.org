@@ -280,13 +280,41 @@ export default config({
           {
             label: 'Content blocks',
             description: 'Build the page by adding blocks in order.',
+            // A list of rows all saying "Text" and "Media" tells you nothing,
+            // so each row summarises its own contents.
             itemLabel: (props) => {
               const kind = props.discriminant;
-              if (kind === 'text') return 'Text';
-              if (kind === 'heading') return 'Heading';
-              if (kind === 'quote') return 'Pull quote';
-              if (kind === 'media') return 'Media';
-              if (kind === 'textMedia') return 'Text beside media';
+              const v: any = props.value;
+              const snip = (s: unknown, n = 52) => {
+                const t = String(s ?? '').replace(/\s+/g, ' ').trim();
+                if (!t) return '';
+                return t.length > n ? `${t.slice(0, n)}…` : t;
+              };
+
+              if (kind === 'text') return snip(v?.value) || 'Text';
+              if (kind === 'heading') return `# ${snip(v?.value) || 'Heading'}`;
+              if (kind === 'quote') return `“${snip(v?.value, 40) || 'Pull quote'}”`;
+
+              if (kind === 'media') {
+                const f = v?.fields;
+                const n = f?.items?.elements?.length ?? 0;
+                const bits = [
+                  `${n} ${n === 1 ? 'item' : 'items'}`,
+                  f?.layout?.value,
+                  f?.width?.value,
+                  f?.tall?.value ? 'phones' : null,
+                ].filter(Boolean);
+                const cap = snip(f?.caption?.value, 30);
+                return `Media · ${bits.join(' · ')}${cap ? ` — ${cap}` : ''}`;
+              }
+
+              if (kind === 'textMedia') {
+                const f = v?.fields;
+                const side = f?.side?.value ?? 'right';
+                const cap = snip(f?.caption?.value, 24) || snip(f?.text?.value, 24);
+                return `Text + media ${side}${cap ? ` — ${cap}` : ''}`;
+              }
+
               return 'Block';
             },
           }
