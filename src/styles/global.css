@@ -135,14 +135,9 @@ a {
 /* ---------------------------------------------------------------------------
    Hero
    --------------------------------------------------------------------------- */
-/* The illustration bleeds into both page gutters: the ski scene runs off the
-   left edge and the pencil hangs below the grid, the way it does in Paper.
-   The export is a full 1440-wide page, gutters included, so the image sits
-   outside the content box on both sides. */
-.hero {
-  margin-inline: calc(var(--gutter) * -1);
-}
-
+/* The illustration sits flush with the content column. Only the pencil
+   breaks out, hanging below the grid — the export carries 44px of bleed at
+   the bottom for it, which the reduced .intro padding below accounts for. */
 .hero img {
   width: 100%;
   height: auto;
