@@ -297,10 +297,6 @@ a {
   border-bottom: 1px solid var(--rule);
 }
 
-.ledger li:first-child {
-  border-top: 1px solid var(--rule);
-}
-
 .ledger-body {
   display: flex;
   flex-direction: column;
