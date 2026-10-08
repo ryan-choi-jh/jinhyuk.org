@@ -9,7 +9,12 @@ import { config, fields, collection, singleton } from '@keystatic/core';
 // the editor deployed to Vercel, which has no filesystem to write to and
 // commits straight to the repo instead. The Pages build keeps the local
 // reader either way, because it has the repo checked out.
-const isEditorDeploy = process.env.EDITOR_BUILD === '1';
+//
+// This has to be import.meta.env with a PUBLIC_ prefix, not process.env:
+// Keystatic's admin UI is a browser bundle that imports this file, and
+// process.env doesn't exist there — it would silently fall back to local
+// storage and the editor would look fine while writing nowhere useful.
+const isEditorDeploy = import.meta.env.PUBLIC_EDITOR_BUILD === '1';
 
 export default config({
   storage: isEditorDeploy

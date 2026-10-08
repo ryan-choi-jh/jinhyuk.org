@@ -12,13 +12,13 @@ import vercel from '@astrojs/vercel';
 //    left out entirely — along with the React runtime they need.
 //
 // 2. The Keystatic editor: deployed separately to Vercel, which can run
-//    Node. Set EDITOR_BUILD=1 and the build switches to server output with
+//    Node. Set PUBLIC_EDITOR_BUILD=1 and the build switches to server output with
 //    the Vercel adapter and includes Keystatic. That deployment commits to
 //    the GitHub repo, which triggers the Pages build above.
 //
 // `npm run dev` gets the editor too, reading and writing local files.
 const isDev = process.argv.includes('dev');
-const isEditor = process.env.EDITOR_BUILD === '1';
+const isEditor = process.env.PUBLIC_EDITOR_BUILD === '1';
 const withKeystatic = isDev || isEditor;
 
 // https://astro.build/config
