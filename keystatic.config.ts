@@ -107,17 +107,20 @@ export default config({
           directory: 'public/projects',
           publicPath: '/projects/',
         }),
-        // The body is built from blocks you add in any order: text, images,
-        // and videos (uploaded files or links like YouTube / Vimeo).
+        // The body is a list of blocks you add in any order. Everything
+        // visual is the one Media block — you set how many items it has,
+        // how they lay out, how wide they are and how they're captioned,
+        // rather than picking from fixed presets.
         blocks: fields.array(
           fields.conditional(
             fields.select({
               label: 'Block type',
               options: [
                 { label: 'Text', value: 'text' },
-                { label: 'Image', value: 'image' },
-                { label: 'Video (upload a file)', value: 'videoFile' },
-                { label: 'Video (paste a link)', value: 'videoLink' },
+                { label: 'Heading', value: 'heading' },
+                { label: 'Pull quote', value: 'quote' },
+                { label: 'Media — images and videos', value: 'media' },
+                { label: 'Text beside media', value: 'textMedia' },
               ],
               defaultValue: 'text',
             }),
@@ -127,48 +130,150 @@ export default config({
                 description: 'Separate paragraphs with a blank line.',
                 multiline: true,
               }),
-              image: fields.object({
-                src: fields.image({
+
+              heading: fields.text({ label: 'Heading' }),
+
+              quote: fields.text({
+                label: 'Quote',
+                description: 'Set bigger, with a rule down the side.',
+                multiline: true,
+              }),
+
+              media: fields.object({
+                items: fields.array(
+                  fields.object({
+                    source: fields.conditional(
+                      fields.select({
+                        label: 'Type',
+                        options: [
+                          { label: 'Image', value: 'image' },
+                          { label: 'Video file', value: 'videoFile' },
+                          { label: 'Video link', value: 'videoLink' },
+                        ],
+                        defaultValue: 'image',
+                      }),
+                      {
+                        image: fields.image({
+                          label: 'Image',
+                          directory: 'public/projects',
+                          publicPath: '/projects/',
+                        }),
+                        videoFile: fields.file({
+                          label: 'Video file',
+                          description: 'MP4 or WebM. Keep clips small.',
+                          directory: 'public/projects',
+                          publicPath: '/projects/',
+                        }),
+                        videoLink: fields.url({
+                          label: 'Video link',
+                          description: 'A YouTube or Vimeo link.',
+                        }),
+                      }
+                    ),
+                    alt: fields.text({
+                      label: 'Description (alt text)',
+                      description: 'Describes it for screen readers.',
+                    }),
+                    caption: fields.text({ label: 'Caption for this item' }),
+                  }),
+                  {
+                    label: 'Items',
+                    description: 'Add as many as you like.',
+                    itemLabel: (props) => props.fields.caption.value || 'Item',
+                  }
+                ),
+                layout: fields.select({
+                  label: 'Layout',
+                  options: [
+                    { label: 'Row — side by side', value: 'row' },
+                    { label: 'Grid — two per line', value: 'grid2' },
+                    { label: 'Stacked — one above the other', value: 'stack' },
+                  ],
+                  defaultValue: 'row',
+                }),
+                width: fields.select({
+                label: 'Width',
+                description: 'How far across the page this sits.',
+                options: [
+                  { label: 'Text column', value: 'text' },
+                  { label: 'Wide', value: 'wide' },
+                  { label: 'Full width', value: 'full' },
+                ],
+                defaultValue: 'wide',
+              }),
+                align: fields.select({
+                  label: 'Alignment',
+                  options: [
+                    { label: 'Centred', value: 'center' },
+                    { label: 'Left', value: 'left' },
+                  ],
+                  defaultValue: 'center',
+                }),
+                tall: fields.checkbox({
+                  label: 'These are phone screenshots',
+                  description:
+                    'Caps their height so a portrait screenshot does not take over the page.',
+                  defaultValue: false,
+                }),
+                caption: fields.text({
+                  label: 'Caption for the whole group',
+                  description: 'Leave empty to use the per-item captions instead.',
+                }),
+              }),
+
+              textMedia: fields.object({
+                text: fields.text({
+                  label: 'Text',
+                  description: 'Separate paragraphs with a blank line.',
+                  multiline: true,
+                }),
+                image: fields.image({
                   label: 'Image',
                   directory: 'public/projects',
                   publicPath: '/projects/',
                 }),
-                alt: fields.text({
-                  label: 'Description (alt text)',
-                  description: 'Describes the image for screen readers.',
+                alt: fields.text({ label: 'Description (alt text)' }),
+                caption: fields.text({ label: 'Caption' }),
+                side: fields.select({
+                  label: 'Media sits on the',
+                  options: [
+                    { label: 'Right', value: 'right' },
+                    { label: 'Left', value: 'left' },
+                  ],
+                  defaultValue: 'right',
                 }),
-                caption: fields.text({ label: 'Caption (optional)' }),
+                split: fields.select({
+                  label: 'Split',
+                  options: [
+                    { label: '50 / 50', value: '50' },
+                    { label: '40 / 60 — more room for text', value: '40' },
+                    { label: '60 / 40 — more room for media', value: '60' },
+                  ],
+                  defaultValue: '50',
+                }),
+                width: fields.select({
+                label: 'Width',
+                description: 'How far across the page this sits.',
+                options: [
+                  { label: 'Text column', value: 'text' },
+                  { label: 'Wide', value: 'wide' },
+                  { label: 'Full width', value: 'full' },
+                ],
+                defaultValue: 'wide',
               }),
-              videoFile: fields.object({
-                file: fields.file({
-                  label: 'Video file',
-                  description:
-                    'Upload a short clip (MP4 or WebM). Keep clips small — large files bloat the site.',
-                  directory: 'public/projects',
-                  publicPath: '/projects/',
-                }),
-                caption: fields.text({ label: 'Caption (optional)' }),
-              }),
-              videoLink: fields.object({
-                url: fields.url({
-                  label: 'Video link',
-                  description:
-                    'Paste a YouTube or Vimeo link, or a direct link to an MP4/WebM file.',
-                }),
-                caption: fields.text({ label: 'Caption (optional)' }),
               }),
             }
           ),
           {
             label: 'Content blocks',
-            description:
-              'Build the project page by adding blocks in order — text, images, and videos.',
+            description: 'Build the page by adding blocks in order.',
             itemLabel: (props) => {
               const kind = props.discriminant;
               if (kind === 'text') return 'Text';
-              if (kind === 'image') return 'Image';
-              if (kind === 'videoFile') return 'Video (file)';
-              if (kind === 'videoLink') return 'Video (link)';
+              if (kind === 'heading') return 'Heading';
+              if (kind === 'quote') return 'Pull quote';
+              if (kind === 'media') return 'Media';
+              if (kind === 'textMedia') return 'Text beside media';
               return 'Block';
             },
           }

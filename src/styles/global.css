@@ -841,6 +841,166 @@ article figcaption {
 }
 
 /* ---------------------------------------------------------------------------
+   Project page blocks
+   Every block picks its own width and alignment, which is the whole point:
+   a portrait screenshot at the 720px reading width renders 1565px tall.
+   --------------------------------------------------------------------------- */
+.project-body {
+  padding-top: 8px;
+}
+
+.pb {
+  margin-bottom: 44px;
+}
+
+.pb--text {
+  max-width: 720px;
+}
+
+.pb--quote {
+  max-width: 900px;
+}
+
+.pb--wide {
+  max-width: 1056px;
+}
+
+.pb--full {
+  max-width: 100%;
+}
+
+.pb--center {
+  margin-inline: auto;
+}
+
+.pb--left {
+  margin-inline: 0;
+}
+
+.pb-heading {
+  margin: 56px 0 4px;
+  font-size: 22px;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.pb-quote {
+  padding-left: 20px;
+  border-left: 2px solid var(--accent);
+  font-size: 26px;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 300;
+  color: var(--ink);
+}
+
+.pb-quote p {
+  margin: 0 0 16px;
+}
+
+.pb-quote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Media groups ------------------------------------------------------------- */
+.media-items {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.media-items--stack {
+  flex-direction: column;
+}
+
+.media-items--grid2 {
+  flex-wrap: wrap;
+}
+
+.media-items--grid2 > .media-item {
+  flex: 0 0 calc(50% - 12px);
+}
+
+.media-items--row > .media-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.media-items--center {
+  justify-content: center;
+}
+
+.media-items--left {
+  justify-content: flex-start;
+}
+
+/* Phone screenshots size by height, so three of them sit side by side
+   instead of each one filling the column. */
+.media-items--tall {
+  align-items: flex-end;
+}
+
+.media-items--tall > .media-item {
+  flex: 0 0 auto;
+}
+
+.media-items--tall img {
+  width: auto;
+  height: auto;
+  max-height: 560px;
+}
+
+.media-item {
+  min-width: 0;
+}
+
+.media-item img,
+.media-item video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.media-caption {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.media-caption--group {
+  text-align: center;
+}
+
+.media-items--left + .media-caption--group {
+  text-align: left;
+}
+
+/* Text beside media -------------------------------------------------------- */
+.tm {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.tm--media-left {
+  flex-direction: row-reverse;
+}
+
+.tm-text,
+.tm-media {
+  min-width: 0;
+}
+
+.tm-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------------------------------------------------------------------------
    Footer
    --------------------------------------------------------------------------- */
 .site-footer {

@@ -24,9 +24,18 @@ blocks:
       the offline stuff: water, walks, vitamins, gratitude. Track turns each
       check-in into a square, and a month of showing up turns into a shape you
       can read in a second.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/2/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/2/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: The welcome screen, the first thing I see before logging
   - discriminant: text
     value: >-
@@ -40,9 +49,18 @@ blocks:
       United lifting their Champions League trophy, a rocket clearing the tower.
       It sounds small, but opening the app to something that actually moves you
       does more for consistency than a push notification ever has.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/4/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/4/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: >-
         Same screen, dark mode — for late-night check-ins, and because it looks
         cool
@@ -52,9 +70,18 @@ blocks:
       heatmap sitting right there on the card, so progress is never more than a
       glance away. Tap any row to drill in (there's also a light social touch up
       top if you want to track habits together with your friend).
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/6/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/6/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: The dashboard (every habit carries its own heatmap)
   - discriminant: text
     value: >-
@@ -62,35 +89,71 @@ blocks:
       streak, 30- and 90-day completion rates, a full 365-day heatmap, and a
       month calendar you can page through. This is where the heatmap earns its
       keep — a whole year of one habit in a single look.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/8/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/8/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: One habit, a full year of it
   - discriminant: text
     value: >-
       Every habit is editable: name, category, an emoji for the icon, and a
       color that flows through its heatmap. You can hide a habit from the daily
       prompt while keeping its history, or delete it and its history for good.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/10/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/10/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: Pick an emoji and a color; the heatmap takes that color
   - discriminant: text
     value: >-
       There are three ways to look, and I switch between them by mood. The list
       view squeezes the last 7 days (or 5, or 14) into one tidy row per habit. I
       use it as a quick did-I-actually-do-it check on the week.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/12/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/12/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: List view of the week, compressed
   - discriminant: text
     value: >-
       The overview lays each habit's month out as its own mini-heatmap, all side
       by side. This is the one that scratches the GitHub itch hardest.
-  - discriminant: image
+  - discriminant: media
     value:
-      src: /projects/track-daily-habit-tracker/blocks/14/value/src.png
+      items:
+        - source:
+            discriminant: image
+            value: /projects/track-daily-habit-tracker/blocks/14/value/src.png
+          alt: ''
+          caption: ''
+      layout: row
+      width: wide
+      align: center
+      tall: true
       caption: The glanceable monthly overview
   - discriminant: text
     value: >-

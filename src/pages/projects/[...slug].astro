@@ -30,26 +30,22 @@ const prettyUrl = (url: string) => {
   }
 };
 
-// Turn a pasted video link into what we need to embed it.
-// Returns a YouTube/Vimeo iframe src, a direct file src, or null.
+// Turn a pasted video link into an embeddable src.
 const embedFor = (url: string) => {
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, '');
     if (host === 'youtube.com' || host === 'm.youtube.com') {
       const id = u.searchParams.get('v');
-      if (id) return { type: 'iframe', src: `https://www.youtube.com/embed/${id}` };
+      if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
     }
     if (host === 'youtu.be') {
       const id = u.pathname.slice(1);
-      if (id) return { type: 'iframe', src: `https://www.youtube.com/embed/${id}` };
+      if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
     }
     if (host === 'vimeo.com') {
       const id = u.pathname.split('/').filter(Boolean)[0];
-      if (id) return { type: 'iframe', src: `https://player.vimeo.com/video/${id}` };
-    }
-    if (/\.(mp4|webm|mov|ogg)$/i.test(u.pathname)) {
-      return { type: 'file', src: url };
+      if (id) return `https://player.vimeo.com/video/${id}`;
     }
   } catch {
     /* fall through */
@@ -58,10 +54,14 @@ const embedFor = (url: string) => {
 };
 
 const paragraphs = (text: string) =>
-  text
+  (text ?? '')
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
+
+// Every block gets a width and an alignment; these turn those into classes.
+const box = (width?: string, align?: string) =>
+  ['pb', `pb--${width ?? 'wide'}`, `pb--${align ?? 'center'}`].join(' ');
 ---
 
 <Base title={project.title} description={project.summary || project.title}>
@@ -80,59 +80,102 @@ const paragraphs = (text: string) =>
     )}
 
     {project.summary && <p class="lead project-lead">{project.summary}</p>}
-
-    <div class="project-content">
-      {project.blocks.map((block) => {
-        if (block.discriminant === 'text') {
-          return paragraphs(block.value).map((para) => <p>{para}</p>);
-        }
-        if (block.discriminant === 'image') {
-          const { src, alt, caption } = block.value;
-          if (!src) return null;
-          return (
-            <figure>
-              <img src={src} alt={alt || ''} loading="lazy" />
-              {caption && <figcaption>{caption}</figcaption>}
-            </figure>
-          );
-        }
-        if (block.discriminant === 'videoFile') {
-          const { file, caption } = block.value;
-          if (!file) return null;
-          return (
-            <figure>
-              <video src={file} controls playsinline preload="metadata"></video>
-              {caption && <figcaption>{caption}</figcaption>}
-            </figure>
-          );
-        }
-        if (block.discriminant === 'videoLink') {
-          const { url, caption } = block.value;
-          if (!url) return null;
-          const embed = embedFor(url);
-          return (
-            <figure>
-              {embed?.type === 'iframe' ? (
-                <div class="video-frame">
-                  <iframe
-                    src={embed.src}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    title={caption || 'Embedded video'}
-                  ></iframe>
-                </div>
-              ) : embed?.type === 'file' ? (
-                <video src={embed.src} controls playsinline preload="metadata"></video>
-              ) : (
-                <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
-              )}
-              {caption && <figcaption>{caption}</figcaption>}
-            </figure>
-          );
-        }
-        return null;
-      })}
-    </div>
   </article>
+
+  <div class="project-body">
+    {project.blocks.map((block) => {
+      if (block.discriminant === 'text') {
+        return (
+          <div class="pb pb--text pb--left prose">
+            {paragraphs(block.value).map((para) => <p>{para}</p>)}
+          </div>
+        );
+      }
+
+      if (block.discriminant === 'heading') {
+        return <h2 class="pb pb--text pb--left pb-heading">{block.value}</h2>;
+      }
+
+      if (block.discriminant === 'quote') {
+        return (
+          <blockquote class="pb pb--quote pb--left pb-quote">
+            {paragraphs(block.value).map((para) => <p>{para}</p>)}
+          </blockquote>
+        );
+      }
+
+      if (block.discriminant === 'media') {
+        const m = block.value;
+        const items = (m.items ?? []).filter((it) => it?.source?.value);
+        if (items.length === 0) return null;
+        const groupCaption = (m.caption ?? '').trim();
+
+        return (
+          <figure class={box(m.width, m.align)}>
+            <div
+              class={[
+                'media-items',
+                `media-items--${m.layout ?? 'row'}`,
+                `media-items--${m.align ?? 'center'}`,
+                m.tall ? 'media-items--tall' : '',
+              ].join(' ')}
+            >
+              {items.map((it) => {
+                const kind = it.source.discriminant;
+                const val = it.source.value as string;
+                const embed = kind === 'videoLink' ? embedFor(val) : null;
+                return (
+                  <div class="media-item">
+                    {kind === 'image' && <img src={val} alt={it.alt || ''} loading="lazy" />}
+                    {kind === 'videoFile' && (
+                      <video src={val} controls playsinline preload="metadata"></video>
+                    )}
+                    {kind === 'videoLink' &&
+                      (embed ? (
+                        <div class="video-frame">
+                          <iframe
+                            src={embed}
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                            title={it.caption || 'Embedded video'}
+                          ></iframe>
+                        </div>
+                      ) : (
+                        <a href={val} target="_blank" rel="noopener noreferrer">{val}</a>
+                      ))}
+                    {!groupCaption && it.caption && (
+                      <figcaption class="media-caption">{it.caption}</figcaption>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {groupCaption && <figcaption class="media-caption media-caption--group">{groupCaption}</figcaption>}
+          </figure>
+        );
+      }
+
+      if (block.discriminant === 'textMedia') {
+        const t = block.value;
+        if (!t.image && !t.text) return null;
+        const mediaPct = Number(t.split ?? '50');
+        return (
+          <div class={`${box(t.width, 'center')} tm tm--media-${t.side ?? 'right'}`}>
+            <div class="tm-text prose" style={`flex-basis:${100 - mediaPct}%`}>
+              {paragraphs(t.text).map((para) => <p>{para}</p>)}
+            </div>
+            {t.image && (
+              <figure class="tm-media" style={`flex-basis:${mediaPct}%`}>
+                <img src={t.image} alt={t.alt || ''} loading="lazy" />
+                {t.caption && <figcaption class="media-caption">{t.caption}</figcaption>}
+              </figure>
+            )}
+          </div>
+        );
+      }
+
+      return null;
+    })}
+  </div>
 </Base>
