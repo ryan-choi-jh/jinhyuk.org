@@ -86,7 +86,28 @@ const introParagraphs = (home?.intro ?? '')
         hero.focus();
       }
 
-      open.addEventListener('click', show);
+      // Enlarging is for touch devices and small windows only; on a
+      // desktop the grid is already legible, so the hero is inert there
+      // and stays out of the tab order.
+      var canZoom = window.matchMedia('(pointer: coarse), (max-width: 1024px)');
+
+      function syncTrigger() {
+        // Tab order only — don't aria-hide it, or the illustration's alt
+        // text disappears from screen readers along with the button.
+        open.tabIndex = canZoom.matches ? 0 : -1;
+      }
+
+      open.addEventListener('click', function () {
+        if (canZoom.matches) show();
+      });
+
+      try {
+        canZoom.addEventListener('change', syncTrigger);
+      } catch (e) {
+        /* older browsers: the resize listener and click guard still hold */
+      }
+      window.addEventListener('resize', syncTrigger);
+      syncTrigger();
       close.addEventListener('click', hide);
 
       // Clicking the backdrop closes; clicking the illustration itself doesn't.

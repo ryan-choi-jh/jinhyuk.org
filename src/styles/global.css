@@ -274,7 +274,8 @@ a {
   padding: 0;
   border: 0;
   background: none;
-  cursor: zoom-in;
+  /* No zoom on a desktop — the grid is already legible there. */
+  cursor: default;
 }
 
 /* Sits below the sheet, on the page background, not on the paper. */
@@ -282,13 +283,24 @@ a {
   display: none;
   align-items: center;
   justify-content: center;
-  padding-top: 12px;
   font-family: var(--nav);
   font-size: 8px;
   font-weight: 400;
   line-height: 16px;
   letter-spacing: 0.08em;
   color: var(--muted);
+}
+
+/* Touch devices, and small windows. Phones and iPads get the enlarge;
+   a mouse-driven desktop doesn't. */
+@media (pointer: coarse), (max-width: 1024px) {
+  .hero-open {
+    cursor: zoom-in;
+  }
+
+  .hero-hint {
+    display: flex;
+  }
 }
 
 /* 100dvh rather than inset:0 so the overlay matches the *visible* viewport
@@ -959,10 +971,6 @@ article figcaption {
   .video-play {
     width: 52px;
     height: 52px;
-  }
-
-  .hero-hint {
-    display: flex;
   }
 
   .site-footer {
