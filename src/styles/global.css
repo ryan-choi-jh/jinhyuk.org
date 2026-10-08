@@ -23,6 +23,9 @@
   --sans: 'Inter', system-ui, -apple-system, sans-serif;
   --sans-tight: 'Inter Tight', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Nav only. A grotesque with a bit of wobble, so the navigation stops
+     reading as developer-tooling mono next to the hand-drawn hero. */
+  --nav: 'Bricolage Grotesque', system-ui, sans-serif;
   --script: 'Sarina', cursive;
 }
 
@@ -142,10 +145,11 @@ a {
 }
 
 .site-nav-links a {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
   line-height: 16px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--muted);
   transition: color 0.15s ease;
 }
@@ -724,7 +728,12 @@ article figcaption {
   .site-nav-links {
     justify-content: flex-start;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 14px;
+  }
+
+  .site-nav-links a {
+    font-size: 11px;
+    letter-spacing: 0.08em;
   }
 
   .intro {
