@@ -16,3 +16,6 @@ dist/
 .env.*
 !.env.example
 *.local
+
+# vercel build output / link
+.vercel/

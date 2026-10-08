@@ -5,8 +5,16 @@ import { config, fields, collection, singleton } from '@keystatic/core';
 // This config is also imported at build time by the pages (via
 // @keystatic/core/reader) to read that content, so keep the schema here in
 // sync with what the pages expect.
+// Local storage when you're editing on your own machine; GitHub storage for
+// the editor deployed to Vercel, which has no filesystem to write to and
+// commits straight to the repo instead. The Pages build keeps the local
+// reader either way, because it has the repo checked out.
+const isEditorDeploy = process.env.EDITOR_BUILD === '1';
+
 export default config({
-  storage: { kind: 'local' },
+  storage: isEditorDeploy
+    ? { kind: 'github', repo: { owner: 'ryan-choi-jh', name: 'jinhyuk.org' } }
+    : { kind: 'local' },
 
   ui: {
     brand: { name: 'Ryan Choi' },
