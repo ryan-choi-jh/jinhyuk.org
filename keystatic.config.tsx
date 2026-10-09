@@ -453,6 +453,78 @@ export default config({
               },
             }),
 
+            // Registered so Keystatic can round-trip a canvas without losing
+            // it. The canvas is not edited here, it is edited on the canvas;
+            // this exists so that opening a project in Keystatic and hitting
+            // Save cannot quietly drop an unrecognised tag.
+            Canvas: block({
+              label: 'Canvas',
+              description:
+                'Freely placed images and shapes. Edit this on the canvas, not here.',
+              schema: {
+                height: fields.integer({
+                  label: 'Reserved height (px)',
+                  defaultValue: 400,
+                }),
+                items: fields.array(
+                  fields.object({
+                    kind: fields.select({
+                      label: 'Kind',
+                      options: [
+                        { label: 'Image', value: 'image' },
+                        { label: 'Video file', value: 'video' },
+                        { label: 'Video link', value: 'embed' },
+                        { label: 'Shape', value: 'shape' },
+                      ],
+                      defaultValue: 'image',
+                    }),
+                    src: fields.text({ label: 'Source' }),
+                    alt: fields.text({ label: 'Alt text' }),
+                    caption: fields.text({ label: 'Caption' }),
+                    x: fields.integer({ label: 'X', defaultValue: 0 }),
+                    y: fields.integer({ label: 'Y', defaultValue: 0 }),
+                    w: fields.integer({ label: 'Width', defaultValue: 300 }),
+                    h: fields.integer({ label: 'Height', defaultValue: 200 }),
+                    rotate: fields.integer({ label: 'Rotation', defaultValue: 0 }),
+                    z: fields.integer({ label: 'Stacking', defaultValue: 0 }),
+                    shape: fields.select({
+                      label: 'Shape',
+                      options: [
+                        { label: 'Line', value: 'line' },
+                        { label: 'Rectangle', value: 'rect' },
+                        { label: 'Ellipse', value: 'ellipse' },
+                        { label: 'Squiggle', value: 'squiggle' },
+                      ],
+                      defaultValue: 'line',
+                    }),
+                    color: fields.text({ label: 'Colour' }),
+                    fill: fields.text({ label: 'Fill' }),
+                    strokeWidth: fields.integer({ label: 'Stroke width', defaultValue: 2 }),
+                    radius: fields.integer({ label: 'Corner radius', defaultValue: 0 }),
+                  }),
+                  {
+                    label: 'Items',
+                    itemLabel: (p) =>
+                      `${p.fields.kind.value}${p.fields.caption.value ? ` — ${p.fields.caption.value}` : ''}`,
+                  }
+                ),
+              },
+              ContentView: (props) => {
+                const v = props.value as any;
+                const n = v?.items?.length ?? 0;
+                return (
+                  <div style={previewFrame}>
+                    <div style={settingsLine}>
+                      {`canvas \u00b7 ${n} ${n === 1 ? 'item' : 'items'} \u00b7 ${v?.height ?? 0}px tall`}
+                    </div>
+                    <div style={{ ...captionLine, color: '#6b6b6b' }}>
+                      Edit this on the canvas.
+                    </div>
+                  </div>
+                );
+              },
+            }),
+
             Color: mark({
               label: 'Text colour',
               icon: (

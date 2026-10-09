@@ -40,6 +40,55 @@ export const embedFor = (url: string): string | null => {
 
 const { Tag } = Markdoc;
 
+/** The reference width every canvas position is expressed against: the
+ *  content column at full size. Positions are stored as plain numbers in this
+ *  space and converted to percentages, so the layout scales with the page. */
+const CANVAS_W = 1344;
+
+/** Lines, boxes and ellipses, drawn as SVG so they scale and take a colour. */
+function shapeTag(it: any): RenderableTreeNode {
+  const w = it.w ?? 200;
+  const h = it.h ?? 200;
+  const stroke = it.color || 'currentColor';
+  const sw = it.strokeWidth ?? 2;
+  const fill = it.fill || 'none';
+  let inner: RenderableTreeNode;
+
+  if (it.shape === 'rect') {
+    inner = new Tag('rect', {
+      x: String(sw / 2), y: String(sw / 2),
+      width: String(Math.max(0, w - sw)), height: String(Math.max(0, h - sw)),
+      fill, stroke, 'stroke-width': String(sw),
+      rx: String(it.radius ?? 0),
+    });
+  } else if (it.shape === 'ellipse') {
+    inner = new Tag('ellipse', {
+      cx: String(w / 2), cy: String(h / 2),
+      rx: String(Math.max(0, w / 2 - sw / 2)), ry: String(Math.max(0, h / 2 - sw / 2)),
+      fill, stroke, 'stroke-width': String(sw),
+    });
+  } else if (it.shape === 'squiggle') {
+    // The same hand-drawn feel as the connectors, as a standalone flourish.
+    const d =
+      `M 0 ${h * 0.7} C ${w * 0.18} ${h * 0.1}, ${w * 0.32} ${h * 0.95}, ${w * 0.5} ${h * 0.45}` +
+      ` C ${w * 0.68} ${h * -0.05}, ${w * 0.82} ${h * 0.9}, ${w} ${h * 0.3}`;
+    inner = new Tag('path', { d, fill: 'none', stroke, 'stroke-width': String(sw), 'stroke-linecap': 'round' });
+  } else {
+    // A plain line, corner to corner of its box.
+    inner = new Tag('line', {
+      x1: '0', y1: String(h / 2), x2: String(w), y2: String(h / 2),
+      stroke, 'stroke-width': String(sw), 'stroke-linecap': 'round',
+    });
+  }
+
+  return new Tag(
+    'svg',
+    { viewBox: `0 0 ${w} ${h}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+    [inner]
+  );
+}
+
+
 /** Every positioned thing carries a width and an alignment. */
 const boxClass = (width?: string, align?: string) =>
   ['pb', `pb--${width ?? 'wide'}`, `pb--${align ?? 'center'}`].join(' ');
@@ -152,6 +201,94 @@ export const markdocConfig = {
           'span',
           { class: `fc fc--${tone}` },
           node.transformChildren(config)
+        );
+      },
+    },
+
+    // A free-placement layer. Items carry a position and size expressed
+    // against a 1344px reference width, so the whole thing scales with the
+    // page instead of being pinned to one viewport. Below the breakpoint the
+    // CSS throws the positioning away and stacks them in order, which is why
+    // every item also keeps its document order.
+    Canvas: {
+      attributes: {
+        items: { type: Array },
+        height: { type: Number },
+      },
+      transform(node: any, config: any) {
+        const a = node.transformAttributes(config);
+        const items: any[] = a.items ?? [];
+        if (items.length === 0) return null;
+
+        // Reserve the right vertical space in the flow. Falls back to the
+        // tallest item if the editor has not stamped a height.
+        const height =
+          a.height ??
+          items.reduce(
+            (h, it) => Math.max(h, (it.y ?? 0) + (it.h ?? 200)),
+            0
+          ) + 24;
+
+        const children = items.map((it) => {
+          const pct = (n: number) => `${(n / CANVAS_W) * 100}%`;
+          const style = [
+            `left:${pct(it.x ?? 0)}`,
+            `top:${it.y ?? 0}px`,
+            `width:${pct(it.w ?? 300)}`,
+            it.rotate ? `transform:rotate(${it.rotate}deg)` : '',
+            it.z ? `z-index:${it.z}` : '',
+          ]
+            .filter(Boolean)
+            .join(';');
+
+          const kids: RenderableTreeNode[] = [];
+
+          if (it.kind === 'image' && it.src) {
+            kids.push(new Tag('img', { src: it.src, alt: it.alt || '', loading: 'lazy' }));
+          } else if (it.kind === 'video' && it.src) {
+            kids.push(
+              new Tag('video', { src: it.src, controls: '', playsinline: '', preload: 'metadata' })
+            );
+          } else if (it.kind === 'embed' && it.src) {
+            const embed = embedFor(it.src);
+            if (embed) {
+              kids.push(
+                new Tag('div', { class: 'video-frame' }, [
+                  new Tag('iframe', {
+                    src: embed,
+                    loading: 'lazy',
+                    allow:
+                      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+                    allowfullscreen: '',
+                    title: it.caption || 'Embedded video',
+                  }),
+                ])
+              );
+            }
+          } else if (it.kind === 'shape') {
+            kids.push(shapeTag(it));
+          }
+
+          if (it.caption) {
+            kids.push(new Tag('figcaption', { class: 'media-caption' }, [it.caption]));
+          }
+
+          return new Tag(
+            'div',
+            {
+              class: `cv-item cv-item--${it.kind ?? 'image'}`,
+              style,
+              // Keeps the aspect box while the image loads, so nothing jumps.
+              'data-h': String(it.h ?? ''),
+            },
+            kids
+          );
+        });
+
+        return new Tag(
+          'div',
+          { class: 'canvas', style: `height:${height}px` },
+          children
         );
       },
     },

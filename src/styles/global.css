@@ -692,6 +692,40 @@ body.is-locked {
 }
 
 /* ---------------------------------------------------------------------------
+   Canvas
+   A free-placement layer. Items are positioned against a 1344px reference
+   width and converted to percentages by the renderer, so the arrangement
+   scales with the page rather than being pinned to one viewport.
+   --------------------------------------------------------------------------- */
+.canvas {
+  position: relative;
+  width: 100%;
+  margin: 8px 0 44px;
+}
+
+.cv-item {
+  position: absolute;
+  transform-origin: center center;
+}
+
+.cv-item img,
+.cv-item video,
+.cv-item svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cv-item--image img,
+.cv-item--video video {
+  border: 1px solid var(--media-edge);
+}
+
+.cv-item .media-caption {
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
    Margin column
    The text column is 720px inside a 1344px page, leaving ~600px of empty
    space to its right. A margin image floats into it, level with the text that
@@ -1434,6 +1468,25 @@ article figcaption {
     width: 100%;
     max-width: 100%;
     margin: 0 0 28px;
+  }
+
+  /* There is no room to place anything freely on a phone, so the canvas stops
+     being a canvas and becomes a list, in document order. The inline height
+     and per-item positions are overridden rather than rendered differently,
+     so the same markup serves both. */
+  .canvas {
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .cv-item {
+    position: static;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    transform: none !important;
   }
 
   /* No margin column to point at, so there is nothing to join. */
