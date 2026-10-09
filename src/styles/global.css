@@ -600,12 +600,145 @@ body.is-locked {
 }
 
 /* ---------------------------------------------------------------------------
-   Empty state
-   Shown on Photography while src/data/photography.ts has no albums in it.
-   The illustration is a transparent WebP so it sits on either theme's
-   background without a white plate behind it.
+   Text colour
+   Applied to a run of words from the editor's toolbar. Accent and Muted use
+   the theme tokens so they stay legible when the page flips to dark; the
+   named colours are deliberately fixed.
    --------------------------------------------------------------------------- */
-.empty {
+.fc--accent {
+  color: var(--accent);
+}
+
+.fc--muted {
+  color: var(--muted);
+}
+
+.fc--red {
+  color: #c0392b;
+}
+
+.fc--orange {
+  color: #d35400;
+}
+
+.fc--green {
+  color: #2e7d52;
+}
+
+.fc--blue {
+  color: #2563a8;
+}
+
+.fc--purple {
+  color: #6b4ea8;
+}
+
+/* The fixed colours are mixed with the page ink in dark mode, otherwise they
+   sit too dark against #0F0F0F to read. */
+:root[data-theme='dark'] .fc--red { color: #e8695a; }
+:root[data-theme='dark'] .fc--orange { color: #e8894a; }
+:root[data-theme='dark'] .fc--green { color: #5cb98a; }
+:root[data-theme='dark'] .fc--blue { color: #6aa3e0; }
+:root[data-theme='dark'] .fc--purple { color: #a68fd8; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .fc--red { color: #e8695a; }
+  :root:not([data-theme='light']) .fc--orange { color: #e8894a; }
+  :root:not([data-theme='light']) .fc--green { color: #5cb98a; }
+  :root:not([data-theme='light']) .fc--blue { color: #6aa3e0; }
+  :root:not([data-theme='light']) .fc--purple { color: #a68fd8; }
+}
+
+/* ---------------------------------------------------------------------------
+   Margin column
+   The text column is 720px inside a 1344px page, leaving ~600px of empty
+   space to its right. A margin image floats into it, level with the text that
+   follows it. A float rather than an absolutely positioned box means two of
+   them can never overlap: `clear` pushes the second below the first.
+   --------------------------------------------------------------------------- */
+.project-body {
+  position: relative;
+  /* Contain the margin floats. Without this the container keeps the height of
+     its text alone and a tall margin image hangs out the bottom, over the
+     footer. */
+  display: flow-root;
+}
+
+.margin-item {
+  float: right;
+  clear: right;
+  margin: 0 0 32px 48px;
+  /* Never wider than what is left over beside the text column. */
+  max-width: calc(100% - 720px - 48px);
+}
+
+.margin-item--small {
+  width: 300px;
+}
+
+.margin-item--medium {
+  width: 400px;
+}
+
+.margin-item--large {
+  width: 520px;
+}
+
+.margin-item figure {
+  margin: 0;
+}
+
+.margin-item figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* The chosen size is a cap on width; tall images are capped by height too, or
+   a portrait screenshot takes over the page and pushes the next margin item
+   hundreds of pixels down the document. */
+.margin-item img,
+.margin-item video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 560px;
+  border: 1px solid var(--media-edge);
+}
+
+.margin-item .media-caption {
+  margin-top: 10px;
+}
+
+/* One SVG laid over the whole body. Drawn by the inline script on the project
+   page, and redrawn on resize, because a connector path can only be known
+   from where the two boxes actually land. */
+.connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.connectors path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* ---------------------------------------------------------------------------
+   Photography empty state
+   Shown while src/data/photography.ts has no albums in it. Named
+   .empty-state, not .empty: an older rule for the "Nothing published yet"
+   line already owns .empty, and being later in the file it was winning,
+   which quietly reset this block's top padding.
+   --------------------------------------------------------------------------- */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1253,7 +1386,20 @@ article figcaption {
     grid-template-columns: 1fr;
   }
 
-  .empty {
+  .margin-item {
+    float: none;
+    clear: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 28px;
+  }
+
+  /* No margin column to point at, so there is nothing to join. */
+  .connectors {
+    display: none;
+  }
+
+  .empty-state {
     padding-top: 87px;
     gap: 28px;
   }

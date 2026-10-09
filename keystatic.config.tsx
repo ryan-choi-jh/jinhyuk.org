@@ -1,5 +1,5 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
-import { block } from '@keystatic/core/content-components';
+import { block, mark } from '@keystatic/core/content-components';
 import * as React from 'react';
 
 // Previews drawn inside the editor, so an inserted component shows what it
@@ -22,6 +22,19 @@ const settingsLine: React.CSSProperties = {
 };
 
 const captionLine: React.CSSProperties = { fontSize: 12, color: '#3b3b3b' };
+
+// Text colours. Accent and Muted are theme tokens, so they travel as a class
+// and change between light and dark; the named colours are fixed. The editor
+// needs a literal to show, hence both.
+const TONES: Record<string, { label: string; hex: string }> = {
+  accent: { label: 'Accent (follows the theme)', hex: '#ff5722' },
+  muted: { label: 'Muted grey', hex: '#6b6b6b' },
+  red: { label: 'Red', hex: '#c0392b' },
+  orange: { label: 'Orange', hex: '#d35400' },
+  green: { label: 'Green', hex: '#2e7d52' },
+  blue: { label: 'Blue', hex: '#2563a8' },
+  purple: { label: 'Purple', hex: '#6b4ea8' },
+};
 
 // The three widths, as a share of the 1344px content column. The preview
 // scales itself by these so choosing one shows you the answer instead of
@@ -429,6 +442,137 @@ export default config({
                       >
                         {v.caption}
                       </div>
+                    ) : null}
+                  </div>
+                );
+              },
+            }),
+
+            Color: mark({
+              label: 'Text colour',
+              icon: (
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                  <path d="M8 1.5 4.2 11h1.7l.8-2.1h2.6l.8 2.1h1.7L8 1.5Zm-.9 5.9L8 4.9l.9 2.5H7.1Z" />
+                  <rect x="2.5" y="12.6" width="11" height="2" rx="0.6" />
+                </svg>
+              ),
+              schema: {
+                tone: fields.select({
+                  label: 'Colour',
+                  options: Object.entries(TONES).map(([value, t]) => ({
+                    label: t.label,
+                    value,
+                  })),
+                  defaultValue: 'accent',
+                }),
+              },
+              tag: 'span',
+              className: ({ value }: any) => `fc fc--${value?.tone ?? 'accent'}`,
+              style: ({ value }: any) => ({
+                color: TONES[value?.tone ?? 'accent']?.hex ?? TONES.accent.hex,
+              }),
+            }),
+
+            Margin: block({
+              label: 'Margin image',
+              description:
+                'Sits in the empty space to the right of the text, level with where you put it. Can draw a line back to the paragraph above it.',
+              schema: {
+                source: fields.conditional(
+                  fields.select({
+                    label: 'Type',
+                    options: [
+                      { label: 'Image', value: 'image' },
+                      { label: 'Video file', value: 'videoFile' },
+                      { label: 'Video link', value: 'videoLink' },
+                    ],
+                    defaultValue: 'image',
+                  }),
+                  {
+                    image: fields.image({
+                      label: 'Image',
+                      directory: 'public/projects',
+                      publicPath: '/projects/',
+                    }),
+                    videoFile: fields.file({
+                      label: 'Video file',
+                      description: 'MP4 or WebM. Keep clips small.',
+                      directory: 'public/projects',
+                      publicPath: '/projects/',
+                    }),
+                    videoLink: fields.url({
+                      label: 'Video link',
+                      description: 'A YouTube or Vimeo link.',
+                    }),
+                  }
+                ),
+                alt: fields.text({
+                  label: 'Description (alt text)',
+                  description: 'Describes it for screen readers.',
+                }),
+                caption: fields.text({ label: 'Caption' }),
+                size: fields.select({
+                  label: 'Size',
+                  description: 'How much of the right-hand space it takes.',
+                  options: [
+                    { label: 'Small — 300px', value: 'small' },
+                    { label: 'Medium — 400px', value: 'medium' },
+                    { label: 'Large — 520px, fills the space', value: 'large' },
+                  ],
+                  defaultValue: 'medium',
+                }),
+                connect: fields.checkbox({
+                  label: 'Draw a line to the paragraph above',
+                  description:
+                    'A hand-drawn squiggle from the end of that paragraph across to this. Hidden on phones, where this stacks into the text instead.',
+                  defaultValue: true,
+                }),
+                connectColor: fields.text({
+                  label: 'Line colour',
+                  description:
+                    'A hex value like #FF5722. Leave empty to use the site accent, which follows light and dark mode.',
+                }),
+                connectStyle: fields.select({
+                  label: 'Line shape',
+                  options: [
+                    { label: 'Curve — one flowing S', value: 'curve' },
+                    { label: 'Loop — with a curl in the middle', value: 'loop' },
+                  ],
+                  defaultValue: 'curve',
+                }),
+              },
+              ContentView: (props) => {
+                const v = props.value as any;
+                const kind = v?.source?.discriminant;
+                return (
+                  <div style={previewFrame}>
+                    <div style={settingsLine}>
+                      {[
+                        'margin',
+                        v.size ?? 'medium',
+                        v.connect ? `line \u00b7 ${v.connectStyle ?? 'curve'}` : 'no line',
+                      ].join(' \u00b7 ')}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <div style={{ width: '45%' }}>
+                        {kind === 'image' ? (
+                          <AssetThumb value={v.source.value} height={130} />
+                        ) : (
+                          <div
+                            style={{
+                              ...settingsLine,
+                              padding: '18px 12px',
+                              border: '1px dashed #d4d4d4',
+                              borderRadius: 3,
+                            }}
+                          >
+                            {kind === 'videoLink' ? 'Video link' : 'Video file'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {v.caption ? (
+                      <div style={{ ...captionLine, textAlign: 'right' }}>{v.caption}</div>
                     ) : null}
                   </div>
                 );

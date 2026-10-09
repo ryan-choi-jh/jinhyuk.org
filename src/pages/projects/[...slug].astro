@@ -61,4 +61,9 @@ const prettyUrl = (url: string) => {
   </article>
 
   <div class="project-body" set:html={body} />
+
+  <script>
+    import { initConnectors } from '../../scripts/connectors';
+    initConnectors();
+  </script>
 </Base>

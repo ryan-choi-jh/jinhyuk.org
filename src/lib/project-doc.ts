@@ -141,6 +141,83 @@ export const markdocConfig = {
       },
     },
 
+    // The inline text-colour mark. Accent and Muted ride the theme tokens, so
+    // they are a class; the named colours are fixed and carry a literal.
+    Color: {
+      attributes: { tone: { type: String } },
+      transform(node: any, config: any) {
+        const a = node.transformAttributes(config);
+        const tone = a.tone ?? 'accent';
+        return new Tag(
+          'span',
+          { class: `fc fc--${tone}` },
+          node.transformChildren(config)
+        );
+      },
+    },
+
+    // Lives in the empty space to the right of the 720px text column. It is a
+    // float, not an absolutely positioned box, so it sits level with the text
+    // that follows it and can never land on top of another one.
+    Margin: {
+      attributes: {
+        source: { type: Object },
+        alt: { type: String },
+        caption: { type: String },
+        size: { type: String },
+        connect: { type: Boolean },
+        connectColor: { type: String },
+        connectStyle: { type: String },
+      },
+      transform(node: any, config: any) {
+        const a = node.transformAttributes(config);
+        const kind = a.source?.discriminant;
+        const value = a.source?.value;
+        if (!value) return null;
+
+        const inner: RenderableTreeNode[] = [];
+        if (kind === 'image') {
+          inner.push(new Tag('img', { src: value, alt: a.alt || '', loading: 'lazy' }));
+        } else if (kind === 'videoFile') {
+          inner.push(
+            new Tag('video', { src: value, controls: '', playsinline: '', preload: 'metadata' })
+          );
+        } else if (kind === 'videoLink') {
+          const embed = embedFor(value);
+          inner.push(
+            embed
+              ? new Tag('div', { class: 'video-frame' }, [
+                  new Tag('iframe', {
+                    src: embed,
+                    loading: 'lazy',
+                    allow:
+                      'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+                    allowfullscreen: '',
+                    title: a.caption || 'Embedded video',
+                  }),
+                ])
+              : new Tag('a', { href: value, target: '_blank', rel: 'noopener noreferrer' }, [value])
+          );
+        }
+
+        if (a.caption) {
+          inner.push(new Tag('figcaption', { class: 'media-caption' }, [a.caption]));
+        }
+
+        const attrs: Record<string, string> = {
+          class: `margin-item margin-item--${a.size ?? 'medium'}`,
+        };
+        // The connector is drawn in the browser, where the two boxes have real
+        // positions. These say what to join and in what colour.
+        if (a.connect) {
+          attrs['data-connect'] = a.connectStyle || 'curve';
+          if (a.connectColor) attrs['data-connect-color'] = a.connectColor;
+        }
+
+        return new Tag('aside', attrs, [new Tag('figure', {}, inner)]);
+      },
+    },
+
     TextMedia: {
       attributes: {
         text: { type: String },
