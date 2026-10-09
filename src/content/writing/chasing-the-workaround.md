@@ -4,7 +4,7 @@ date: 2026-06-08
 draft: false
 buttons:
   - label: Coffee on me ☕️
-    href: mailto:ryanchoi0125@gmail.com
+    href: mailto:ryanjhchoi@hotmail.com
 ---
 # Chasing the Workaround
 

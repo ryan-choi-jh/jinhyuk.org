@@ -4,7 +4,7 @@ date: 2026-06-09
 draft: false
 buttons:
   - label: Coffee on me ☕️
-    href: mailto:ryanchoi0125@gmail.com
+    href: mailto:ryanjhchoi@hotmail.com
 ---
 # Who I'm Looking For: The Temporarily Stuck
 
