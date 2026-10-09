@@ -37,12 +37,26 @@ export default defineConfig({
     ...(withKeystatic
       ? [
           {
-            name: 'preview-routes',
+            name: 'editor-routes',
             hooks: {
               'astro:config:setup': ({ injectRoute }) => {
                 injectRoute({
                   pattern: '/preview/projects/[slug]',
                   entrypoint: './src/preview/project-preview.astro',
+                });
+                // The studio: the editor that is meant to replace Keystatic.
+                injectRoute({ pattern: '/studio', entrypoint: './src/studio/index.astro' });
+                injectRoute({
+                  pattern: '/studio/projects/[slug]',
+                  entrypoint: './src/studio/project.astro',
+                });
+                injectRoute({
+                  pattern: '/studio/api/save',
+                  entrypoint: './src/studio/api/save.ts',
+                });
+                injectRoute({
+                  pattern: '/studio/api/upload',
+                  entrypoint: './src/studio/api/upload.ts',
                 });
               },
             },

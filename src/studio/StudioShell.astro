@@ -1,0 +1,137 @@
+---
+// The studio's own chrome. Deliberately not the site's: this is a tool, and
+// it should not be mistaken for a page of jinhyuk.org while you are working
+// in it. Desktop only for now, by design.
+interface Props {
+  title: string;
+  branch: string;
+  wide?: boolean;
+}
+const { title, branch, wide = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-studio>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Studio</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    />
+    <style is:global>
+      :root {
+        --s-bg: #f6f6f7;
+        --s-panel: #ffffff;
+        --s-ink: #16181d;
+        --s-muted: #6b7280;
+        --s-line: #e3e5e9;
+        --s-accent: #2563eb;
+        --s-bad: #c0392b;
+      }
+      * { box-sizing: border-box; }
+      [data-studio], [data-studio] body { height: 100%; }
+      [data-studio] body {
+        margin: 0;
+        background: var(--s-bg);
+        color: var(--s-ink);
+        font: 400 14px/1.5 Inter, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      [data-studio] a { color: inherit; text-decoration: none; }
+      [data-studio] h1 { font-size: 22px; font-weight: 600; margin: 0; }
+      [data-studio] h2 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+
+      .s-topbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 52px;
+        padding: 0 16px;
+        background: var(--s-panel);
+        border-bottom: 1px solid var(--s-line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      .s-brand { font-weight: 600; letter-spacing: -0.01em; }
+      .s-brand a { text-decoration: none; }
+      .s-branch {
+        font-size: 12px;
+        color: var(--s-muted);
+        border: 1px solid var(--s-line);
+        border-radius: 999px;
+        padding: 3px 10px;
+      }
+      .s-spacer { flex: 1; }
+
+      .s-main { padding: 28px 24px 80px; }
+      .s-main--wide { padding: 0; }
+
+      .s-head { margin-bottom: 18px; }
+      .s-sub { color: var(--s-muted); margin: 4px 0 0; }
+
+      .s-card {
+        background: var(--s-panel);
+        border: 1px solid var(--s-line);
+        border-radius: 10px;
+        padding: 18px 20px;
+        max-width: 620px;
+      }
+      .s-card--bad { border-color: #f0c8c2; }
+      .s-card--bad h2 { color: var(--s-bad); }
+
+      .s-list { list-style: none; margin: 0; padding: 0; max-width: 620px; }
+      .s-list li + li { margin-top: 8px; }
+      .s-list a {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        background: var(--s-panel);
+        border: 1px solid var(--s-line);
+        border-radius: 10px;
+        padding: 14px 16px;
+        text-decoration: none;
+      }
+      .s-list a:hover { border-color: var(--s-accent); }
+      .s-list-title { font-weight: 500; }
+      .s-list-slug { color: var(--s-muted); font-size: 12px; }
+
+      .s-btn {
+        appearance: none;
+        border: 1px solid var(--s-line);
+        background: var(--s-panel);
+        color: var(--s-ink);
+        border-radius: 8px;
+        padding: 7px 12px;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .s-btn:hover { border-color: var(--s-accent); }
+      .s-btn--primary {
+        background: var(--s-accent);
+        border-color: var(--s-accent);
+        color: #fff;
+        font-weight: 500;
+      }
+      .s-btn--primary:disabled { opacity: 0.5; cursor: default; }
+      .s-btn--danger { color: var(--s-bad); }
+    </style>
+  </head>
+  <body>
+    <header class="s-topbar">
+      <span class="s-brand"><a href={`/studio?branch=${encodeURIComponent(branch)}`}>Studio</a></span>
+      <span class="s-branch">{branch}</span>
+      <div class="s-spacer"></div>
+      <slot name="actions" />
+    </header>
+    <main class={wide ? 's-main s-main--wide' : 's-main'}>
+      <slot />
+    </main>
+  </body>
+</html>

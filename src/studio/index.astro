@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+
+import StudioShell from './StudioShell.astro';
+import { listProjects, readFile, titleOf, tokenFrom } from './lib/github';
+
+const branch = Astro.url.searchParams.get('branch') || 'main';
+const token = tokenFrom(Astro.cookies);
+
+let projects: { slug: string; title: string }[] = [];
+let error: string | null = null;
+
+if (token) {
+  try {
+    const files = await listProjects(token, branch);
+    projects = await Promise.all(
+      files.map(async (f) => {
+        const file = await readFile(token, f.path, branch);
+        return { slug: f.name, title: titleOf(file?.text ?? '', f.name) };
+      })
+    );
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+}
+---
+
+<StudioShell title="Studio" branch={branch}>
+  {!token && (
+    <div class="s-card">
+      <h2>Sign in first</h2>
+      <p>
+        The studio borrows the GitHub session Keystatic sets up. Open
+        <a href="/keystatic" target="_blank" rel="noopener">/keystatic</a>, sign in,
+        then come back.
+      </p>
+    </div>
+  )}
+
+  {error && (
+    <div class="s-card s-card--bad">
+      <h2>GitHub said no</h2>
+      <p>{error}</p>
+    </div>
+  )}
+
+  {token && !error && (
+    <>
+      <div class="s-head">
+        <h1>Projects</h1>
+        <p class="s-sub">Editing <strong>{branch}</strong></p>
+      </div>
+
+      <ul class="s-list">
+        {projects.map((p) => (
+          <li>
+            <a href={`/studio/projects/${p.slug}?branch=${encodeURIComponent(branch)}`}>
+              <span class="s-list-title">{p.title}</span>
+              <span class="s-list-slug">{p.slug}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      {projects.length === 0 && <p class="s-sub">No projects on this branch.</p>}
+    </>
+  )}
+</StudioShell>

@@ -1,0 +1,254 @@
+---
+export const prerender = false;
+
+import StudioShell from './StudioShell.astro';
+import { readFile, tokenFrom, titleOf } from './lib/github';
+import { parseDoc } from './lib/mdoc';
+import { renderProjectBody } from '../lib/project-doc';
+import Markdoc from '@markdoc/markdoc';
+// The stage shows the published page, so it needs the published styles.
+// The studio's own chrome is written with a [data-studio] prefix so it
+// outranks the site rules this drags in for body, headings and links.
+import '../styles/global.css';
+
+const slug = Astro.params.slug!;
+const branch = Astro.url.searchParams.get('branch') || 'main';
+const token = tokenFrom(Astro.cookies);
+
+let title = slug;
+let bodyHtml = '';
+let blocks: any[] = [];
+let error: string | null = null;
+
+if (token) {
+  try {
+    const file = await readFile(token, `src/content/projects/${slug}.mdoc`, branch);
+    if (!file) {
+      error = `No project called ${slug} on ${branch}.`;
+    } else {
+      title = titleOf(file.text, slug);
+      const doc = parseDoc(file.text);
+      // The page is rendered by the site's own renderer, so what you drag
+      // things around on is the page, not an approximation of it.
+      bodyHtml = renderProjectBody(Markdoc.parse(doc.body));
+      blocks = doc.blocks.map((b) => ({
+        index: b.index,
+        type: b.type,
+        tag: b.tag,
+        label: b.label,
+        canvas: b.canvas ?? null,
+      }));
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+}
+
+const state = { slug, branch, blocks };
+---
+
+<StudioShell title={title} branch={branch} wide>
+  <div slot="actions" class="s-actions">
+    <span id="s-status" class="s-status"></span>
+    <a
+      class="s-btn"
+      href={`/preview/projects/${slug}?branch=${encodeURIComponent(branch)}`}
+      target="_blank"
+      rel="noopener">Open preview</a
+    >
+    <button id="s-save" class="s-btn s-btn--primary" type="button" disabled>Save</button>
+  </div>
+
+  {!token && (
+    <div style="padding:28px 24px">
+      <div class="s-card">
+        <h2>Sign in first</h2>
+        <p>
+          Open <a href="/keystatic" target="_blank" rel="noopener">/keystatic</a>, sign in to
+          GitHub, then reload this page.
+        </p>
+      </div>
+    </div>
+  )}
+
+  {error && (
+    <div style="padding:28px 24px">
+      <div class="s-card s-card--bad"><h2>Could not open it</h2><p>{error}</p></div>
+    </div>
+  )}
+
+  {token && !error && (
+    <div class="s-editor">
+      <aside class="s-rail">
+        <div class="s-rail-head">Blocks</div>
+        <ul class="s-blocks" id="s-blocks"></ul>
+      </aside>
+
+      <div class="s-stage" id="s-stage">
+        <div class="s-page" id="s-page">
+          <div class="project-body" id="s-body" set:html={bodyHtml} />
+        </div>
+      </div>
+
+      <aside class="s-panel" id="s-panel">
+        <div class="s-rail-head">Inspector</div>
+        <div id="s-inspector" class="s-inspector">
+          <p class="s-hint">Select something on the page.</p>
+        </div>
+      </aside>
+    </div>
+  )}
+
+  <script type="application/json" id="s-state" set:html={JSON.stringify(state)} />
+
+  <script>
+    import { initStudio } from '../scripts/studio-canvas';
+    initStudio();
+  </script>
+
+  <style is:global>
+    .s-actions { display: flex; align-items: center; gap: 10px; }
+    .s-status { font-size: 12px; color: var(--s-muted); }
+    .s-status[data-tone='bad'] { color: var(--s-bad); }
+    .s-status[data-tone='good'] { color: #1a7f4b; }
+
+    .s-editor {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 280px;
+      height: calc(100vh - 52px);
+    }
+
+    .s-rail, .s-panel {
+      background: var(--s-panel);
+      border-right: 1px solid var(--s-line);
+      overflow-y: auto;
+    }
+    .s-panel { border-right: 0; border-left: 1px solid var(--s-line); }
+
+    .s-rail-head {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--s-muted);
+      padding: 14px 14px 8px;
+    }
+
+    .s-blocks { list-style: none; margin: 0; padding: 0 8px 20px; }
+    .s-blocks button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: none;
+      border-radius: 7px;
+      padding: 7px 8px;
+      font: inherit;
+      font-size: 12px;
+      color: var(--s-muted);
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .s-blocks button:hover { background: #f1f2f4; }
+    .s-blocks li.is-canvas button { color: var(--s-ink); font-weight: 500; }
+    .s-blocks li.is-active > button { border-color: var(--s-accent); background: #eef3ff; }
+
+    .s-blocks li { position: relative; }
+    .s-blocks .s-addhere {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 5px;
+      border: 1px solid var(--s-line);
+      background: #fff;
+      color: var(--s-muted);
+      line-height: 1;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .s-blocks li:hover .s-addhere { opacity: 1; }
+    .s-blocks .s-addhere:hover { color: var(--s-accent); border-color: var(--s-accent); }
+
+    /* The stage holds the page at its true width and scales the whole thing
+       down to fit, so the layout you drag on is the published layout rather
+       than a narrower approximation of it. */
+    .s-stage {
+      overflow: auto;
+      background: #eceef1;
+      padding: 24px;
+    }
+    .s-page {
+      width: 1440px;
+      transform-origin: top left;
+      background: #fff;
+      padding: 0 48px 60px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Interaction affordances, only in the studio. */
+    .s-page .cv-item { cursor: grab; }
+    .s-page .cv-item.is-selected { outline: 2px solid var(--s-accent); outline-offset: 2px; }
+    .s-page .cv-item.is-dragging { cursor: grabbing; }
+    .s-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--s-accent);
+      z-index: 50;
+    }
+    .s-handle--size { right: -7px; bottom: -7px; cursor: nwse-resize; }
+    .s-handle--rot { left: 50%; top: -26px; margin-left: -6px; cursor: grab; }
+
+    .s-inspector { padding: 0 14px 24px; }
+    .s-hint { color: var(--s-muted); font-size: 12px; }
+    .s-field { margin-bottom: 10px; }
+    .s-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--s-muted);
+      margin-bottom: 3px;
+    }
+    .s-field input[type='text'],
+    .s-field input[type='number'],
+    .s-field select {
+      width: 100%;
+      border: 1px solid var(--s-line);
+      border-radius: 7px;
+      padding: 6px 8px;
+      font: inherit;
+      font-size: 13px;
+      background: #fff;
+      color: var(--s-ink);
+    }
+    .s-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .s-swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .s-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      cursor: pointer;
+      padding: 0;
+    }
+    .s-colorrow { display: flex; gap: 8px; align-items: center; }
+    .s-colorrow input[type='color'] {
+      width: 38px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid var(--s-line);
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .s-add { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 18px; }
+    .s-sep { height: 1px; background: var(--s-line); margin: 14px 0; }
+  </style>
+</StudioShell>
