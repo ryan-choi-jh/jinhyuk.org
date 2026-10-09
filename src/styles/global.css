@@ -650,6 +650,48 @@ body.is-locked {
 }
 
 /* ---------------------------------------------------------------------------
+   Preview chrome
+   Only ever seen on the editor deployment, behind Keystatic's Preview button.
+   Deliberately plain, so it cannot be mistaken for part of the page.
+   --------------------------------------------------------------------------- */
+.preview-flag {
+  margin-top: 24px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-family: var(--nav);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.preview-flag strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.preview-error {
+  margin: 48px 0;
+  padding: 20px 24px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  max-width: 720px;
+}
+
+.preview-error p {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.preview-error p:last-child {
+  margin-bottom: 0;
+}
+
+.preview-error strong {
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------------------
    Margin column
    The text column is 720px inside a 1344px page, leaving ~600px of empty
    space to its right. A margin image floats into it, level with the text that

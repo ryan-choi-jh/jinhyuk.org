@@ -215,6 +215,11 @@ export default config({
       // The full-page writing surface, same as Writing. Without this the
       // editor is a stack of form fields instead of a page.
       entryLayout: 'content',
+      // Opens the real page, rendered from the branch you are editing, so you
+      // can see the margin column and the connector lines. Those only exist
+      // once the boxes have real positions in a browser, which is why the
+      // editor itself can never show them.
+      previewUrl: '/preview/projects/{slug}?branch={branch}',
       columns: ['title', 'date'],
       schema: {
         title: fields.slug({

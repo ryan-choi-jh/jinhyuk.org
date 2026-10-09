@@ -28,7 +28,28 @@ export default defineConfig({
   site: isEditor ? EDITOR_ORIGIN : 'https://jinhyuk.org',
   output: isEditor ? 'server' : 'static',
   ...(isEditor ? { adapter: vercel() } : {}),
-  integrations: withKeystatic ? [react(), keystatic()] : [],
+  integrations: [
+    ...(withKeystatic ? [react(), keystatic()] : []),
+    // The live preview behind Keystatic's Preview button. It is server
+    // rendered, so it can only exist where there is an adapter: injecting it
+    // here keeps it out of the static Pages build, which would otherwise fail
+    // on its `prerender = false`.
+    ...(withKeystatic
+      ? [
+          {
+            name: 'preview-routes',
+            hooks: {
+              'astro:config:setup': ({ injectRoute }) => {
+                injectRoute({
+                  pattern: '/preview/projects/[slug]',
+                  entrypoint: './src/preview/project-preview.astro',
+                });
+              },
+            },
+          },
+        ]
+      : []),
+  ],
 
   // Astro ignores X-Forwarded-Host unless the domain is allowlisted, to stop
   // host-header injection. Behind Vercel's proxy that meant every request
