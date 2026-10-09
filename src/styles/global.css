@@ -812,8 +812,12 @@ article pre code {
   color: var(--accent);
 }
 
+/* The summary that sits above a project or essay. Italic so it reads as a
+   standfirst rather than the opening of the body. Inter's 300 italic is
+   loaded, so this is a real italic and not a synthesised slant. */
 .lead {
   font-weight: 300;
+  font-style: italic;
 }
 
 article figure {
@@ -876,7 +880,8 @@ article figcaption {
   flex-shrink: 0;
 }
 
-.project-lead {
+.project-lead,
+.post-lead {
   margin-bottom: 40px;
 }
 
@@ -975,6 +980,10 @@ article figcaption {
   margin-inline: 0;
 }
 
+.pb--right {
+  margin-inline: auto 0;
+}
+
 .pb-heading {
   margin: 56px 0 4px;
   font-size: 22px;
@@ -1033,6 +1042,10 @@ article figcaption {
   justify-content: flex-start;
 }
 
+.media-items--right {
+  justify-content: flex-end;
+}
+
 /* Phone screenshots size by height, so three of them sit side by side
    instead of each one filling the column. 720px is the figure the Paper
    palette is drawn at: three portrait phones then come to 1041px wide and
@@ -1079,6 +1092,10 @@ article figcaption {
 
 .media-items--left + .media-caption--group {
   text-align: left;
+}
+
+.media-items--right + .media-caption--group {
+  text-align: right;
 }
 
 /* Text beside media -------------------------------------------------------- */

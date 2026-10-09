@@ -7,6 +7,8 @@ const writing = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.coerce.date(),
+    // Shown in italics above the essay. Older posts have none.
+    summary: z.string().optional(),
     // Set to true to keep a post unpublished while you draft it.
     draft: z.boolean().optional().default(false),
     // Optional call-to-action buttons shown at the end of the essay.

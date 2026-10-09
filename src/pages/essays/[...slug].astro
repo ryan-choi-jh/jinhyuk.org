@@ -23,6 +23,7 @@ const fmt = (d: Date) =>
   <article class="post-content">
     <h1>{post.data.title}</h1>
     <p class="post-meta">{fmt(post.data.date)}</p>
+    {post.data.summary && <p class="lead post-lead">{post.data.summary}</p>}
     <Content />
 
     {buttons.length > 0 && (

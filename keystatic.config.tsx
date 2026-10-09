@@ -23,6 +23,26 @@ const settingsLine: React.CSSProperties = {
 
 const captionLine: React.CSSProperties = { fontSize: 12, color: '#3b3b3b' };
 
+// The three widths, as a share of the 1344px content column. The preview
+// scales itself by these so choosing one shows you the answer instead of
+// making you remember what the words mean.
+const WIDTHS: Record<string, { px: number; pct: number }> = {
+  text: { px: 720, pct: 54 },
+  wide: { px: 1056, pct: 79 },
+  full: { px: 1344, pct: 100 },
+};
+
+function widthOf(w?: string) {
+  return WIDTHS[w ?? 'wide'] ?? WIDTHS.wide;
+}
+
+/** auto on the side(s) the content is pushed away from. */
+function alignMargin(align?: string) {
+  if (align === 'left') return '0 auto';
+  if (align === 'right') return 'auto 0';
+  return 'auto';
+}
+
 // Keystatic's block chrome has no delete control: you select the node by
 // clicking its label, then press Backspace. That is invisible unless said,
 // and an empty block is exactly when you need to know it.
@@ -137,6 +157,12 @@ export default config({
         date: fields.date({
           label: 'Date',
           defaultValue: { kind: 'today' },
+        }),
+        summary: fields.text({
+          label: 'Short description',
+          description:
+            'Optional. One or two lines shown in italics above the essay, as a standfirst.',
+          multiline: true,
         }),
         draft: fields.checkbox({
           label: 'Draft',
@@ -283,19 +309,23 @@ export default config({
                 }),
                 width: fields.select({
                   label: 'Width',
-                  description: 'How far across the page this sits.',
+                  description:
+                    'How far across the page this sits. The preview below resizes to match.',
                   options: [
-                    { label: 'Text column', value: 'text' },
-                    { label: 'Wide', value: 'wide' },
-                    { label: 'Full width', value: 'full' },
+                    { label: 'Text column — 720px, same measure as the paragraphs', value: 'text' },
+                    { label: 'Wide — 1056px, breaks out past the text', value: 'wide' },
+                    { label: 'Full width — 1344px, the whole column', value: 'full' },
                   ],
                   defaultValue: 'wide',
                 }),
                 align: fields.select({
                   label: 'Alignment',
+                  description:
+                    'Where it sits inside the page, and which way its caption reads.',
                   options: [
                     { label: 'Centred', value: 'center' },
                     { label: 'Left', value: 'left' },
+                    { label: 'Right', value: 'right' },
                   ],
                   defaultValue: 'center',
                 }),
@@ -315,10 +345,11 @@ export default config({
                 const items = (v.items ?? []).filter(
                   (it: any) => it?.source?.value
                 );
+                const w = widthOf(v.width);
                 const bits = [
                   `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
                   v.layout,
-                  v.width,
+                  `${v.width ?? 'wide'} · ${w.px}px`,
                   v.align,
                   v.tall ? 'phones' : null,
                 ].filter(Boolean);
@@ -341,11 +372,20 @@ export default config({
                     {items.length > 0 && (
                       <div
                         style={{
+                          width: `${w.pct}%`,
+                          marginInline: alignMargin(v.align),
+                          border: '1px dashed #d8d8d8',
+                          borderRadius: 4,
+                          padding: 6,
                           display: 'flex',
                           gap: 8,
                           flexWrap: 'wrap',
                           justifyContent:
-                            v.align === 'left' ? 'flex-start' : 'center',
+                            v.align === 'left'
+                              ? 'flex-start'
+                              : v.align === 'right'
+                                ? 'flex-end'
+                                : 'center',
                         }}
                       >
                         {items.map((it: any, i: number) =>
@@ -373,7 +413,23 @@ export default config({
                         )}
                       </div>
                     )}
-                    {v.caption ? <div style={captionLine}>{v.caption}</div> : null}
+                    {v.caption ? (
+                      <div
+                        style={{
+                          ...captionLine,
+                          width: `${w.pct}%`,
+                          marginInline: alignMargin(v.align),
+                          textAlign:
+                            v.align === 'left'
+                              ? 'left'
+                              : v.align === 'right'
+                                ? 'right'
+                                : 'center',
+                        }}
+                      >
+                        {v.caption}
+                      </div>
+                    ) : null}
                   </div>
                 );
               },
@@ -414,11 +470,12 @@ export default config({
                 }),
                 width: fields.select({
                   label: 'Width',
-                  description: 'How far across the page this sits.',
+                  description:
+                    'How far across the page this sits. The preview below resizes to match.',
                   options: [
-                    { label: 'Text column', value: 'text' },
-                    { label: 'Wide', value: 'wide' },
-                    { label: 'Full width', value: 'full' },
+                    { label: 'Text column — 720px, same measure as the paragraphs', value: 'text' },
+                    { label: 'Wide — 1056px, breaks out past the text', value: 'wide' },
+                    { label: 'Full width — 1344px, the whole column', value: 'full' },
                   ],
                   defaultValue: 'wide',
                 }),
@@ -444,14 +501,32 @@ export default config({
                   </div>
                 );
 
+                const w = widthOf(v.width);
+
                 return (
                   <div style={previewFrame}>
                     <div style={settingsLine}>
-                      {['text + media', v.side ?? 'right', `${v.split ?? 50}/${100 - Number(v.split ?? 50)}`, v.width]
+                      {[
+                        'text + media',
+                        v.side ?? 'right',
+                        `${v.split ?? 50}/${100 - Number(v.split ?? 50)}`,
+                        `${v.width ?? 'wide'} · ${w.px}px`,
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div
+                      style={{
+                        width: `${w.pct}%`,
+                        marginInline: 'auto',
+                        border: '1px dashed #d8d8d8',
+                        borderRadius: 4,
+                        padding: 6,
+                        display: 'flex',
+                        gap: 12,
+                        alignItems: 'flex-start',
+                      }}
+                    >
                       {flip ? media : text}
                       {flip ? text : media}
                     </div>
