@@ -23,6 +23,19 @@ const settingsLine: React.CSSProperties = {
 
 const captionLine: React.CSSProperties = { fontSize: 12, color: '#3b3b3b' };
 
+// Keystatic's block chrome has no delete control: you select the node by
+// clicking its label, then press Backspace. That is invisible unless said,
+// and an empty block is exactly when you need to know it.
+const emptyHint: React.CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: '#8a6d3b',
+  background: '#fcf8e3',
+  border: '1px solid #faebcc',
+  borderRadius: 4,
+  padding: '8px 10px',
+};
+
 /** An image field's editor value is { data, filename, extension }, not a path,
  *  so a thumbnail has to be built from the bytes. */
 function AssetThumb({ value, height }: { value: any; height: number }) {
@@ -309,6 +322,18 @@ export default config({
                   v.align,
                   v.tall ? 'phones' : null,
                 ].filter(Boolean);
+
+                if (items.length === 0) {
+                  return (
+                    <div style={previewFrame}>
+                      <div style={settingsLine}>{bits.join(' · ')}</div>
+                      <div style={emptyHint}>
+                        Empty. Add an item with Edit, or click <b>MEDIA</b> above
+                        to select this block and press Backspace to delete it.
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div style={previewFrame}>
