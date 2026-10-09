@@ -97,7 +97,11 @@ a {
 
 /* Underline links inside running prose only, so nav and lists stay clean. */
 .prose a,
-.post-content a {
+.post-content a,
+.project-body > p a,
+.project-body > ul a,
+.project-body > ol a,
+.project-body > blockquote a {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
@@ -105,7 +109,11 @@ a {
 }
 
 .prose a:hover,
-.post-content a:hover {
+.post-content a:hover,
+.project-body > p a:hover,
+.project-body > ul a:hover,
+.project-body > ol a:hover,
+.project-body > blockquote a:hover {
   text-decoration-color: var(--accent);
 }
 
@@ -905,6 +913,38 @@ article figcaption {
    --------------------------------------------------------------------------- */
 .project-body {
   padding-top: 8px;
+}
+
+/* The body is one flowing document typed in the editor, not a pre-grouped
+   list of blocks, so the prose takes the text measure directly. The media
+   tags opt out of it with their own .pb--wide / .pb--full. */
+.project-body > p,
+.project-body > ul,
+.project-body > ol,
+.project-body > h2,
+.project-body > h3,
+.project-body > h4 {
+  max-width: 720px;
+  margin-inline: 0;
+}
+
+.project-body > blockquote {
+  max-width: 900px;
+  margin-inline: 0;
+}
+
+.project-body > p {
+  margin: 0 0 28px;
+}
+
+.project-body > ul,
+.project-body > ol {
+  margin: 0 0 28px;
+  padding-left: 24px;
+}
+
+.project-body > li + li {
+  margin-top: 6px;
 }
 
 .pb {

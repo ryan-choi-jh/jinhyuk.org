@@ -2,16 +2,27 @@
 import Base from '../../layouts/Base.astro';
 import { createReader } from '@keystatic/core/reader';
 import keystaticConfig from '../../../keystatic.config';
+import { renderProjectBody } from '../../lib/project-doc';
 
 export async function getStaticPaths() {
   const reader = createReader(process.cwd(), keystaticConfig);
   const projects = await reader.collections.projects.all();
-  return projects
-    .filter((p) => !p.entry.draft)
-    .map((p) => ({ params: { slug: p.slug }, props: { project: p.entry } }));
+  return Promise.all(
+    projects
+      .filter((p) => !p.entry.draft)
+      .map(async (p) => ({
+        params: { slug: p.slug },
+        props: {
+          project: p.entry,
+          // content() resolves to { node }, the Markdoc AST. Render it here
+          // so the page template stays about layout.
+          body: renderProjectBody((await p.entry.content()).node),
+        },
+      }))
+  );
 }
 
-const { project } = Astro.props;
+const { project, body } = Astro.props;
 
 const fmt = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', {
@@ -29,39 +40,6 @@ const prettyUrl = (url: string) => {
     return url;
   }
 };
-
-// Turn a pasted video link into an embeddable src.
-const embedFor = (url: string) => {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, '');
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      const id = u.searchParams.get('v');
-      if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
-    }
-    if (host === 'youtu.be') {
-      const id = u.pathname.slice(1);
-      if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
-    }
-    if (host === 'vimeo.com') {
-      const id = u.pathname.split('/').filter(Boolean)[0];
-      if (id) return `https://player.vimeo.com/video/${id}`;
-    }
-  } catch {
-    /* fall through */
-  }
-  return null;
-};
-
-const paragraphs = (text: string) =>
-  (text ?? '')
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-
-// Every block gets a width and an alignment; these turn those into classes.
-const box = (width?: string, align?: string) =>
-  ['pb', `pb--${width ?? 'wide'}`, `pb--${align ?? 'center'}`].join(' ');
 ---
 
 <Base title={project.title} description={project.summary || project.title}>
@@ -82,100 +60,5 @@ const box = (width?: string, align?: string) =>
     {project.summary && <p class="lead project-lead">{project.summary}</p>}
   </article>
 
-  <div class="project-body">
-    {project.blocks.map((block) => {
-      if (block.discriminant === 'text') {
-        return (
-          <div class="pb pb--text pb--left prose">
-            {paragraphs(block.value).map((para) => <p>{para}</p>)}
-          </div>
-        );
-      }
-
-      if (block.discriminant === 'heading') {
-        return <h2 class="pb pb--text pb--left pb-heading">{block.value}</h2>;
-      }
-
-      if (block.discriminant === 'quote') {
-        return (
-          <blockquote class="pb pb--quote pb--left pb-quote">
-            {paragraphs(block.value).map((para) => <p>{para}</p>)}
-          </blockquote>
-        );
-      }
-
-      if (block.discriminant === 'media') {
-        const m = block.value;
-        const items = (m.items ?? []).filter((it) => it?.source?.value);
-        if (items.length === 0) return null;
-        const groupCaption = (m.caption ?? '').trim();
-
-        return (
-          <figure class={box(m.width, m.align)}>
-            <div
-              class={[
-                'media-items',
-                `media-items--${m.layout ?? 'row'}`,
-                `media-items--${m.align ?? 'center'}`,
-                m.tall ? 'media-items--tall' : '',
-              ].join(' ')}
-            >
-              {items.map((it) => {
-                const kind = it.source.discriminant;
-                const val = it.source.value as string;
-                const embed = kind === 'videoLink' ? embedFor(val) : null;
-                return (
-                  <div class="media-item">
-                    {kind === 'image' && <img src={val} alt={it.alt || ''} loading="lazy" />}
-                    {kind === 'videoFile' && (
-                      <video src={val} controls playsinline preload="metadata"></video>
-                    )}
-                    {kind === 'videoLink' &&
-                      (embed ? (
-                        <div class="video-frame">
-                          <iframe
-                            src={embed}
-                            loading="lazy"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen
-                            title={it.caption || 'Embedded video'}
-                          ></iframe>
-                        </div>
-                      ) : (
-                        <a href={val} target="_blank" rel="noopener noreferrer">{val}</a>
-                      ))}
-                    {!groupCaption && it.caption && (
-                      <figcaption class="media-caption">{it.caption}</figcaption>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {groupCaption && <figcaption class="media-caption media-caption--group">{groupCaption}</figcaption>}
-          </figure>
-        );
-      }
-
-      if (block.discriminant === 'textMedia') {
-        const t = block.value;
-        if (!t.image && !t.text) return null;
-        const mediaPct = Number(t.split ?? '50');
-        return (
-          <div class={`${box(t.width, 'center')} tm tm--media-${t.side ?? 'right'}`}>
-            <div class="tm-text prose" style={`flex-basis:${100 - mediaPct}%`}>
-              {paragraphs(t.text).map((para) => <p>{para}</p>)}
-            </div>
-            {t.image && (
-              <figure class="tm-media" style={`flex-basis:${mediaPct}%`}>
-                <img src={t.image} alt={t.alt || ''} loading="lazy" />
-                {t.caption && <figcaption class="media-caption">{t.caption}</figcaption>}
-              </figure>
-            )}
-          </div>
-        );
-      }
-
-      return null;
-    })}
-  </div>
+  <div class="project-body" set:html={body} />
 </Base>

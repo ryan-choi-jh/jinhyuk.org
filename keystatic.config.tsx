@@ -1,4 +1,80 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
+import { block } from '@keystatic/core/content-components';
+import * as React from 'react';
+
+// Previews drawn inside the editor, so an inserted component shows what it
+// holds instead of a grey bar you have to open to read.
+const previewFrame: React.CSSProperties = {
+  border: '1px solid #e1e1e1',
+  borderRadius: 6,
+  padding: 10,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+  background: '#fbfbfb',
+};
+
+const settingsLine: React.CSSProperties = {
+  fontSize: 11,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: '#6b6b6b',
+};
+
+const captionLine: React.CSSProperties = { fontSize: 12, color: '#3b3b3b' };
+
+/** An image field's editor value is { data, filename, extension }, not a path,
+ *  so a thumbnail has to be built from the bytes. */
+function AssetThumb({ value, height }: { value: any; height: number }) {
+  const [url, setUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const raw = value?.data;
+    if (!raw) {
+      setUrl(null);
+      return;
+    }
+    const bytes =
+      raw instanceof Uint8Array
+        ? raw
+        : new Uint8Array(Object.values(raw) as number[]);
+    const objectUrl = URL.createObjectURL(new Blob([bytes]));
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [value]);
+
+  if (!url) {
+    return (
+      <div
+        style={{
+          ...settingsLine,
+          padding: '18px 12px',
+          border: '1px dashed #d4d4d4',
+          borderRadius: 3,
+        }}
+      >
+        No image
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt=""
+      style={{
+        height,
+        width: 'auto',
+        maxWidth: 240,
+        objectFit: 'contain',
+        border: '1px solid #e8e8e8',
+        borderRadius: 3,
+        background: '#fff',
+      }}
+    />
+  );
+}
+
 
 // The editor runs locally only (`npm run dev` → http://localhost:4321/keystatic)
 // and edits the files in src/content/ directly; commit + push to publish.
@@ -80,10 +156,13 @@ export default config({
     projects: collection({
       label: 'Projects',
       slugField: 'title',
-      // No trailing slash => each project is a single data file:
-      // src/content/projects/<slug>.yaml
+      // No trailing slash => each project is a single file:
+      // src/content/projects/<slug>.mdoc  (frontmatter + a Markdoc body).
       path: 'src/content/projects/*',
-      format: { data: 'yaml' },
+      format: { contentField: 'content' },
+      // The full-page writing surface, same as Writing. Without this the
+      // editor is a stack of form fields instead of a page.
+      entryLayout: 'content',
       columns: ['title', 'date'],
       schema: {
         title: fields.slug({
@@ -120,39 +199,24 @@ export default config({
           directory: 'public/projects',
           publicPath: '/projects/',
         }),
-        // The body is a list of blocks you add in any order. Everything
-        // visual is the one Media block — you set how many items it has,
-        // how they lay out, how wide they are and how they're captioned,
-        // rather than picking from fixed presets.
-        blocks: fields.array(
-          fields.conditional(
-            fields.select({
-              label: 'Block type',
-              options: [
-                { label: 'Text', value: 'text' },
-                { label: 'Heading', value: 'heading' },
-                { label: 'Pull quote', value: 'quote' },
-                { label: 'Media — images and videos', value: 'media' },
-                { label: 'Text beside media', value: 'textMedia' },
-              ],
-              defaultValue: 'text',
-            }),
-            {
-              text: fields.text({
-                label: 'Text',
-                description: 'Separate paragraphs with a blank line.',
-                multiline: true,
-              }),
-
-              heading: fields.text({ label: 'Heading' }),
-
-              quote: fields.text({
-                label: 'Quote',
-                description: 'Set bigger, with a rule down the side.',
-                multiline: true,
-              }),
-
-              media: fields.object({
+        // The body is one document you type straight into. Headings,
+        // paragraphs, quotes and lists are native; the two components below
+        // are inserted inline with the "/" menu and configured in place, so
+        // media sits exactly where you put it in the text.
+        content: fields.markdoc({
+          label: 'Content',
+          options: {
+            image: {
+              directory: 'public/projects',
+              publicPath: '/projects/',
+            },
+          },
+          components: {
+            Media: block({
+              label: 'Media',
+              description:
+                'Images and videos. Set how many, how they lay out and how wide they sit.',
+              schema: {
                 items: fields.array(
                   fields.object({
                     source: fields.conditional(
@@ -205,15 +269,15 @@ export default config({
                   defaultValue: 'row',
                 }),
                 width: fields.select({
-                label: 'Width',
-                description: 'How far across the page this sits.',
-                options: [
-                  { label: 'Text column', value: 'text' },
-                  { label: 'Wide', value: 'wide' },
-                  { label: 'Full width', value: 'full' },
-                ],
-                defaultValue: 'wide',
-              }),
+                  label: 'Width',
+                  description: 'How far across the page this sits.',
+                  options: [
+                    { label: 'Text column', value: 'text' },
+                    { label: 'Wide', value: 'wide' },
+                    { label: 'Full width', value: 'full' },
+                  ],
+                  defaultValue: 'wide',
+                }),
                 align: fields.select({
                   label: 'Alignment',
                   options: [
@@ -232,9 +296,68 @@ export default config({
                   label: 'Caption for the whole group',
                   description: 'Leave empty to use the per-item captions instead.',
                 }),
-              }),
+              },
+              ContentView: (props) => {
+                const v = props.value as any;
+                const items = (v.items ?? []).filter(
+                  (it: any) => it?.source?.value
+                );
+                const bits = [
+                  `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
+                  v.layout,
+                  v.width,
+                  v.align,
+                  v.tall ? 'phones' : null,
+                ].filter(Boolean);
 
-              textMedia: fields.object({
+                return (
+                  <div style={previewFrame}>
+                    <div style={settingsLine}>{bits.join(' · ')}</div>
+                    {items.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          flexWrap: 'wrap',
+                          justifyContent:
+                            v.align === 'left' ? 'flex-start' : 'center',
+                        }}
+                      >
+                        {items.map((it: any, i: number) =>
+                          it.source.discriminant === 'image' ? (
+                            <AssetThumb
+                              key={i}
+                              value={it.source.value}
+                              height={v.tall ? 170 : 120}
+                            />
+                          ) : (
+                            <div
+                              key={i}
+                              style={{
+                                ...settingsLine,
+                                padding: '18px 12px',
+                                border: '1px dashed #d4d4d4',
+                                borderRadius: 3,
+                              }}
+                            >
+                              {it.source.discriminant === 'videoLink'
+                                ? 'Video link'
+                                : 'Video file'}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                    {v.caption ? <div style={captionLine}>{v.caption}</div> : null}
+                  </div>
+                );
+              },
+            }),
+
+            TextMedia: block({
+              label: 'Text beside media',
+              description: 'A paragraph and an image side by side.',
+              schema: {
                 text: fields.text({
                   label: 'Text',
                   description: 'Separate paragraphs with a blank line.',
@@ -265,60 +388,55 @@ export default config({
                   defaultValue: '50',
                 }),
                 width: fields.select({
-                label: 'Width',
-                description: 'How far across the page this sits.',
-                options: [
-                  { label: 'Text column', value: 'text' },
-                  { label: 'Wide', value: 'wide' },
-                  { label: 'Full width', value: 'full' },
-                ],
-                defaultValue: 'wide',
-              }),
-              }),
-            }
-          ),
-          {
-            label: 'Content blocks',
-            description: 'Build the page by adding blocks in order.',
-            // A list of rows all saying "Text" and "Media" tells you nothing,
-            // so each row summarises its own contents.
-            itemLabel: (props) => {
-              const kind = props.discriminant;
-              const v: any = props.value;
-              const snip = (s: unknown, n = 52) => {
-                const t = String(s ?? '').replace(/\s+/g, ' ').trim();
-                if (!t) return '';
-                return t.length > n ? `${t.slice(0, n)}…` : t;
-              };
+                  label: 'Width',
+                  description: 'How far across the page this sits.',
+                  options: [
+                    { label: 'Text column', value: 'text' },
+                    { label: 'Wide', value: 'wide' },
+                    { label: 'Full width', value: 'full' },
+                  ],
+                  defaultValue: 'wide',
+                }),
+              },
+              ContentView: (props) => {
+                const v = props.value as any;
+                const flip = v.side === 'left';
+                const media = v.image ? (
+                  <div style={{ width: `${Number(v.split ?? 50)}%` }}>
+                    <AssetThumb value={v.image} height={130} />
+                  </div>
+                ) : null;
+                const text = (
+                  <div
+                    style={{
+                      width: `${100 - Number(v.split ?? 50)}%`,
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      color: '#3b3b3b',
+                    }}
+                  >
+                    {(v.text ?? '').slice(0, 220) || 'No text yet'}
+                  </div>
+                );
 
-              if (kind === 'text') return snip(v?.value) || 'Text';
-              if (kind === 'heading') return `# ${snip(v?.value) || 'Heading'}`;
-              if (kind === 'quote') return `“${snip(v?.value, 40) || 'Pull quote'}”`;
-
-              if (kind === 'media') {
-                const f = v?.fields;
-                const n = f?.items?.elements?.length ?? 0;
-                const bits = [
-                  `${n} ${n === 1 ? 'item' : 'items'}`,
-                  f?.layout?.value,
-                  f?.width?.value,
-                  f?.tall?.value ? 'phones' : null,
-                ].filter(Boolean);
-                const cap = snip(f?.caption?.value, 30);
-                return `Media · ${bits.join(' · ')}${cap ? ` — ${cap}` : ''}`;
-              }
-
-              if (kind === 'textMedia') {
-                const f = v?.fields;
-                const side = f?.side?.value ?? 'right';
-                const cap = snip(f?.caption?.value, 24) || snip(f?.text?.value, 24);
-                return `Text + media ${side}${cap ? ` — ${cap}` : ''}`;
-              }
-
-              return 'Block';
-            },
-          }
-        ),
+                return (
+                  <div style={previewFrame}>
+                    <div style={settingsLine}>
+                      {['text + media', v.side ?? 'right', `${v.split ?? 50}/${100 - Number(v.split ?? 50)}`, v.width]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      {flip ? media : text}
+                      {flip ? text : media}
+                    </div>
+                    {v.caption ? <div style={captionLine}>{v.caption}</div> : null}
+                  </div>
+                );
+              },
+            }),
+          },
+        }),
       },
     }),
   },
