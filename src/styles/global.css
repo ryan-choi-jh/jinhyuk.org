@@ -592,6 +592,64 @@ body.is-locked {
 }
 
 /* ---------------------------------------------------------------------------
+   Empty state
+   Shown on Photography while src/data/photography.ts has no albums in it.
+   The illustration is a transparent WebP so it sits on either theme's
+   background without a white plate behind it.
+   --------------------------------------------------------------------------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding-top: 138px;
+  text-align: center;
+}
+
+.empty-art {
+  width: min(600px, 100%);
+  height: auto;
+}
+
+/* width, not just max-width: `align-items: center` sizes a column flex item
+   to its own content, so a bare max-width lets the copy push past a narrow
+   viewport instead of wrapping inside it. */
+.empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.empty-label {
+  margin: 0;
+  font-family: var(--nav);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.empty-note {
+  margin: 0;
+  font-size: 17.5px;
+  font-weight: 300;
+  line-height: 30px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+
+/* The copy breaks in a different place on each layout: wide gets the setup
+   on its own line, narrow gets one line per sentence. Whichever <br> is
+   hidden collapses back to the space in the source. */
+.brk-narrow {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
    Video facade
    Shows the poster frame until clicked, then swaps in the real YouTube
    iframe. Keeps four players off the page on first load.
@@ -1136,6 +1194,36 @@ article figcaption {
   .cards--thirds,
   .cards--halves {
     grid-template-columns: 1fr;
+  }
+
+  .empty {
+    padding-top: 87px;
+    gap: 28px;
+  }
+
+  .empty-art {
+    width: min(251px, 100%);
+  }
+
+  .empty-text {
+    gap: 8px;
+  }
+
+  .empty-label {
+    font-size: 12px;
+  }
+
+  .empty-note {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .brk-wide {
+    display: none;
+  }
+
+  .brk-narrow {
+    display: inline;
   }
 
   .video-play {

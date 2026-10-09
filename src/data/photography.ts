@@ -1,8 +1,12 @@
 // Photography albums.
 //
-// PLACEHOLDERS. These are stand-ins so the page has shape — none of them have
-// real photographs behind them yet. To make one real, drop images into
-// public/photography/<slug>/ and set `cover` to the one you want on this page.
+// Empty on purpose. While this list has nothing in it the page shows the
+// empty state (the illustration and the "currently developing" note) instead
+// of a grid. Add an entry here and the grid comes back on its own — no page
+// changes needed.
+//
+// To add one: drop images into public/photography/<slug>/ and set `cover` to
+// the one you want on this page.
 export interface Album {
   title: string;
   year: string;
@@ -10,11 +14,4 @@ export interface Album {
   cover?: string;
 }
 
-export const albums: Album[] = [
-  { title: 'Ocean Beach', year: '2026' },
-  { title: 'Seoul & Busan', year: '2025' },
-  { title: 'Marin Headlands', year: '2026' },
-  { title: 'Jeju', year: '2025' },
-  { title: 'Daejeon', year: '2024' },
-  { title: 'Leamington Spa', year: '2019' },
-];
+export const albums: Album[] = [];
