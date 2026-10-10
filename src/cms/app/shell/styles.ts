@@ -364,7 +364,7 @@ export const SHELL_CSS = `
 
 /* The nav and the footer, so a page is framed the way a reader sees it.
    Inert on purpose: this is scenery, not navigation. */
-.cms-chrome { padding: 0 48px; pointer-events: none; user-select: none; }
+.cms-chrome { padding: 0; pointer-events: none; user-select: none; }
 .cms-chrome__nav {
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   padding: 28px 0 24px;
@@ -400,7 +400,11 @@ export const SHELL_CSS = `
 
 .cms-group { position: relative; }
 .cms-band-box { position: relative; }
-.cms-band-box--prose { padding: 10px 72px; }
+/* No horizontal inset. On the published page prose, canvas items and the
+   nav and footer all begin at the content column's left edge, measured at 0
+   for all three. A 72px inset here put the text out of line with every canvas
+   beside it, which is the one judgement the canvas exists to support. */
+.cms-band-box--prose { padding: 10px 0; }
 .cms-prose-col { max-width: 760px; }
 .cms-band-box--canvas { }
 .cms-band-box--overlay {
