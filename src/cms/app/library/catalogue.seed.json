@@ -892,6 +892,103 @@
         "w": 600,
         "h": 458
       }
+    },
+    {
+      "id": "a_brush-choi-png",
+      "kind": "asset",
+      "name": "최, in brush",
+      "category": "signature",
+      "tags": [
+        "brush",
+        "hangul",
+        "ink",
+        "name",
+        "paper"
+      ],
+      "src": "/library/brush-choi.webp",
+      "width": 686,
+      "height": 861,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 11588,
+      "preview": {
+        "src": "/library/thumbs/brush-choi-png.png",
+        "w": 478,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_brush-jin-png",
+      "kind": "asset",
+      "name": "진, in brush",
+      "category": "signature",
+      "tags": [
+        "brush",
+        "hangul",
+        "ink",
+        "name",
+        "paper"
+      ],
+      "src": "/library/brush-jin.webp",
+      "width": 783,
+      "height": 712,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 9686,
+      "preview": {
+        "src": "/library/thumbs/brush-jin-png.png",
+        "w": 600,
+        "h": 546
+      }
+    },
+    {
+      "id": "a_brush-hyeok-png",
+      "kind": "asset",
+      "name": "혁, in brush",
+      "category": "signature",
+      "tags": [
+        "brush",
+        "hangul",
+        "ink",
+        "name",
+        "paper"
+      ],
+      "src": "/library/brush-hyeok.webp",
+      "width": 750,
+      "height": 860,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 12724,
+      "preview": {
+        "src": "/library/thumbs/brush-hyeok-png.png",
+        "w": 523,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_jeju-hareubang-png",
+      "kind": "asset",
+      "name": "Jeju 하르방",
+      "category": "hero-scene",
+      "tags": [
+        "jeju",
+        "korea",
+        "paper",
+        "scene",
+        "stone"
+      ],
+      "note": "The three stone grandfathers and the 한라봉, bottom right of the hero grid.",
+      "src": "/library/jeju-hareubang.webp",
+      "width": 1248,
+      "height": 832,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 69416,
+      "preview": {
+        "src": "/library/thumbs/jeju-hareubang-png.png",
+        "w": 600,
+        "h": 400
+      }
     }
   ]
 }

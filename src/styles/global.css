@@ -327,10 +327,34 @@ html.theme-vt::view-transition-new(root) {
   outline: none;
 }
 
-.hero img {
+/* The illustration is a composition, not a picture: a 원고지 grid with the
+   scenes placed on it, one element each, so each one can be moved in the CMS.
+   The stage holds the whole thing's shape and the pieces are placed inside it
+   as percentages, so it scales as one drawing at any width.
+
+   container-type is here and not inherited from .doc because the hero is a
+   SIBLING of .doc, not inside it. The pieces' `top` is in cqw, and without a
+   container on this box those would resolve against the viewport and the
+   arrangement would shear as the window changed. */
+.hero-stage {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+}
+
+.hero-piece {
+  position: absolute;
+}
+
+/* Fills the authored box rather than taking its own intrinsic shape, which is
+   what Paper did (`background-size: 100% 100%`) and what keeps a scene from
+   shifting on the grid if its file's ratio is a fraction off. Written with
+   .hero in front so it beats a bare `.hero img`-weight rule wherever this
+   lands in the file. */
+.hero .hero-piece img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 /* The grid is legible on a desktop but tiny on a phone, so the whole
@@ -410,11 +434,23 @@ html.theme-vt::view-transition-new(root) {
   justify-content: flex-start;
 }
 
-.lightbox-stage img {
+/* Sized by height, with aspect-ratio giving the width — the overlay holds the
+   same stage the page does, so there is no flattened copy to keep in step and
+   it enlarges from the pieces' own 1.5x sources. This used to size a single
+   <img>; that rule cannot stay, because it would now catch all 23 pieces and
+   stretch each one to 72vh. */
+.lightbox-stage .hero-stage {
   height: 72vh;
   width: auto;
   max-width: none;
   margin: auto;
+  flex: none;
+}
+
+.lightbox-stage .hero-piece img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .lightbox-close {
