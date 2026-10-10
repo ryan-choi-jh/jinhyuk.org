@@ -139,8 +139,8 @@ function Panel({ store }: { store: SiteChromeStore }) {
           />
           {wordmarkProblem(chrome.wordmark.label) === null ? (
             <span className="cms-chr__help">
-              Signs every page, and is the site’s name in the browser tab — a page
-              reads “Essays — {chrome.wordmark.label}”.
+              Signs every page, and is the site’s name in the browser tab: a page
+              reads “{chrome.wordmark.label} (Essays)”.
             </span>
           ) : (
             <Problem text={wordmarkProblem(chrome.wordmark.label)} />

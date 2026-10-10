@@ -133,6 +133,8 @@ section('the default content file');
     'run: node src/cms/app/guide/write-default-json.mjs');
 }
 const DEFAULTS_JSON = JSON.stringify(JSON.parse(readFileSync(DEFAULT_JSON_PATH, 'utf8')));
+/** The cards the editor starts from, so counts below follow the content. */
+const SHIPPED_CARDS = JSON.parse(DEFAULTS_JSON).cards;
 
 const { chromium } = loadPlaywright();
 await build();
@@ -205,9 +207,13 @@ section('first visit');
 
   /* Every card made it in, and the words that matter are on screen. */
   const text = await page.locator('[data-testid="guide"]').innerText();
+  // The section list and the document-vs-record explainer were removed from
+  // the guide: the left-hand nav already shows the five sections, and which
+  // editor an entry opens in is apparent the moment you open one. So the
+  // words those two cards owned ('Filmography', 'record' and the rest) are
+  // deliberately not asserted here any more.
   for (const phrase of [
-    'Home', 'Projects', 'Essays', 'Filmography', 'Photography',
-    'document', 'record', 'Prose band', 'Canvas band', 'Overlay',
+    'document', 'Prose band', 'Canvas band', 'Overlay',
     '15 degrees', 'ratio', 'Nudge', 'guides', 'draft', 'Publish', 'Preview', '390',
   ]) {
     check(`the copy covers "${phrase}"`, text.includes(phrase));
@@ -222,7 +228,7 @@ section('first visit');
     const body = document.querySelector('[data-testid="guide"] [data-testid="guide-body"]');
     return { scroll: body.scrollHeight, client: body.clientHeight };
   });
-  check('all six cards fit without scrolling at this size',
+  check('every card fits without scrolling at this size',
     overflow.scroll <= overflow.client + 1, `${overflow.scroll} > ${overflow.client}`);
 
   /* Escape. */
@@ -356,9 +362,13 @@ section('editing the guide');
 
   check('the editor mounts', await page.locator('[data-testid="ge-form"]').isVisible());
   check('and shows a live preview', await page.locator('[data-testid="guide-preview"]').isVisible());
+  // Counted from the shipped content, not written in: cards get added and
+  // removed as the guide is edited, and a hardcoded 6 turns every such edit
+  // into a red harness for no reason.
+  const shipped = SHIPPED_CARDS.length;
   const before = await previewTitles(page);
-  eq('the preview draws every card', before.length, 6);
-  eq('starting with the shipped first card', before[0], 'The five sections');
+  eq('the preview draws every card', before.length, shipped);
+  eq('starting with the shipped first card', before[0], SHIPPED_CARDS[0].title);
 
   /* A card heading. */
   await page.fill('[data-testid="ge-card-title-0"]', 'Where everything lives');
@@ -386,7 +396,8 @@ section('editing the guide');
   /* Reordering cards. */
   await page.locator('[data-testid="ge-card-down-0"]').click();
   const afterMove = await previewTitles(page);
-  eq('moving a card down reorders the preview', afterMove[0], 'Documents and records');
+  // The card that was second in the shipped content, whatever it is called.
+  eq('moving a card down reorders the preview', afterMove[0], SHIPPED_CARDS[1].title);
   eq('and the moved card lands second', afterMove[1], 'Where everything lives');
   await page.locator('[data-testid="ge-card-up-1"]').click();
   eq('moving it back restores the order', (await previewTitles(page))[0], 'Where everything lives');
@@ -423,10 +434,10 @@ section('editing the guide');
 
   /* Cards: add and remove. */
   await page.locator('[data-testid="ge-add-card"]').click();
-  eq('+ card adds one', (await previewTitles(page)).length, 7);
-  eq('with a placeholder heading', (await previewTitles(page))[6], 'New card');
-  await page.locator('[data-testid="ge-card-remove-6"]').click();
-  eq('and deleting it takes it away again', (await previewTitles(page)).length, 6);
+  eq('+ card adds one', (await previewTitles(page)).length, shipped + 1);
+  eq('with a placeholder heading', (await previewTitles(page))[shipped], 'New card');
+  await page.locator(`[data-testid="ge-card-remove-${shipped}"]`).click();
+  eq('and deleting it takes it away again', (await previewTitles(page)).length, shipped);
 
   /* Blurb and footnote. */
   await page.fill('[data-testid="ge-card-lead-0"]', 'A blurb under the heading.');

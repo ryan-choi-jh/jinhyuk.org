@@ -340,6 +340,13 @@ html.theme-vt::view-transition-new(root) {
   position: relative;
   width: 100%;
   container-type: inline-size;
+  /* The illustration ends at the column, as it always did. One piece, the
+     skier, is authored at x:-50 so its skis run off the left edge; the
+     flattened export clipped that at the frame and this has to as well.
+     Without it the skis carried on across the white sheet, which is not a
+     bleed anyone designed — it is a crop that stopped being applied when the
+     hero stopped being one image. */
+  overflow: hidden;
 }
 
 .hero-piece {

@@ -26,36 +26,9 @@ import { GUIDE_CONTENT_VERSION } from './schema.ts';
 import type { GuideCard, GuideContent } from './schema.ts';
 
 export const GUIDE_TITLE = 'How this works';
-export const GUIDE_LEAD = 'Six things worth knowing before you start. Nothing here is required reading.';
+export const GUIDE_LEAD = 'Four things worth knowing before you start. Nothing here is required reading.';
 
 export const GUIDE_CARDS: GuideCard[] = [
-  {
-    id: 'sections',
-    title: 'The five sections',
-    lead: 'The list on the left is the site. Pick a section, then an entry inside it.',
-    rows: [
-      { term: 'Home', text: 'The front page. One document, always there.' },
-      { term: 'Projects', text: 'One document per project.' },
-      { term: 'Essays', text: 'One document per piece of writing.' },
-      { term: 'Filmography', text: 'YouTube films. One record each: link, title, kind, year, poster.' },
-      { term: 'Photography', text: 'Albums. One record each: title, year, cover, and the photos in it.' },
-    ],
-  },
-  {
-    id: 'kinds',
-    title: 'Documents and records',
-    lead: 'Two editors, because there are two kinds of content.',
-    rows: [
-      {
-        term: 'A document',
-        text: 'Home, projects and essays. A stack of bands you arrange yourself, so every page can be laid out differently.',
-      },
-      {
-        term: 'A record',
-        text: 'Films and albums. A fixed set of fields plus media. No bands, no canvas, nothing to lay out.',
-      },
-    ],
-  },
   {
     id: 'bands',
     title: 'Bands',

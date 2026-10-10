@@ -23,7 +23,9 @@ const { wordmark, nav, themeToggle } = chrome;
 // from a second copy of the same string sitting in this file. Renaming the
 // wordmark in the editor renames the tab and the share card with it.
 const siteName = wordmark.label;
-const fullTitle = title ? `${title} — ${siteName}` : siteName;
+// The name first, then where you are: "Ryan Choi (Projects)". A tab is narrow
+// and truncates from the right, so the name is the part that survives.
+const fullTitle = title ? `${siteName} (${title})` : siteName;
 
 const year = new Date().getFullYear();
 // Stored as "© {year} Ryan Choi"; the year is filled in at build time, so it
