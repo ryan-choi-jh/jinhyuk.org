@@ -683,6 +683,12 @@ async function run(page) {
     })()`,
   );
   check('and 48px of paper down each side, as on the site', gutters === '48px 48px', gutters);
+  // --doc-measure in src/cms/styles/doc.css, and what a .doc-p measures on the
+  // published page. It was 760 here, so paragraphs broke in the wrong places.
+  const measure = await page.evaluate(
+    `Math.round(document.querySelector('.cms-prose-col').getBoundingClientRect().width)`,
+  );
+  check('prose reads at the site’s 720px measure', measure === 720, `${measure}px`);
   console.log(`    shot  ${await page.shot('08-zoom-100')}`);
 
   await page.setViewport(NARROW);

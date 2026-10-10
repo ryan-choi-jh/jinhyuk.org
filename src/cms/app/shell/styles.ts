@@ -347,6 +347,12 @@ export const SHELL_CSS = `
    the inset to this one box hands it to the nav, the bands and the footer at
    once, exactly as the site does. */
 .cms-surface__inner { padding: 0 ${PAGE_GUTTER}px 80px; }
+/* The nothing-here line on a page with no bands. Its 72px of side padding was
+   left over from when band boxes carried that inset; with the gutter on
+   __inner it was indenting the message a further 72px past where any real
+   content starts. It belongs on the content column's own left edge, like
+   everything else. */
+.cms-surface__empty { padding: 40px 0; color: #999; }
 
 /* Prose, at the site's scale. global.css: p 17.5/35, h2 22/32 600, h3 18/28,
    blockquote 26/40 300 behind a 2px accent rule, 28px between paragraphs. */
@@ -432,7 +438,28 @@ export const SHELL_CSS = `
    for all three. A 72px inset here put the text out of line with every canvas
    beside it, which is the one judgement the canvas exists to support. */
 .cms-band-box--prose { padding: 10px 0; }
-.cms-prose-col { max-width: 760px; }
+/* The reading measure, 720px, which is --doc-measure in src/cms/styles/doc.css
+   and what every .doc-p, .doc-h2, .doc-h3 and .doc-list measures on the
+   published page (verified against jinhyuk.org: box 720, no padding).
+
+   It was 760, which is not a number the site uses anywhere. 40px of slack
+   sounds harmless and is not: at this measure it is roughly five characters a
+   line, so a paragraph broke here in places it does not break when published,
+   which is the one thing a surface pretending to be the page must not get
+   wrong.
+
+   One cap for every block kind. doc.css gives a quote the wider 900px measure
+   OUTSIDE essays (.doc-quote, --doc-measure-quote) and 720 within them; this
+   takes the 720, which is exact for essays and for every non-quote block
+   anywhere, and narrow for a quote on a project page. */
+.cms-prose-col { max-width: 720px; }
+/* Except the homepage intro, which is .intro in global.css: 1184px, and 24px
+   between paragraphs rather than 28. Measured on the live page, where those
+   three paragraphs set 2, 3 and 1 lines; at 720 they set 4, 4 and 2, so this
+   is the difference between the editor showing the homepage and the editor
+   showing a document that happens to contain the homepage's words. */
+.cms-band-box--intro .cms-prose-col { max-width: 1184px; }
+.cms-band-box--intro .cms-prose-col p { margin: 0 0 24px; }
 .cms-band-box--canvas { }
 .cms-band-box--overlay {
   position: absolute;

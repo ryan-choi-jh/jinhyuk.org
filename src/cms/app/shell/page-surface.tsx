@@ -124,7 +124,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
                 </div>
               ))}
               {doc.bands.length === 0 && (
-                <p style={{ padding: '40px 72px', color: '#999' }}>
+                <p className="cms-surface__empty">
                   This page has no bands. Add one from the outline on the left.
                 </p>
               )}
@@ -181,9 +181,20 @@ function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }:
   const isOverlay = band.type === 'canvas' && band.overlay === true;
   const index = doc.bands.findIndex((candidate) => candidate.id === band.id);
 
+  // The homepage's FIRST prose band is not an ordinary document column: it is
+  // `.intro`, which src/cms/render/pages/home.ts builds at a 1184px measure
+  // with 24px between paragraphs rather than 720px with 28px. Any prose band
+  // after it does go through the ordinary pipeline, so this marks the one band
+  // that is the intro and not simply "prose on the homepage".
+  const isHomeIntro =
+    doc.meta.section === 'home' &&
+    band.type === 'prose' &&
+    doc.bands.find((candidate) => candidate.type === 'prose')?.id === band.id;
+
   const className = [
     'cms-band-box',
     band.type === 'prose' ? 'cms-band-box--prose' : 'cms-band-box--canvas',
+    isHomeIntro ? 'cms-band-box--intro' : '',
     isOverlay ? 'cms-band-box--overlay' : '',
     selected ? 'cms-band-box--selected' : '',
   ]
