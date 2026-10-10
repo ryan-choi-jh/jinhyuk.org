@@ -193,7 +193,7 @@ export function RecordView({
             title={`Save the whole ${section.label.toLowerCase()} collection as a draft (⌘S). Not on the live site.`}
             onClick={() => void store.save()}
           >
-            {state.phase === 'saving' ? 'Saving…' : 'Save'}
+            {state.phase === 'saving' ? 'Saving…' : 'Save draft'}
           </button>
           <button
             type="button"

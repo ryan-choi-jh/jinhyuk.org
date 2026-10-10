@@ -118,10 +118,10 @@ export function Toolbar({ store, state, zoom, onZoomChange, onPreview, slots }: 
           className="cms-btn"
           data-testid="save"
           disabled={busy || !state.dirty}
-          title="Save the draft (⌘S). Not on the live site."
+          title="Save draft (⌘S). Saved, but not on the live site until you publish."
           onClick={() => void store.save()}
         >
-          {state.phase === 'saving' ? 'Saving…' : 'Save'}
+          {state.phase === 'saving' ? 'Saving…' : 'Save draft'}
         </button>
         <button
           type="button"
@@ -145,7 +145,7 @@ function zoomValue(zoom: Zoom): string {
 function savedLabel(state: DocStoreState): string {
   if (state.lastSavedAt === null) return 'No unsaved changes';
   const seconds = Math.max(0, Math.round((Date.now() - state.lastSavedAt) / 1000));
-  if (seconds < 5) return 'Saved just now';
-  if (seconds < 90) return `Saved ${seconds}s ago`;
-  return `Saved ${Math.round(seconds / 60)}m ago`;
+  if (seconds < 5) return 'Draft saved just now';
+  if (seconds < 90) return `Draft saved ${seconds}s ago`;
+  return `Draft saved ${Math.round(seconds / 60)}m ago`;
 }

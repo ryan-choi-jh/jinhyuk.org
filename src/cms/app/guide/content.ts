@@ -96,7 +96,7 @@ export const GUIDE_CARDS: GuideCard[] = [
     title: 'Draft and publish',
     rows: [
       {
-        term: 'Save',
+        term: 'Save draft',
         text: 'Writes the draft. The draft is stored, but it is not on the live site and visitors cannot reach it. Cmd-S does the same thing.',
       },
       {
