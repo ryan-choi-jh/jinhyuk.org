@@ -22,7 +22,7 @@
 
 import { useInsertionEffect } from 'react';
 
-import { MOBILE_BREAKPOINT, REFERENCE_WIDTH } from '../../schema.ts';
+import { MOBILE_BREAKPOINT, PAGE_GUTTER, PAGE_WIDTH, REFERENCE_WIDTH } from '../../schema.ts';
 
 export const SHELL_STYLE_ID = 'cms-shell-styles';
 
@@ -322,7 +322,13 @@ export const SHELL_CSS = `
   position: absolute;
   top: 0;
   left: 0;
-  width: ${REFERENCE_WIDTH}px;
+  /* THE PAGE, not the column. 1440 wide with ${PAGE_GUTTER}px of paper down each
+     side (see __inner), which leaves the ${REFERENCE_WIDTH}px content column in
+     the middle. It was ${REFERENCE_WIDTH}px flat, so the wordmark and every
+     canvas item sat hard against the edge of the sheet and the page looked
+     narrower here than it is. The column itself is the same width either way,
+     so canvas coordinates are untouched by this. */
+  width: ${PAGE_WIDTH}px;
   transform-origin: 0 0;
   background: var(--paper, #fff);
   color: var(--ink, #111111);
@@ -335,7 +341,12 @@ export const SHELL_CSS = `
   -webkit-font-smoothing: antialiased;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 14px 40px rgba(0, 0, 0, 0.45);
 }
-.cms-surface__inner { padding: 0 0 0; }
+/* The gutters, and the paper below the footer. Measured off the published page
+   rather than guessed: .wrap in global.css is padding 0 48px 80px, and
+   .site-nav carries the same 48px even though it sits outside .wrap. Giving
+   the inset to this one box hands it to the nav, the bands and the footer at
+   once, exactly as the site does. */
+.cms-surface__inner { padding: 0 ${PAGE_GUTTER}px 80px; }
 
 /* Prose, at the site's scale. global.css: p 17.5/35, h2 22/32 600, h3 18/28,
    blockquote 26/40 300 behind a 2px accent rule, 28px between paragraphs. */
@@ -365,9 +376,12 @@ export const SHELL_CSS = `
 /* The nav and the footer, so a page is framed the way a reader sees it.
    Inert on purpose: this is scenery, not navigation. */
 .cms-chrome { padding: 0; pointer-events: none; user-select: none; }
+/* 32px above and 16px below, which is .site-nav's own padding of
+   32px 48px 16px with the 48px taken out: the gutter comes from .cms-surface__inner now, so
+   repeating it here would inset the nav twice. */
 .cms-chrome__nav {
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  padding: 28px 0 24px;
+  padding: 32px 0 16px;
 }
 .cms-chrome__mark {
   font-family: Sarina, cursive; font-size: 22px; font-weight: 400;
@@ -380,10 +394,24 @@ export const SHELL_CSS = `
   color: var(--muted, #6b6b6b);
 }
 .cms-chrome__links span[data-on='1'] { color: var(--ink, #111111); }
+/* The real two-cell pill, not a grey lozenge: same 1px rule, same 3px padding,
+   same 28x22 cells and 13px icons as .theme-toggle in global.css, which comes
+   to the same 66x30 the placeholder was sized to.
+   (No backticks in here: this CSS is a template literal.) */
 .cms-chrome__toggle {
-  justify-self: end; width: 66px; height: 30px; border-radius: 999px;
-  background: var(--toggle-on, #f0f0f0);
+  justify-self: end; display: flex; align-items: center; flex-shrink: 0;
+  gap: 2px; padding: 3px;
+  border: 1px solid var(--rule, #e4e4e4); border-radius: 14px;
 }
+.cms-chrome__toggle-cell {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 22px; flex-shrink: 0; border-radius: 11px;
+  color: var(--toggle-off, #9a9a9a);
+}
+.cms-chrome__toggle-cell[data-on='1'] {
+  background: var(--toggle-on, #f0f0f0); color: var(--ink, #111111);
+}
+.cms-chrome__toggle-cell svg { display: block; width: 13px; height: 13px; }
 .cms-chrome__footer {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 120px; padding: 16px 0 0;

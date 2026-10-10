@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import SocialLinks from '../components/SocialLinks.astro';
 import { isNavCurrent, renderCopyright } from '../cms/schema.ts';
+import { THEME_ICONS, themeIconArt } from '../cms/site-icons.ts';
 import { siteChrome } from '../lib/site-content.ts';
 
 interface Props {
@@ -10,25 +11,36 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
-const siteName = 'Ryan Choi';
-const fullTitle = title ? `${title} — ${siteName}` : siteName;
-const year = new Date().getFullYear();
 
-// The nav and the footer are content, in src/content/data/site.json, edited in
-// the CMS under Home and applied here — so to every page at once. `isNavCurrent`
+// The whole frame of the site is content, in src/content/data/site.json, edited
+// in the CMS under Home and applied here — so to every page at once. That is
+// the wordmark, the nav, the theme toggle and the footer. `isNavCurrent`
 // derives the highlight from each link's own href rather than a stored match.
 const chrome = siteChrome();
-const nav = chrome.nav;
+const { wordmark, nav, themeToggle } = chrome;
+
+// The wordmark IS the site's name, so the title is built from it rather than
+// from a second copy of the same string sitting in this file. Renaming the
+// wordmark in the editor renames the tab and the share card with it.
+const siteName = wordmark.label;
+const fullTitle = title ? `${title} — ${siteName}` : siteName;
+
+const year = new Date().getFullYear();
 // Stored as "© {year} Ryan Choi"; the year is filled in at build time, so it
 // cannot freeze on whatever year the line was typed in.
 const copyright = renderCopyright(chrome.footer.copyright, year);
 
 const path = Astro.url.pathname;
 const isCurrent = (href: string) => isNavCurrent(href, path);
+
+// Only carried when it has something to say. `system` is what the site has
+// always done and is the script's own default, so the common case puts no
+// attribute on <html> at all.
+const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.initial;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme-initial={initialTheme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,17 +49,25 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
     <meta name="color-scheme" content="light dark" />
 
     <!-- Resolve the theme before first paint so there's no flash of the
-         wrong one. Honours a saved choice, otherwise the OS setting. -->
+         wrong one. A visitor's own saved choice always wins; failing that,
+         `data-theme-initial` decides, and its absence means follow the OS.
+         This restates `resolveInitialTheme` in src/cms/schema.ts, which is
+         the version under test — an inline script cannot import. -->
     <script is:inline>
       (function () {
+        var root = document.documentElement;
+        var initial = root.dataset.themeInitial || 'system';
         try {
           var saved = localStorage.getItem('theme');
           var dark = saved
             ? saved === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+            : initial === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : initial === 'dark';
+          root.dataset.theme = dark ? 'dark' : 'light';
         } catch (e) {
-          document.documentElement.dataset.theme = 'light';
+          // Private browsing: localStorage throws. The setting still applies.
+          root.dataset.theme = initial === 'dark' ? 'dark' : 'light';
         }
       })();
     </script>
@@ -64,7 +84,7 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Ryan Choi" />
+    <meta name="apple-mobile-web-app-title" content={siteName} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -76,7 +96,7 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
   <body>
     <header class="site-header">
       <nav class="site-nav">
-        <a class="wordmark" href="/">Ryan Choi</a>
+        <a class="wordmark" href={wordmark.href}>{wordmark.label}</a>
         <div class="site-nav-links">
           {nav.map((item) => (
             <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
@@ -84,39 +104,42 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
             </a>
           ))}
         </div>
-        <div class="theme-toggle" role="group" aria-label="Colour theme">
-          <button type="button" data-theme-set="light" aria-label="Light theme">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle
-                cx="12"
-                cy="12"
-                r="4.5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <path
-                d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-          <button type="button" data-theme-set="dark" aria-label="Dark theme">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+        {themeToggle.show && (
+          <div class="theme-toggle" role="group" aria-label="Colour theme">
+            {THEME_ICONS.map((key) => {
+              const art = themeIconArt(key);
+              return (
+                <button type="button" data-theme-set={key} aria-label={art.label}>
+                  {/* The artwork is in src/cms/site-icons.ts so the editor's own
+                      nav bar can draw this exact control rather than a stand-in. */}
+                  <svg viewBox={art.viewBox} aria-hidden="true" focusable="false">
+                    {art.parts.map((part) =>
+                      part.shape === 'circle' ? (
+                        <circle
+                          cx={part.cx}
+                          cy={part.cy}
+                          r={part.r}
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        />
+                      ) : (
+                        <path
+                          d={part.d}
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap={part.linecap}
+                          stroke-linejoin={part.linejoin}
+                        />
+                      ),
+                    )}
+                  </svg>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </nav>
     </header>
 
@@ -135,6 +158,7 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
       (function () {
         var root = document.documentElement;
         var buttons = document.querySelectorAll('[data-theme-set]');
+        var initial = root.dataset.themeInitial || 'system';
 
         function paint() {
           var current = root.dataset.theme;
@@ -143,23 +167,77 @@ const isCurrent = (href: string) => isNavCurrent(href, path);
           });
         }
 
+        function apply(next) {
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem('theme', next);
+          } catch (e) {
+            /* private browsing — the choice just won't persist */
+          }
+          paint();
+        }
+
+        /**
+         * The switch, as a circular wipe spreading from the button that was
+         * pressed — the new theme is revealed over a still snapshot of the old
+         * one rather than cross-fading with it. The geometry is in
+         * src/styles/global.css (`--theme-r`, `theme-in`); all this does is say
+         * where the circle starts and hand the change to the browser to
+         * animate.
+         *
+         * Three ways to end up with the instant switch instead, all of them
+         * fine: the visitor asked for less motion, the browser has no View
+         * Transitions, or there is no button to spread from.
+         */
+        function change(next, origin) {
+          var reduce = false;
+          try {
+            reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          } catch (e) {
+            /* no matchMedia: treat as no preference */
+          }
+          if (reduce || !origin || typeof document.startViewTransition !== 'function') {
+            apply(next);
+            return;
+          }
+          var box = origin.getBoundingClientRect();
+          root.style.setProperty('--vt-x', box.left + box.width / 2 + 'px');
+          root.style.setProperty('--vt-y', box.top + box.height / 2 + 'px');
+          root.classList.add('theme-vt');
+          document
+            .startViewTransition(function () {
+              apply(next);
+            })
+            .finished.finally(function () {
+              root.classList.remove('theme-vt');
+            })
+            .catch(function () {
+              /* a skipped transition still had its callback run */
+            });
+        }
+
         buttons.forEach(function (b) {
           b.addEventListener('click', function () {
-            root.dataset.theme = b.dataset.themeSet;
-            try {
-              localStorage.setItem('theme', b.dataset.themeSet);
-            } catch (e) {
-              /* private browsing — the choice just won't persist */
+            var next = b.dataset.themeSet;
+            // Pressing the half that is already lit still pins the choice —
+            // that is how someone following their OS says "no, always this
+            // one" — but there is nothing to animate, so it doesn't.
+            if (root.dataset.theme === next) {
+              apply(next);
+              return;
             }
-            paint();
+            change(next, b);
           });
         });
 
-        // Follow the OS while the visitor hasn't picked a side themselves.
+        // Follow the OS, but only while nobody has overruled it: not when the
+        // visitor has picked a side, and not when the site itself names a
+        // starting theme.
         try {
           window
             .matchMedia('(prefers-color-scheme: dark)')
             .addEventListener('change', function (e) {
+              if (initial !== 'system') return;
               if (localStorage.getItem('theme')) return;
               root.dataset.theme = e.matches ? 'dark' : 'light';
               paint();

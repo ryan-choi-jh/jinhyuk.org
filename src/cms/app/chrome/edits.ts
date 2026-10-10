@@ -22,7 +22,15 @@ import {
   newSocialLink,
   validateSiteChrome,
 } from '../../schema.ts';
-import type { NavLink, SiteChrome, SocialIcon, SocialLink } from '../../schema.ts';
+import type {
+  NavLink,
+  SiteChrome,
+  SocialIcon,
+  SocialLink,
+  ThemeChoice,
+  ThemeToggle,
+  Wordmark,
+} from '../../schema.ts';
 import { SOCIAL_ICON_LABELS } from '../../site-icons.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -68,8 +76,37 @@ export function appendCapped<T>(list: readonly T[], value: T, max: number): T[] 
 /* Whole-chrome edits                                                          */
 /* -------------------------------------------------------------------------- */
 
+export function withWordmark(chrome: SiteChrome, wordmark: Wordmark): SiteChrome {
+  return { ...chrome, wordmark };
+}
+
+export function setWordmarkField(
+  chrome: SiteChrome,
+  field: 'label' | 'href',
+  value: string,
+): SiteChrome {
+  const { wordmark } = chrome;
+  // Spelled out rather than built with a computed key, for the same reason
+  // `setNavField` is: the compiler checks the field names this way.
+  const next: Wordmark =
+    field === 'label' ? { ...wordmark, label: value } : { ...wordmark, href: value };
+  return withWordmark(chrome, next);
+}
+
 export function withNav(chrome: SiteChrome, nav: NavLink[]): SiteChrome {
   return { ...chrome, nav };
+}
+
+export function withThemeToggle(chrome: SiteChrome, themeToggle: ThemeToggle): SiteChrome {
+  return { ...chrome, themeToggle };
+}
+
+export function setThemeShow(chrome: SiteChrome, show: boolean): SiteChrome {
+  return withThemeToggle(chrome, { ...chrome.themeToggle, show });
+}
+
+export function setThemeInitial(chrome: SiteChrome, initial: ThemeChoice): SiteChrome {
+  return withThemeToggle(chrome, { ...chrome.themeToggle, initial });
 }
 
 export function withSocial(chrome: SiteChrome, social: SocialLink[]): SiteChrome {
@@ -177,6 +214,16 @@ export function hrefProblem(href: string): string | null {
 
 export function labelProblem(label: string): string | null {
   return label.trim() === '' ? 'Add a label; this is what the nav bar prints.' : null;
+}
+
+/**
+ * The wordmark is the site's name twice over — the signature top left and the
+ * site name in the browser tab — so an empty one is worth saying out loud.
+ */
+export function wordmarkProblem(label: string): string | null {
+  return label.trim() === ''
+    ? 'Add a name; it signs the top of every page and names the browser tab.'
+    : null;
 }
 
 export function nameProblem(name: string): string | null {

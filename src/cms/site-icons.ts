@@ -1,17 +1,21 @@
 /**
  * src/cms/site-icons.ts
  *
- * The drawings behind `SocialLink.icon`.
+ * Every drawing in the site's chrome: the footer's social icons, and the sun
+ * and moon in the theme toggle.
  *
  * `src/content/data/site.json` stores an icon as a KEY — `github`, `x`,
  * `email` — and never as path data, so that editing the footer is choosing from
  * a list rather than pasting a bezier. This file is the other half of that
  * bargain: the one place the artwork lives, keyed by exactly the five names
- * `SOCIAL_ICONS` in `./schema.ts` names.
+ * `SOCIAL_ICONS` in `./schema.ts` names. The theme toggle is the same bargain
+ * with one fewer choice: `site.json` says whether it is shown, this file says
+ * what it looks like.
  *
  * It is imported by both ends on purpose:
  *
  *   src/components/SocialLinks.astro       the published footer
+ *   src/layouts/Base.astro                 the published theme toggle
  *   src/cms/app/chrome/chrome-view.tsx     the editor's own scenery
  *
  * so the icons in the editor are the icons on the site, and adding a sixth one
@@ -77,4 +81,76 @@ export const SOCIAL_ICON_LABELS: Readonly<Record<SocialIcon, string>> = {
 /** The artwork for a key. Total over `SocialIcon`, so there is no fallback. */
 export function socialIconArt(icon: SocialIcon): SocialIconArt {
   return SOCIAL_ICON_ART[icon];
+}
+
+/* -------------------------------------------------------------------------- */
+/* The theme toggle                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The sun and the moon in the top-right control.
+ *
+ * Here for the same reason the social icons are: `site.json` says whether the
+ * toggle is SHOWN, never what it looks like, so the drawing has to live
+ * somewhere that both the published page and the editor's scenery can reach.
+ * Before this, the two SVGs were written out longhand in
+ * `src/layouts/Base.astro` and the editor drew a grey pill in their place.
+ *
+ * These are STROKED outlines, not filled silhouettes, so unlike a social icon
+ * they are not one `<path d>`: the sun is a circle plus a path of eight rays,
+ * and the two shapes do not take the same attributes. Hence `parts`, a
+ * discriminated union carrying exactly the attributes each element is drawn
+ * with — so a renderer emits the same element the hardcoded toggle did, rather
+ * than a lossy approximation of it.
+ */
+export type ThemeIconPart =
+  | { shape: 'circle'; cx: string; cy: string; r: string }
+  | { shape: 'path'; d: string; linecap?: 'round'; linejoin?: 'round' };
+
+/** The two halves of the control. Not a theme name: `system` has no icon. */
+export const THEME_ICONS = ['light', 'dark'] as const;
+
+export type ThemeIconKey = (typeof THEME_ICONS)[number];
+
+export type ThemeIconArt = {
+  viewBox: string;
+  /** The button's accessible name. One copy, so the two ends cannot differ. */
+  label: string;
+  /**
+   * Every part carries `fill="none" stroke="currentColor" stroke-width="2"`;
+   * a renderer applies those to all of them rather than repeating them here.
+   */
+  parts: readonly ThemeIconPart[];
+};
+
+export const THEME_ICON_ART: Readonly<Record<ThemeIconKey, ThemeIconArt>> = {
+  light: {
+    viewBox: '0 0 24 24',
+    label: 'Light theme',
+    parts: [
+      { shape: 'circle', cx: '12', cy: '12', r: '4.5' },
+      {
+        shape: 'path',
+        d: 'M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+        linecap: 'round',
+      },
+    ],
+  },
+  dark: {
+    viewBox: '0 0 24 24',
+    label: 'Dark theme',
+    parts: [
+      {
+        shape: 'path',
+        d: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z',
+        linecap: 'round',
+        linejoin: 'round',
+      },
+    ],
+  },
+};
+
+/** The artwork for a half. Total over `ThemeIconKey`, so there is no fallback. */
+export function themeIconArt(key: ThemeIconKey): ThemeIconArt {
+  return THEME_ICON_ART[key];
 }

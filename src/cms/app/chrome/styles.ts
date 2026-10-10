@@ -142,6 +142,11 @@ export const CHROME_CSS = `
 
 .cms-chr__field { display: flex; flex-direction: column; gap: 3px; }
 .cms-chr__label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--chr-muted); }
+.cms-chr__check {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--chr-text); cursor: pointer;
+}
+.cms-chr__check input { flex: none; margin: 0; accent-color: var(--chr-accent); cursor: pointer; }
 .cms-chr__help { font-size: 11px; color: var(--chr-muted); }
 .cms-chr__problem { font-size: 11px; color: var(--chr-danger); }
 .cms-chr__empty {

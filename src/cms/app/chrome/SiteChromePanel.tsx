@@ -10,10 +10,15 @@
  * first line. Everything it writes goes to `src/content/data/site.json`, which
  * `src/layouts/Base.astro` draws around all of them.
  *
- * What it can do, which is the list the brief asks for: add, remove, reorder and
- * rename nav links and edit their addresses; edit the copyright line; add,
- * remove and reorder social links, choosing an icon from the known set and
- * setting the address.
+ * What it can do, which is the list the brief asks for: set the wordmark and
+ * where it points; add, remove, reorder and rename nav links and edit their
+ * addresses; show or hide the theme toggle and choose which theme a first-time
+ * visitor gets; edit the copyright line; add, remove and reorder social links,
+ * choosing an icon from the known set and setting the address.
+ *
+ * In page order, top to bottom, left to right — wordmark, nav, toggle, footer —
+ * which is also the order of the keys in `site.json`, so a panel scrolled to a
+ * group and a diff of the file read the same way round.
  *
  * Two decisions worth knowing.
  *
@@ -30,8 +35,14 @@
  * names; `./styles.ts` says why it is not literally their classes.
  */
 
-import { MAX_NAV_LINKS, MAX_SOCIAL_LINKS, SOCIAL_ICONS, renderCopyright } from '../../schema.ts';
-import type { SiteChrome, SocialIcon } from '../../schema.ts';
+import {
+  MAX_NAV_LINKS,
+  MAX_SOCIAL_LINKS,
+  SOCIAL_ICONS,
+  THEME_CHOICES,
+  renderCopyright,
+} from '../../schema.ts';
+import type { SiteChrome, SocialIcon, ThemeChoice, ThemeToggle } from '../../schema.ts';
 import { SOCIAL_ICON_ART, SOCIAL_ICON_LABELS } from '../../site-icons.ts';
 import { useSiteChromeOptional } from './context.tsx';
 import type { SiteChromeStore } from './context.tsx';
@@ -49,7 +60,11 @@ import {
   setNavField,
   setSocialIcon,
   setSocialText,
+  setThemeInitial,
+  setThemeShow,
+  setWordmarkField,
   withCopyright,
+  wordmarkProblem,
 } from './edits.ts';
 import { useChromeStyles } from './styles.ts';
 
@@ -97,6 +112,57 @@ function Panel({ store }: { store: SiteChromeStore }) {
       <div className="cms-chr__sub">
         One file, drawn around every page of the site. A change here moves all of
         them.
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* The wordmark                                                     */}
+      {/* ---------------------------------------------------------------- */}
+
+      <div className="cms-chr__group" data-testid="chrome-wordmark">
+        <div className="cms-chr__head">
+          Wordmark
+          <span className="cms-chr__head-count">top left</span>
+        </div>
+
+        <div className="cms-chr__field">
+          <span className="cms-chr__label">Name</span>
+          <input
+            className={inputClass(wordmarkProblem(chrome.wordmark.label))}
+            data-testid="chrome-wordmark-label"
+            type="text"
+            value={chrome.wordmark.label}
+            aria-label="Wordmark"
+            placeholder="Ryan Choi"
+            autoComplete="off"
+            disabled={busy}
+            onChange={(event) => set(setWordmarkField(chrome, 'label', event.target.value))}
+          />
+          {wordmarkProblem(chrome.wordmark.label) === null ? (
+            <span className="cms-chr__help">
+              Signs every page, and is the site’s name in the browser tab — a page
+              reads “Essays — {chrome.wordmark.label}”.
+            </span>
+          ) : (
+            <Problem text={wordmarkProblem(chrome.wordmark.label)} />
+          )}
+        </div>
+
+        <div className="cms-chr__field">
+          <span className="cms-chr__label">Links to</span>
+          <input
+            className={`${inputClass(hrefProblem(chrome.wordmark.href))} cms-chr__input--mono`}
+            data-testid="chrome-wordmark-href"
+            type="text"
+            value={chrome.wordmark.href}
+            aria-label="Wordmark address"
+            placeholder="/"
+            spellCheck={false}
+            autoComplete="off"
+            disabled={busy}
+            onChange={(event) => set(setWordmarkField(chrome, 'href', event.target.value))}
+          />
+          <Problem text={hrefProblem(chrome.wordmark.href)} />
+        </div>
       </div>
 
       {/* ---------------------------------------------------------------- */}
@@ -169,6 +235,49 @@ function Panel({ store }: { store: SiteChromeStore }) {
         >
           Add a nav link
         </button>
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* The theme toggle                                                 */}
+      {/* ---------------------------------------------------------------- */}
+
+      <div className="cms-chr__group" data-testid="chrome-theme">
+        <div className="cms-chr__head">
+          Theme toggle
+          <span className="cms-chr__head-count">top right</span>
+        </div>
+
+        <label className="cms-chr__check">
+          <input
+            data-testid="chrome-theme-show"
+            type="checkbox"
+            checked={chrome.themeToggle.show}
+            disabled={busy}
+            onChange={(event) => set(setThemeShow(chrome, event.target.checked))}
+          />
+          <span>Let visitors switch between light and dark</span>
+        </label>
+
+        <div className="cms-chr__field">
+          <span className="cms-chr__label">Starts as</span>
+          <select
+            className="cms-chr__select"
+            data-testid="chrome-theme-initial"
+            value={chrome.themeToggle.initial}
+            aria-label="Starting theme"
+            disabled={busy}
+            onChange={(event) => set(setThemeInitial(chrome, event.target.value as ThemeChoice))}
+          >
+            {THEME_CHOICES.map((choice) => (
+              <option key={choice} value={choice}>
+                {THEME_CHOICE_LABELS[choice]}
+              </option>
+            ))}
+          </select>
+          <span className="cms-chr__help" data-testid="chrome-theme-help">
+            {themeHelp(chrome.themeToggle)}
+          </span>
+        </div>
       </div>
 
       {/* ---------------------------------------------------------------- */}
@@ -353,6 +462,36 @@ function Panel({ store }: { store: SiteChromeStore }) {
 
 function inputClass(problem: string | null): string {
   return problem === null ? 'cms-chr__input' : 'cms-chr__input cms-chr__input--bad';
+}
+
+/**
+ * The three starting themes, in the picker's words rather than the file's.
+ * Local to this panel because nothing else needs them: unlike
+ * `SOCIAL_ICON_LABELS`, no stored field ever defaults from one of these.
+ */
+const THEME_CHOICE_LABELS: Readonly<Record<ThemeChoice, string>> = {
+  system: 'Whatever their device is set to',
+  light: 'Light',
+  dark: 'Dark',
+};
+
+/**
+ * What this combination of the two settings actually does to a visitor.
+ *
+ * Spelled out because the interesting part is the part neither control shows:
+ * a saved choice outranks both of them, so "starts as" is only ever about a
+ * first visit, and switching the control off does not take that saved choice
+ * away from the people who already made one.
+ */
+function themeHelp(toggle: ThemeToggle): string {
+  const start =
+    toggle.initial === 'system'
+      ? 'A first-time visitor gets whatever their device is set to.'
+      : `A first-time visitor gets ${toggle.initial}, whatever their device is set to.`;
+  return toggle.show
+    ? `${start} After that their own choice is remembered, and it wins over this.`
+    : `${start} With the control hidden they cannot change it — though anyone who
+       picked a theme here before the control went away still gets theirs.`.replace(/\s+/g, ' ');
 }
 
 function Problem({ text }: { text: string | null }) {

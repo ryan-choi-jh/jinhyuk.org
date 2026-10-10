@@ -420,6 +420,32 @@ async function main() {
       await page.values(`${t('site-chrome-panel')} [data-testid^="chrome-social-icon-"]`),
       site.footer.social.map((link) => link.icon),
     );
+    equal(
+      'the wordmark above the page is the stored one, not a hardcoded name',
+      await page.text(t('surface-chrome-mark')),
+      site.wordmark.label,
+    );
+    equal(
+      'and the panel holds it, with the address it points at',
+      await page.values(`${t('site-chrome-panel')} [data-testid^="chrome-wordmark-"]`),
+      [site.wordmark.label, site.wordmark.href],
+    );
+    equal(
+      'the theme toggle is drawn above the page, both halves, in order',
+      await page.attrs(`${t('surface-chrome-toggle')} [data-theme-cell]`, 'data-theme-cell'),
+      ['light', 'dark'],
+    );
+    const toggleArt = await page.attrs(`${t('surface-chrome-toggle')} svg path`, 'd');
+    check(
+      'with the real sun and moon in it, not a grey pill',
+      toggleArt.length === 2 && toggleArt.every((d) => typeof d === 'string' && d.length > 20),
+      `${toggleArt.length} paths`,
+    );
+    equal(
+      'and the lit half is the theme a first-time visitor gets',
+      await page.attrs(`${t('surface-chrome-toggle')} [data-theme-cell]`, 'data-on'),
+      site.themeToggle.initial === 'dark' ? [null, '1'] : ['1', null],
+    );
     equal('nothing is unsaved on arrival', await page.text(t('chrome-state')), 'published');
     await page.shot('01-arrived');
 
@@ -474,6 +500,67 @@ async function main() {
     await page.choose(t('chrome-social-icon-0'), 'github');
     await page.type(t('chrome-social-name-0'), 'GitHub');
     await page.shot('02-edited');
+
+    /* ------------------------------------------------------------------ */
+    section('the wordmark and the theme toggle answer to the panel too');
+
+    await page.type(t('chrome-wordmark-label'), 'R. J. Choi');
+    equal(
+      'renaming the wordmark renames it above the page',
+      await page.text(t('surface-chrome-mark')),
+      'R. J. Choi',
+    );
+    await page.type(t('chrome-wordmark-label'), site.wordmark.label);
+    equal(
+      'and typing it back restores it',
+      await page.text(t('surface-chrome-mark')),
+      site.wordmark.label,
+    );
+
+    await page.choose(t('chrome-theme-initial'), 'dark');
+    equal(
+      'choosing a dark start moves the lit half of the toggle',
+      await page.attrs(`${t('surface-chrome-toggle')} [data-theme-cell]`, 'data-on'),
+      [null, '1'],
+    );
+    await page.choose(t('chrome-theme-initial'), 'light');
+    equal(
+      'and back to light moves it back',
+      await page.attrs(`${t('surface-chrome-toggle')} [data-theme-cell]`, 'data-on'),
+      ['1', null],
+    );
+
+    await page.click(t('chrome-theme-show'));
+    check(
+      'switching the toggle off takes it off the page as well',
+      (await page.rect(t('surface-chrome-toggle'))) === null,
+    );
+    check(
+      'and the nav keeps its shape without it',
+      (await page.rect(t('surface-chrome-mark'))).visible === true &&
+        (await page.texts(`${t('surface-chrome-top')} .cms-chrome__links span`)).length ===
+          site.nav.length,
+    );
+    await page.click(t('chrome-theme-show'));
+    check(
+      'switching it back on brings it back',
+      (await page.rect(t('surface-chrome-toggle'))) !== null,
+    );
+    // Not the dirty flag: the sections above this one left real edits pending,
+    // so it says "unsaved" either way. What is being checked is that these
+    // round trips put both settings back exactly where they started.
+    equal(
+      'and both settings are back where they began',
+      [
+        await page.evaluate(
+          `document.querySelector('${t('chrome-theme-show')}').checked === true`,
+        ),
+        await page.evaluate(`document.querySelector('${t('chrome-theme-initial')}').value`),
+      ],
+      [site.themeToggle.show, site.themeToggle.initial],
+    );
+
+    await page.shot('02b-wordmark-and-toggle');
 
     /* ------------------------------------------------------------------ */
     section('a new link has to be filled in before it can be saved');

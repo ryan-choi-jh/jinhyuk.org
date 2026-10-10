@@ -5,10 +5,12 @@
  * pane so a document is framed the way a reader meets it.
  *
  * It is the REAL thing, from the same `src/content/data/site.json` the site
- * builds from and the same icon artwork the footer uses — the labels, the
- * icons and the copyright line are the ones that will be published, not stand-
- * ins. That is the whole point: scenery with invented labels in it teaches you
- * the wrong page.
+ * builds from and the same artwork (`../../site-icons.ts`) both ends draw — the
+ * wordmark, the nav labels, the theme toggle, the social icons and the
+ * copyright line are the ones that will be published, not stand-ins. That is
+ * the whole point: scenery with invented labels in it teaches you the wrong
+ * page. Nothing in this file is hardcoded; when the toggle is switched off in
+ * the panel, it is absent here too.
  *
  * Inert by design. `aria-hidden` and `pointer-events: none` (in
  * `../shell/styles.ts`), because clicking the nav inside an editing surface
@@ -21,7 +23,8 @@
 import { getSection } from '../../sections.ts';
 import { isNavCurrent, renderCopyright } from '../../schema.ts';
 import type { SiteChrome } from '../../schema.ts';
-import { SOCIAL_ICON_ART } from '../../site-icons.ts';
+import { SOCIAL_ICON_ART, THEME_ICONS, themeIconArt } from '../../site-icons.ts';
+import type { ThemeIconKey, ThemeIconPart } from '../../site-icons.ts';
 import { useSiteChromeOptional } from './context.tsx';
 
 export type SiteChromeViewProps = {
@@ -49,7 +52,9 @@ export function SiteChromeView({ where, section, chrome: given }: SiteChromeView
     return (
       <div className="cms-chrome" aria-hidden="true" data-testid="surface-chrome-top">
         <div className="cms-chrome__nav">
-          <span className="cms-chrome__mark">Ryan Choi</span>
+          <span className="cms-chrome__mark" data-testid="surface-chrome-mark">
+            {chrome.wordmark.label}
+          </span>
           <div className="cms-chrome__links">
             {chrome.nav.map((link, index) => (
               <span
@@ -60,7 +65,7 @@ export function SiteChromeView({ where, section, chrome: given }: SiteChromeView
               </span>
             ))}
           </div>
-          <div className="cms-chrome__toggle" />
+          {chrome.themeToggle.show && <ThemeToggleArt initial={chrome.themeToggle.initial} />}
         </div>
       </div>
     );
@@ -87,6 +92,62 @@ export function SiteChromeView({ where, section, chrome: given }: SiteChromeView
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * The light/dark control, drawn the way the published one is drawn, from the
+ * same artwork (`../../site-icons.ts`) at the same 66×30. It used to be an
+ * empty grey pill — a placeholder in a pane whose whole purpose is not having
+ * any.
+ *
+ * The lit half is THE ONE A FIRST-TIME VISITOR SEES, so the `initial` setting
+ * is visible here rather than being a word in a panel whose effect you have to
+ * imagine. `system` shows light, because this surface renders light.
+ *
+ * Inert like the rest of the scenery: spans, not buttons.
+ */
+function ThemeToggleArt({ initial }: { initial: SiteChrome['themeToggle']['initial'] }) {
+  const lit: ThemeIconKey = initial === 'dark' ? 'dark' : 'light';
+  return (
+    <div className="cms-chrome__toggle" data-testid="surface-chrome-toggle">
+      {THEME_ICONS.map((key) => {
+        const art = themeIconArt(key);
+        return (
+          <span
+            key={key}
+            className="cms-chrome__toggle-cell"
+            data-theme-cell={key}
+            data-on={key === lit ? '1' : undefined}
+          >
+            <svg viewBox={art.viewBox} aria-hidden="true" focusable="false">
+              {art.parts.map((part, index) => (
+                <IconPart key={index} part={part} />
+              ))}
+            </svg>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** One element of a stroked icon, with the attributes every part shares. */
+function IconPart({ part }: { part: ThemeIconPart }) {
+  if (part.shape === 'circle') {
+    return (
+      <circle cx={part.cx} cy={part.cy} r={part.r} fill="none" stroke="currentColor" strokeWidth="2" />
+    );
+  }
+  return (
+    <path
+      d={part.d}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap={part.linecap}
+      strokeLinejoin={part.linejoin}
+    />
   );
 }
 

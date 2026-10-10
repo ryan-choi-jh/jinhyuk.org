@@ -665,7 +665,24 @@ async function run(page) {
   const surfaceWidth = await page.evaluate(
     `Math.round(document.querySelector('.cms-surface').getBoundingClientRect().width)`,
   );
-  check('and that width is 1344px', surfaceWidth === 1344, `${surfaceWidth}px`);
+  check('and the sheet is the full 1440px page', surfaceWidth === 1440, `${surfaceWidth}px`);
+  // The column inside it is what canvas geometry is authored against, so this
+  // is the number that must stay 1344 whatever the sheet does around it.
+  const columnWidth = await page.evaluate(
+    `(() => {
+      const el = document.querySelector('.cms-surface__inner');
+      const cs = getComputedStyle(el);
+      return Math.round(el.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+    })()`,
+  );
+  check('with a 1344px content column in it', columnWidth === 1344, `${columnWidth}px`);
+  const gutters = await page.evaluate(
+    `(() => {
+      const cs = getComputedStyle(document.querySelector('.cms-surface__inner'));
+      return [cs.paddingLeft, cs.paddingRight].join(' ');
+    })()`,
+  );
+  check('and 48px of paper down each side, as on the site', gutters === '48px 48px', gutters);
   console.log(`    shot  ${await page.shot('08-zoom-100')}`);
 
   await page.setViewport(NARROW);

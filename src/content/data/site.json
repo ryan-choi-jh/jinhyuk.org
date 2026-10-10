@@ -1,4 +1,8 @@
 {
+  "wordmark": {
+    "label": "Ryan Choi",
+    "href": "/"
+  },
   "nav": [
     {
       "label": "PROJECTS",
@@ -17,6 +21,10 @@
       "href": "/filmography/"
     }
   ],
+  "themeToggle": {
+    "show": true,
+    "initial": "light"
+  },
   "footer": {
     "copyright": "© {year} Ryan Choi",
     "social": [

@@ -43,6 +43,29 @@ export const DOC_VERSION = 1;
 export const REFERENCE_WIDTH = 1344;
 
 /**
+ * The page the content column sits on, and the margin either side of it.
+ * `--page` and `--gutter` in src/styles/global.css, which is where the site
+ * gets them: `.wrap` and `.site-nav` are both `max-width: 1440px` with
+ * `padding: 0 48px`, so a wide window shows a 1344px column with 48px of paper
+ * on each side.
+ *
+ * REFERENCE_WIDTH IS NOT AN INDEPENDENT NUMBER: it is what is left of the page
+ * once both gutters are taken off, which is why canvas geometry authored
+ * against 1344 lands exactly on the published column. The assertion below says
+ * so out loud, because the three constants drifting apart would misplace every
+ * canvas item on the site and nothing else would notice.
+ */
+export const PAGE_WIDTH = 1440;
+export const PAGE_GUTTER = 48;
+
+if (PAGE_WIDTH - PAGE_GUTTER * 2 !== REFERENCE_WIDTH) {
+  throw new Error(
+    `the page constants disagree: ${PAGE_WIDTH} - 2x${PAGE_GUTTER} is ` +
+      `${PAGE_WIDTH - PAGE_GUTTER * 2}, but REFERENCE_WIDTH is ${REFERENCE_WIDTH}`,
+  );
+}
+
+/**
  * Below this viewport width the renderer drops canvas positioning entirely
  * (docs/cms-rebuild.md section 3.4). Nobody hardcodes 900. Rule 6.
  */
@@ -1099,6 +1122,8 @@ export function isAlbum(entry: RecordEntry): entry is Album {
  *     exist; the SVG for each lives in code (`src/cms/site-icons.ts`) and is
  *     selected by key. Nobody editing the footer is ever asked to paste a
  *     bezier, and an unknown key is a validation error with the list in it.
+ *     The theme toggle's sun and moon are in that same file for that same
+ *     reason, which is why `ThemeToggleSchema` has no artwork in it either.
  *  2. **The year is not stored.** `footer.copyright` holds the whole line with
  *     a literal `{year}` token in it — "© {year} Ryan Choi" — and
  *     `renderCopyright` substitutes the year at render time. Storing "© 2026
@@ -1167,16 +1192,92 @@ export const SiteFooterSchema = z
 
 export type SiteFooter = z.infer<typeof SiteFooterSchema>;
 
+/**
+ * The wordmark: the site's own name, top left, and where clicking it goes.
+ *
+ * `label` is also the site name in `<title>` and `og:title`
+ * (`src/layouts/Base.astro`), because it is the same name and keeping a second
+ * hardcoded copy of it is the thing this file exists to stop.
+ */
+export const WordmarkSchema = z
+  .object({
+    label: z.string().min(1, 'the wordmark is the site’s name; it cannot be empty'),
+    href: HrefSchema,
+  })
+  .strict();
+
+export type Wordmark = z.infer<typeof WordmarkSchema>;
+
+/**
+ * What a visitor who has never touched the toggle sees. `system` follows their
+ * operating system, which is what the site has always done; the other two
+ * overrule it. A visitor's own saved choice always wins over all three.
+ */
+export const THEME_CHOICES = ['system', 'light', 'dark'] as const;
+
+export const ThemeChoiceSchema = z.enum(THEME_CHOICES, {
+  errorMap: () => ({
+    message: `the starting theme must be one of ${THEME_CHOICES.join(', ')}`,
+  }),
+});
+
+export type ThemeChoice = z.infer<typeof ThemeChoiceSchema>;
+
+/**
+ * The light/dark control in the top right.
+ *
+ * Two fields, because they are the only two things about it that are content.
+ * The sun and the moon are artwork and live in code (`src/cms/site-icons.ts`),
+ * exactly as the social icons do, for the reason given at the top of this
+ * section.
+ *
+ * `show: false` removes the control, not the themes: a visitor's saved choice
+ * and `initial` still decide which one they get, and the site still answers to
+ * the operating system when `initial` is `system`. So hiding it is "I pick the
+ * theme", never "the site has one theme".
+ */
+export const ThemeToggleSchema = z
+  .object({
+    show: z.boolean(),
+    initial: ThemeChoiceSchema,
+  })
+  .strict();
+
+export type ThemeToggle = z.infer<typeof ThemeToggleSchema>;
+
+/**
+ * Key order is the order these things appear on the page — wordmark, nav,
+ * toggle, then the footer — because `serialiseSiteChrome` writes what zod
+ * returned, so this order is the order of the lines in `site.json` and of every
+ * diff of it.
+ */
 export const SiteChromeSchema = z
   .object({
+    wordmark: WordmarkSchema,
     nav: z
       .array(NavLinkSchema)
       .max(MAX_NAV_LINKS, `the nav bar holds at most ${MAX_NAV_LINKS} links`),
+    themeToggle: ThemeToggleSchema,
     footer: SiteFooterSchema,
   })
   .strict();
 
 export type SiteChrome = z.infer<typeof SiteChromeSchema>;
+
+/**
+ * The theme a first-time visitor gets, given the setting and what their
+ * operating system asks for.
+ *
+ * One implementation so the page's own pre-paint script, the editor's scenery
+ * and anything else that needs to answer "which one shows first?" cannot
+ * disagree. The script in `Base.astro` is `is:inline` and cannot import this,
+ * so it restates these three lines; this is the version under test.
+ */
+export function resolveInitialTheme(initial: ThemeChoice, prefersDark: boolean): 'light' | 'dark' {
+  if (initial === 'light') return 'light';
+  if (initial === 'dark') return 'dark';
+  return prefersDark ? 'dark' : 'light';
+}
 
 /* -------------------------------------------------------------------------- */
 /* The copyright year                                                          */

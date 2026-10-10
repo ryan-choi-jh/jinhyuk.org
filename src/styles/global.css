@@ -237,6 +237,65 @@ a {
 }
 
 /* ---------------------------------------------------------------------------
+   Switching theme
+   The new theme arrives as a soft-edged circle spreading from the button that
+   was pressed, over a still snapshot of the old one — a wipe, not a cross-fade.
+   Base.astro's toggle puts the circle's centre in --vt-x/--vt-y and adds
+   .theme-vt for the duration; everything else happens here.
+
+   Nothing below runs unless the browser has View Transitions and the visitor
+   hasn't asked for less motion. When either is false the toggle just swaps the
+   theme, which is what it did before any of this existed.
+   --------------------------------------------------------------------------- */
+
+/* A custom property can only be ANIMATED if it has been registered with a
+   type. Without this, --theme-r would jump from its start value to its end
+   value and the circle would never be seen to grow. */
+@property --theme-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Starts negative so the feathered edge — the 16vmax of gradient past the
+   radius — begins off-screen behind the button rather than as a visible disc
+   already sitting under the cursor. 150vmax is past the far corner of any
+   viewport, so it finishes clean. */
+@keyframes theme-in {
+  from {
+    --theme-r: -16vmax;
+  }
+  to {
+    --theme-r: 150vmax;
+  }
+}
+
+/* The outgoing theme holds still. The default would fade it out, which would
+   show the page background through the middle of the wipe. */
+html.theme-vt::view-transition-old(root) {
+  animation: none;
+}
+
+html.theme-vt::view-transition-new(root) {
+  mask-image: radial-gradient(
+    circle at var(--vt-x, 50%) var(--vt-y, 50%),
+    #000 var(--theme-r),
+    transparent calc(var(--theme-r) + 16vmax)
+  );
+  animation: theme-in 1.1s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The mask has to GO, not stop: a stopped mask is a 0px circle, which would
+     hide the incoming theme entirely instead of revealing it at once. */
+  html.theme-vt::view-transition-old(root),
+  html.theme-vt::view-transition-new(root) {
+    animation: none;
+    mask-image: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Hero
    --------------------------------------------------------------------------- */
 /* The image is exactly the grid's own width, so the grid lines up with the

@@ -3,12 +3,19 @@
  *
  * WS-3. The middle pane: the page.
  *
- * Geometry, which is the whole point of this file. The surface is exactly
- * `REFERENCE_WIDTH` (1344) CSS px wide and is scaled with a CSS transform to
- * fit the pane. So inside the surface, one CSS px is one reference px, and a
- * canvas item at `x: 672` sits at 672px with no conversion anywhere. The price
- * is that a mounted canvas editor has to divide client-coordinate deltas by
- * `scale`; that number is handed to it in `CanvasBandSlotProps.scale`.
+ * Geometry, which is the whole point of this file. The surface is the PAGE —
+ * `PAGE_WIDTH` (1440) CSS px, scaled with a CSS transform to fit the pane —
+ * and `.cms-surface__inner` insets it by `PAGE_GUTTER` (48) on each side,
+ * leaving a `REFERENCE_WIDTH` (1344) content column in the middle. Those are
+ * `--page` and `--gutter` from the site's own stylesheet, so the paper down
+ * each edge is the paper a reader sees rather than a decorative border.
+ *
+ * Inside that column, one CSS px is one reference px, and a canvas item at
+ * `x: 672` sits at 672px with no conversion anywhere. The price is that a
+ * mounted canvas editor has to divide client-coordinate deltas by `scale`;
+ * that number is handed to it in `CanvasBandSlotProps.scale`. The gutters cost
+ * nothing on top of that: the column is 1344 wide either way, and a canvas
+ * item is positioned within the column, so adding the margins moved no item.
  *
  * Band stacking follows docs/cms-rebuild.md 2.2. A canvas band with
  * `overlay: true` reserves no vertical space and is drawn over the band before
@@ -22,7 +29,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { REFERENCE_WIDTH } from '../../schema.ts';
+import { PAGE_WIDTH, REFERENCE_WIDTH } from '../../schema.ts';
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock } from '../../schema.ts';
 // The nav and the footer around the page are the real ones, from
 // src/content/data/site.json. See the note where they are rendered.
@@ -48,7 +55,7 @@ export type PageSurfaceProps = {
 export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSrc }: PageSurfaceProps) {
   const measureRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
-  const [available, setAvailable] = useState(REFERENCE_WIDTH);
+  const [available, setAvailable] = useState(PAGE_WIDTH);
   const [surfaceHeight, setSurfaceHeight] = useState(0);
 
   useEffect(() => {
@@ -74,7 +81,11 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
     // Once: the observer reports every later change in the page's own height.
   }, []);
 
-  const scale = zoom === 'fit' ? Math.min(1, available / REFERENCE_WIDTH) : zoom;
+  // Against PAGE_WIDTH, not REFERENCE_WIDTH: what is being fitted is the whole
+  // sheet, gutters included. Fitting the column alone would push the two
+  // margins off the sides of the pane, which is the thing they are here to
+  // show.
+  const scale = zoom === 'fit' ? Math.min(1, available / PAGE_WIDTH) : zoom;
   const groups = groupBands(doc.bands);
 
   return (
@@ -82,7 +93,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
       <div className="cms-surface-measure" ref={measureRef}>
         <div
           className="cms-surface-frame"
-          style={{ width: REFERENCE_WIDTH * scale, height: surfaceHeight * scale }}
+          style={{ width: PAGE_WIDTH * scale, height: surfaceHeight * scale }}
         >
           <div className="cms-surface" ref={surfaceRef} style={{ transform: `scale(${scale})` }}>
             <div className="cms-surface__inner">
