@@ -62,7 +62,7 @@ import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { REFERENCE_WIDTH, shapeSpecFromItem } from '../schema.ts';
-import type { CanvasBand, CanvasItem, Doc, ProseBlock, SectionId } from '../schema.ts';
+import type { CanvasBand, CanvasItem, Doc, ProseBlock, SectionId, SiteChrome } from '../schema.ts';
 import type { RecordSectionDef } from '../sections.ts';
 import { generateShape } from '../assets/shapes.ts';
 import AssetPicker from '../assets/AssetPicker.tsx';
@@ -77,6 +77,9 @@ import { previewHref } from '../preview/state.ts';
 import type { MediaUpload } from '../server/client.ts';
 
 import { CanvasEditor } from './canvas/index.ts';
+// The nav bar and the footer: one copy for the whole editor, edited under Home,
+// drawn around every page in the middle pane. See SEAM 9 below.
+import { SiteChromePanel, SiteChromeProvider } from './chrome/index.ts';
 import { ProseEditor } from './prose/index.ts';
 import { EditorShell, SiteShell } from './shell/index.ts';
 import type {
@@ -148,6 +151,12 @@ export type CmsEditorProps = {
   fetchImpl?: typeof fetch;
   /** Skip the auth call on mount. Only used by the offline harness. */
   checkAuthOnMount?: boolean;
+  /**
+   * The nav and footer the deployment was built with, for the scenery's first
+   * paint and for a branch that has no `src/content/data/site.json` yet. The
+   * repository's own copy replaces it as soon as the read answers. See SEAM 9.
+   */
+  chrome?: SiteChrome | null;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -275,16 +284,22 @@ export function CmsEditor(props: CmsEditorProps) {
 
   return (
     <IntegrationContext.Provider value={integration}>
-      <EditorShell
-        store={store}
-        resolveMediaSrc={resolveMediaSrc}
-        previewUrl={(slug) => previewHref(slug, { version: 'draft' })}
-        checkAuthOnMount={props.checkAuthOnMount ?? true}
-        renderProseBlock={renderProseBlock}
-        renderCanvasBand={renderCanvasBand}
-        renderInspectorExtra={renderInspectorExtra}
-        renderToolbarExtra={renderToolbarExtra}
-      />
+      <SiteChromeProvider
+        {...(props.baseUrl === undefined ? {} : { baseUrl: props.baseUrl })}
+        {...(props.fetchImpl === undefined ? {} : { fetchImpl: props.fetchImpl })}
+        fallback={props.chrome ?? null}
+      >
+        <EditorShell
+          store={store}
+          resolveMediaSrc={resolveMediaSrc}
+          previewUrl={(slug) => previewHref(slug, { version: 'draft' })}
+          checkAuthOnMount={props.checkAuthOnMount ?? true}
+          renderProseBlock={renderProseBlock}
+          renderCanvasBand={renderCanvasBand}
+          renderInspectorExtra={renderInspectorExtra}
+          renderToolbarExtra={renderToolbarExtra}
+        />
+      </SiteChromeProvider>
     </IntegrationContext.Provider>
   );
 }
@@ -493,7 +508,18 @@ function messageOf(error: unknown): string {
 /* Slot: inspector extra — upload a file, insert an asset                      */
 /* -------------------------------------------------------------------------- */
 
-const renderInspectorExtra = (props: InspectorSlotProps): ReactNode => <InsertPanel {...props} />;
+/*
+ * The inspector's foot. The insert panel always; the nav-and-footer panel only
+ * on the homepage, because that is where the owner asked for it and because a
+ * copy of it in every document's inspector would suggest it belongs to that
+ * document. It does not: it belongs to all of them.
+ */
+const renderInspectorExtra = (props: InspectorSlotProps): ReactNode => (
+  <>
+    <InsertPanel {...props} />
+    {props.state.doc.meta.section === 'home' && <SiteChromePanel />}
+  </>
+);
 
 function InsertPanel({ store, state, resolved }: InspectorSlotProps) {
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -945,6 +971,21 @@ function LegacyToolbarExtras({
  *    content overflows invisibly. One rule in ./integration/styles.ts' sibling
  *    (`SITE_APP_CSS` below) un-does the inherited height for a nested root.
  *    Reported, because the collision belongs in one of their files.
+ *
+ * 9. THE NAV AND THE FOOTER BELONG TO NO SECTION. They are drawn around every
+ *    page by src/layouts/Base.astro out of one file, src/content/data/site.json,
+ *    so they fit neither editor: the document editor edits one entry, and the
+ *    site store is a map of sections. `<SiteChromeProvider>` therefore sits
+ *    outside both, holding one copy with its own four API calls behind it, and
+ *    two things read it — `<SiteChromePanel>` in the Home inspector, which edits
+ *    it, and the scenery around the page in WS-3's middle pane, which draws it.
+ *    One copy, so renaming a nav link shows up in the nav above the document as
+ *    it is typed.
+ *
+ *    `chrome` is the copy this deployment was built with, handed over by the
+ *    route. It is what the scenery draws before the first read answers, and the
+ *    starting point on a branch that has no site.json at all; the repository's
+ *    own copy replaces it the moment it arrives.
  */
 
 export type CmsAppProps = {
@@ -959,6 +1000,13 @@ export type CmsAppProps = {
   navigator?: AppNavigator;
   /** Seeded sha bookkeeping, keyed `home` / `essays/<slug>`. */
   shas?: Readonly<Record<string, Partial<EntryShas>>>;
+  /**
+   * The nav and footer this deployment was built with (SEAM 9). The route reads
+   * it from `src/content/data/site.json` through `src/lib/site-content.ts`, so
+   * the scenery around the page is right on the first paint and a branch
+   * without that file still has something to start from.
+   */
+  chrome?: SiteChrome | null;
 };
 
 type SiteApiBundle = { api: SiteApiAdapter; loginUrl: string | null };
@@ -1074,18 +1122,24 @@ export function CmsApp(props: CmsAppProps) {
   return (
     <SiteApiContext.Provider value={apiBundle}>
       <IntegrationContext.Provider value={integration}>
-        <SiteShell
-          store={store}
-          resolveMediaSrc={resolveMediaSrc}
-          previewUrl={previewUrl}
-          recordPreviewUrl={recordPreviewUrl}
-          renderProseBlock={renderProseBlock}
-          renderCanvasBand={renderCanvasBand}
-          renderInspectorExtra={renderInspectorExtra}
-          renderToolbarExtra={renderToolbarExtra}
-          renderRecordEditor={renderRecordEditor}
-          renderRecordToolbarExtra={renderRecordToolbarExtra}
-        />
+        <SiteChromeProvider
+          {...(props.baseUrl === undefined ? {} : { baseUrl: props.baseUrl })}
+          {...(props.fetchImpl === undefined ? {} : { fetchImpl: props.fetchImpl })}
+          fallback={props.chrome ?? null}
+        >
+          <SiteShell
+            store={store}
+            resolveMediaSrc={resolveMediaSrc}
+            previewUrl={previewUrl}
+            recordPreviewUrl={recordPreviewUrl}
+            renderProseBlock={renderProseBlock}
+            renderCanvasBand={renderCanvasBand}
+            renderInspectorExtra={renderInspectorExtra}
+            renderToolbarExtra={renderToolbarExtra}
+            renderRecordEditor={renderRecordEditor}
+            renderRecordToolbarExtra={renderRecordToolbarExtra}
+          />
+        </SiteChromeProvider>
       </IntegrationContext.Provider>
     </SiteApiContext.Provider>
   );

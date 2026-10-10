@@ -13,7 +13,7 @@
  * disagreed.
  */
 
-import type { Doc, RecordEntry, RecordFile, SectionId } from '../schema.ts';
+import type { Doc, RecordEntry, RecordFile, SectionId, SiteChrome } from '../schema.ts';
 import type { RecordSummary, SectionShape, SectionStorage } from '../sections.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -136,6 +136,27 @@ export type RecordOpAck = RecordsAck & {
   basedOn: 'draft' | 'published' | 'none';
 };
 
+/**
+ * The nav bar and the footer. One file, so this looks like `PageSnapshot` with
+ * a different payload rather than like a collection: there is nothing to list.
+ */
+export type SiteChromeSnapshot = {
+  published: SiteChrome | null;
+  draft: SiteChrome | null;
+  publishedSha: string | null;
+  draftSha: string | null;
+  publishedError?: string;
+  draftError?: string;
+  /** Where the file lives in the repo, for the editor to show. */
+  path: string;
+  draftPath: string;
+};
+
+export type SiteChromeAck = WriteAck & {
+  /** The chrome as it was written, normalised by the schema. */
+  data: SiteChrome;
+};
+
 export type MediaUpload = {
   /** Goes straight into CanvasItem.src. */
   src: string;
@@ -255,6 +276,12 @@ export type CmsClient = {
     file: Blob,
     filename?: string,
   ): Promise<MediaUpload>;
+
+  /* The nav bar and the footer. One file, not a section, so four calls of its own. */
+  readSiteChrome(): Promise<SiteChromeSnapshot>;
+  saveSiteChrome(chrome: SiteChrome, expect?: ShaExpectation): Promise<SiteChromeAck>;
+  discardSiteChrome(expect?: ShaExpectation): Promise<{ commit: string }>;
+  publishSiteChrome(expect?: ShaExpectation): Promise<SiteChromeAck>;
 };
 
 export function createCmsClient(options: CmsClientOptions = {}): CmsClient {
@@ -463,6 +490,32 @@ export function createCmsClient(options: CmsClientOptions = {}): CmsClient {
       return request<MediaUpload>(at('media', section, key), {
         method: 'POST',
         body: upload(file, filename),
+      });
+    },
+
+    /* ---------------------------------------------------------------- */
+    /* The site chrome                                                   */
+    /* ---------------------------------------------------------------- */
+
+    async readSiteChrome() {
+      return request<SiteChromeSnapshot>('/site');
+    },
+
+    async saveSiteChrome(chrome, expect) {
+      return request<SiteChromeAck>('/site', jsonInit('PUT', chrome, expect));
+    },
+
+    async discardSiteChrome(expect) {
+      return request<{ commit: string }>('/site', {
+        method: 'DELETE',
+        headers: concurrencyHeaders(expect),
+      });
+    },
+
+    async publishSiteChrome(expect) {
+      return request<SiteChromeAck>('/site/publish', {
+        method: 'POST',
+        headers: concurrencyHeaders(expect),
       });
     },
   };

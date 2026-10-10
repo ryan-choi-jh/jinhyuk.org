@@ -132,6 +132,28 @@ export default defineConfig({
                   entrypoint: './src/cms/server/routes/records.ts',
                 });
 
+                // THE SITE CHROME. The nav bar and the footer live in one file,
+                // src/content/data/site.json, and are drawn around every page
+                // by src/layouts/Base.astro — so they are not a section and do
+                // not fit the table above: no index, no entries, no slug.
+                // Hence two routes of their own, read/write/discard plus
+                // publish, with the same auth, the same draft-then-publish and
+                // the same blob-sha conflict detection as everything else.
+                //
+                // Injected here, under the same condition and for the same
+                // reason as every other endpoint: they set `prerender = false`,
+                // and an on-demand route in the static GitHub Pages build fails
+                // it. Their files live under src/cms/server/routes/ rather than
+                // src/pages/ so they are not routes in both builds.
+                injectRoute({
+                  pattern: '/api/cms/site',
+                  entrypoint: './src/cms/server/routes/site.ts',
+                });
+                injectRoute({
+                  pattern: '/api/cms/site/publish',
+                  entrypoint: './src/cms/server/routes/site-publish.ts',
+                });
+
                 injectRoute({
                   pattern: '/api/cms/auth/status',
                   entrypoint: './src/cms/server/routes/auth-status.ts',

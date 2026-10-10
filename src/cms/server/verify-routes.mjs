@@ -66,6 +66,12 @@ const cases = [
   ['POST', '/api/cms/media/filmography/film_untitled', 401, 'upload a film poster'],
   ['POST', '/api/cms/media/photography/an-album', 401, 'upload an album photo'],
 
+  // The site chrome: one file, not a section, so two routes of its own.
+  ['GET', '/api/cms/site', 401, 'read the nav and the footer'],
+  ['PUT', '/api/cms/site', 401, 'save the nav-and-footer draft'],
+  ['DELETE', '/api/cms/site', 401, 'discard that draft'],
+  ['POST', '/api/cms/site/publish', 401, 'publish the nav and the footer'],
+
   // Phase 1, which must keep working (docs/cms-contracts.md 11, last paragraph).
   ['GET', '/api/cms/pages', 401, 'phase 1 list'],
   ['GET', '/api/cms/page/track-daily-habit-tracker', 401, 'phase 1 read'],

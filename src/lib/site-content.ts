@@ -11,6 +11,7 @@
  *   src/content/pages/projects/<slug>.json      a project page        Doc
  *   src/content/data/filmography.json           the films             { films }
  *   src/content/data/photography.json           the albums            { albums }
+ *   src/content/data/site.json                  the nav and footer    SiteChrome
  *
  * The five sources it replaces — `src/content/home.yaml`,
  * `src/content/writing/*.md`, the `.mdoc` files behind the Keystatic reader,
@@ -47,13 +48,15 @@ import {
   validateDoc,
   validateFilmography,
   validatePhotography,
+  validateSiteChrome,
 } from '../cms/schema.ts';
-import type { Album, Doc, DocMeta, Film } from '../cms/schema.ts';
+import type { Album, Doc, DocMeta, Film, SiteChrome } from '../cms/schema.ts';
 import { contentDirFor, requireSection, slugFromFilename } from '../cms/sections.ts';
 
 import homeJson from '../content/pages/home.json';
 import filmographyJson from '../content/data/filmography.json';
 import photographyJson from '../content/data/photography.json';
+import siteJson from '../content/data/site.json';
 
 /* -------------------------------------------------------------------------- */
 /* The globs                                                                  */
@@ -185,4 +188,33 @@ export const albums = (): Album[] => {
     );
   }
   return result.data.albums;
+};
+
+/* -------------------------------------------------------------------------- */
+/* The chrome                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The nav bar and the footer, for `src/layouts/Base.astro` and
+ * `src/components/SocialLinks.astro` — the two files that draw them.
+ *
+ * Every page of the site goes through the layout, so this one JSON file is the
+ * nav and the footer everywhere: editing it moves all of them at once, which is
+ * the whole point of it being content rather than markup.
+ *
+ * The copyright line is stored with a literal `{year}` token in it and the year
+ * is substituted at render time by `renderCopyright` from the schema. Do not
+ * bake a year into the JSON, or it freezes on the day it was typed.
+ *
+ * Invalid content fails the build, loudly, for the same reason as a document:
+ * a site that silently renders no nav is worse than a red build.
+ */
+export const siteChrome = (): SiteChrome => {
+  const result = validateSiteChrome(siteJson);
+  if (!result.ok) {
+    throw new Error(
+      `src/content/data/site.json is not a valid site chrome:\n${formatIssues(result.issues)}`,
+    );
+  }
+  return result.data;
 };

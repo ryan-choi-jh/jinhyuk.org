@@ -392,11 +392,10 @@ export const SHELL_CSS = `
   font-size: 12px; line-height: 16px; letter-spacing: 0.08em;
   color: var(--muted, #6b6b6b);
 }
-.cms-chrome__social { display: flex; gap: 16px; }
-.cms-chrome__social i {
-  display: block; width: 16px; height: 16px; border-radius: 3px;
-  background: var(--muted, #6b6b6b); opacity: 0.55;
-}
+.cms-chrome__social { display: flex; align-items: center; gap: 16px; color: var(--muted, #6b6b6b); }
+/* The real icons, drawn from src/cms/site-icons.ts by the key each social link
+   stores — the same artwork the published footer uses, at the same 16px. */
+.cms-chrome__social svg { display: block; width: 16px; height: 16px; }
 
 .cms-group { position: relative; }
 .cms-band-box { position: relative; }

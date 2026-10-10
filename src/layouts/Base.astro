@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import SocialLinks from '../components/SocialLinks.astro';
+import { isNavCurrent, renderCopyright } from '../cms/schema.ts';
+import { siteChrome } from '../lib/site-content.ts';
 
 interface Props {
   title?: string;
@@ -12,16 +14,17 @@ const siteName = 'Ryan Choi';
 const fullTitle = title ? `${title} — ${siteName}` : siteName;
 const year = new Date().getFullYear();
 
-// The nav. `match` decides which item is highlighted for the current URL.
-const nav = [
-  { label: 'PROJECTS', href: '/projects/', match: '/projects' },
-  { label: 'ESSAYS', href: '/essays/', match: '/essays' },
-  { label: 'PHOTOGRAPHY', href: '/photography/', match: '/photography' },
-  { label: 'FILMOGRAPHY', href: '/filmography/', match: '/filmography' },
-];
+// The nav and the footer are content, in src/content/data/site.json, edited in
+// the CMS under Home and applied here — so to every page at once. `isNavCurrent`
+// derives the highlight from each link's own href rather than a stored match.
+const chrome = siteChrome();
+const nav = chrome.nav;
+// Stored as "© {year} Ryan Choi"; the year is filled in at build time, so it
+// cannot freeze on whatever year the line was typed in.
+const copyright = renderCopyright(chrome.footer.copyright, year);
 
 const path = Astro.url.pathname;
-const isCurrent = (match: string) => path === match || path.startsWith(`${match}/`);
+const isCurrent = (href: string) => isNavCurrent(href, path);
 ---
 
 <!doctype html>
@@ -76,7 +79,7 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
         <a class="wordmark" href="/">Ryan Choi</a>
         <div class="site-nav-links">
           {nav.map((item) => (
-            <a href={item.href} aria-current={isCurrent(item.match) ? 'page' : undefined}>
+            <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
               {item.label}
             </a>
           ))}
@@ -123,7 +126,7 @@ const isCurrent = (match: string) => path === match || path.startsWith(`${match}
       </main>
 
       <footer class="site-footer">
-        <span class="copyright">© {year} Ryan Choi</span>
+        <span class="copyright">{copyright}</span>
         <SocialLinks />
       </footer>
     </div>

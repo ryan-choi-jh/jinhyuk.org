@@ -323,6 +323,23 @@ export function slugFromFilename(filename: string): string | null {
 }
 
 /* -------------------------------------------------------------------------- */
+/* The site chrome: one file, and not a section                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The nav bar and the footer (`SiteChrome` in `./schema.ts`).
+ *
+ * Not a section, and deliberately not in `SECTIONS`: a section is a surface of
+ * the site with an index, entries and a place in the sidebar, and the chrome is
+ * none of those — it is drawn around every page at once. It still gets its
+ * paths from this file, because this file is where a content path is spelled,
+ * and its draft path through `toDraftPath` like everything else, so the draft
+ * tree stays a literal mirror of the published tree.
+ */
+export const SITE_CHROME_PATH = `${CONTENT_ROOT}/data/site${CONTENT_FILE_EXT}`;
+export const SITE_CHROME_DRAFT_PATH = toDraftPath(SITE_CHROME_PATH);
+
+/* -------------------------------------------------------------------------- */
 /* Record collection definitions                                               */
 /* -------------------------------------------------------------------------- */
 

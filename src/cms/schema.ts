@@ -1078,3 +1078,187 @@ export function isFilm(entry: RecordEntry): entry is Film {
 export function isAlbum(entry: RecordEntry): entry is Album {
   return Array.isArray((entry as Album).photos);
 }
+
+/* ========================================================================== */
+/* PHASE 3: the site chrome (the nav bar and the footer)                       */
+/* ========================================================================== */
+
+/**
+ * The nav bar and the footer, as content.
+ *
+ * They are not a page and they are not a record collection: they are drawn
+ * around EVERY page by `src/layouts/Base.astro`, so they live in one file of
+ * their own, `src/content/data/site.json`, and a change to it changes every
+ * page of the site at once. The file's shape is `SiteChrome` below.
+ *
+ * Two rules carry over from the rest of this file: every object is `.strict()`,
+ * and every exported type is `z.infer` of its schema. Two more are specific to
+ * this shape and are the point of it:
+ *
+ *  1. **An icon is a KEY, never artwork.** `SOCIAL_ICONS` names the five that
+ *     exist; the SVG for each lives in code (`src/cms/site-icons.ts`) and is
+ *     selected by key. Nobody editing the footer is ever asked to paste a
+ *     bezier, and an unknown key is a validation error with the list in it.
+ *  2. **The year is not stored.** `footer.copyright` holds the whole line with
+ *     a literal `{year}` token in it — "© {year} Ryan Choi" — and
+ *     `renderCopyright` substitutes the year at render time. Storing "© 2026
+ *     Ryan Choi" would freeze the year the day it was typed; storing only the
+ *     name would put the ©, the spacing and the word order back into code,
+ *     which is the thing this file exists to get out of code. A line with no
+ *     token renders verbatim, so the token is a facility and not a ceremony.
+ */
+
+/** The social icons the site has artwork for. The artwork is in code. */
+export const SOCIAL_ICONS = ['github', 'linkedin', 'x', 'youtube', 'email'] as const;
+
+export const SocialIconSchema = z.enum(SOCIAL_ICONS, {
+  errorMap: () => ({
+    message:
+      `icon must be one of ${SOCIAL_ICONS.join(', ')} — ` +
+      'the drawing for each one lives in code, so there is no SVG to paste',
+  }),
+});
+
+export type SocialIcon = z.infer<typeof SocialIconSchema>;
+
+export function isSocialIcon(value: string): value is SocialIcon {
+  return (SOCIAL_ICONS as readonly string[]).includes(value);
+}
+
+/**
+ * Caps on the two lists. The nav is a centred row on a 1440px design and a
+ * wrapped row on a phone; past eight links it is a menu, which is a redesign
+ * and not a content edit. The footer row is capped at the same number for the
+ * same reason, not because the icons run out.
+ */
+export const MAX_NAV_LINKS = 8;
+export const MAX_SOCIAL_LINKS = 8;
+
+export const NavLinkSchema = z
+  .object({
+    /** As printed. The site's own CSS does not uppercase it, so "PROJECTS" is stored as typed. */
+    label: z.string().min(1, 'a nav link needs a label'),
+    href: HrefSchema,
+  })
+  .strict();
+
+export type NavLink = z.infer<typeof NavLinkSchema>;
+
+export const SocialLinkSchema = z
+  .object({
+    /** The accessible name: it becomes `aria-label` and `title` on the link. */
+    name: z.string().min(1, 'a social link needs a name; it is what a screen reader reads out'),
+    href: HrefSchema,
+    icon: SocialIconSchema,
+  })
+  .strict();
+
+export type SocialLink = z.infer<typeof SocialLinkSchema>;
+
+export const SiteFooterSchema = z
+  .object({
+    /** The whole line. `{year}` is substituted by `renderCopyright`. */
+    copyright: z.string().min(1, 'the copyright line must not be empty'),
+    social: z
+      .array(SocialLinkSchema)
+      .max(MAX_SOCIAL_LINKS, `the footer holds at most ${MAX_SOCIAL_LINKS} social links`),
+  })
+  .strict();
+
+export type SiteFooter = z.infer<typeof SiteFooterSchema>;
+
+export const SiteChromeSchema = z
+  .object({
+    nav: z
+      .array(NavLinkSchema)
+      .max(MAX_NAV_LINKS, `the nav bar holds at most ${MAX_NAV_LINKS} links`),
+    footer: SiteFooterSchema,
+  })
+  .strict();
+
+export type SiteChrome = z.infer<typeof SiteChromeSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* The copyright year                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** The literal token `footer.copyright` may carry in place of the year. */
+export const COPYRIGHT_YEAR_TOKEN = '{year}';
+
+/**
+ * The stored line with the year filled in. Every occurrence of `{year}` is
+ * replaced; a line without the token comes back unchanged.
+ *
+ * One implementation, so the published footer, the preview and the editor's own
+ * scenery cannot print three different years.
+ */
+export function renderCopyright(copyright: string, year: number | string): string {
+  return copyright.split(COPYRIGHT_YEAR_TOKEN).join(String(year));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Which nav link is the current page                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The path a nav link marks as current, or null when it cannot mark anything
+ * (an off-site link, a `mailto:`, a bare `#fragment`).
+ *
+ * Derived from the href rather than stored beside it: a second field would be a
+ * second thing to keep in step, and "`/projects/` highlights on `/projects/`
+ * and everything under it" is a rule, not a per-link decision. The trailing
+ * slash is dropped so `/projects/` and `/projects` are the same link.
+ */
+export function navMatchFor(href: string): string | null {
+  if (!href.startsWith('/')) return null;
+  const path = (href.split('#')[0] as string).split('?')[0] as string;
+  const trimmed = path.replace(/\/+$/, '');
+  return trimmed === '' ? '/' : trimmed;
+}
+
+/** True when `pathname` is this link's page, or a page under it. */
+export function isNavCurrent(href: string, pathname: string): boolean {
+  const match = navMatchFor(href);
+  if (match === null) return false;
+  if (match === '/') return pathname === '/';
+  return pathname === match || pathname.startsWith(`${match}/`);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Site chrome validators and factories                                        */
+/* -------------------------------------------------------------------------- */
+
+export function validateSiteChrome(value: unknown): ValidateResultOf<SiteChrome> {
+  return runValidate(SiteChromeSchema, value);
+}
+
+export function validateSiteChromeJson(text: string): ValidateResultOf<SiteChrome> {
+  return runValidateJson(SiteChromeSchema, text);
+}
+
+/** One link at a time, for an editor validating a row as it is typed. */
+export function validateNavLink(value: unknown): ValidateResultOf<NavLink> {
+  return runValidate(NavLinkSchema, value);
+}
+
+export function validateSocialLink(value: unknown): ValidateResultOf<SocialLink> {
+  return runValidate(SocialLinkSchema, value);
+}
+
+/**
+ * A new nav link. Valid as it stands — label "SECTION", pointing at the home
+ * page — so adding one never makes the file unsaveable before it is filled in.
+ */
+export function newNavLink(overrides: Partial<NavLink> = {}): NavLink {
+  return { label: 'SECTION', href: '/', ...overrides };
+}
+
+/**
+ * A new social link. `href` is deliberately empty, and therefore invalid: the
+ * one thing the editor must ask for before this can be saved is the address,
+ * exactly as `newFilm` does with its video. Pass `name` from
+ * `SOCIAL_ICON_LABELS` in `src/cms/site-icons.ts`.
+ */
+export function newSocialLink(overrides: Partial<SocialLink> = {}): SocialLink {
+  return { name: 'Link', href: '', icon: SOCIAL_ICONS[0], ...overrides };
+}

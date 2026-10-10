@@ -40,6 +40,13 @@
  *    records the shas from that read (./integration/site-api.ts), so reading
  *    here as well would be a second GitHub round trip for the same bytes.
  *
+ *  - IT DOES HAND OVER THE NAV AND THE FOOTER. `src/content/data/site.json` is
+ *    bundled into this build, so the island can have it with no round trip at
+ *    all: the scenery around the page is the real nav on the first paint rather
+ *    than after a fetch, and a branch that has no site.json yet has something
+ *    to start a draft from. The island still reads the repository's copy on
+ *    mount, and that one wins.
+ *
  * Server rendered and kept out of the static GitHub Pages build the same way
  * as everything else in the CMS: `prerender = false`, the file outside
  * src/pages/, and the injectRoute calls inside astro.config.mjs's
@@ -52,6 +59,7 @@ import { getSection } from '../../sections.ts';
 import { sessionToken } from '../../server/auth.ts';
 import { REPO, defaultBranch } from '../../server/config.ts';
 import { loginHref } from '../../preview/state.ts';
+import { siteChrome } from '../../../lib/site-content.ts';
 import { CMS_ROOT, parseCmsRoute } from '../state/route.ts';
 import { CmsApp } from '../index.tsx';
 
@@ -189,7 +197,7 @@ const title =
           </p>
         </div>
       ) : (
-        <CmsApp client:only="react" repo={REPO} branch={branch} />
+        <CmsApp client:only="react" repo={REPO} branch={branch} chrome={siteChrome()} />
       )
     }
   </body>

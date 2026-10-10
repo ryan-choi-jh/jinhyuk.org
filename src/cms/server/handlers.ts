@@ -37,6 +37,12 @@ import {
   writeRecordsDraft,
 } from './records.ts';
 import {
+  discardSiteChromeDraft,
+  publishSiteChrome,
+  readSiteChrome,
+  writeSiteChromeDraft,
+} from './site-chrome.ts';
+import {
   deleteEntryDraft,
   listEntries,
   listSections,
@@ -45,7 +51,12 @@ import {
   uploadSectionMedia,
   writeEntryDraft,
 } from './store.ts';
-import { isRecordSection, siteUrlFor } from '../sections.ts';
+import {
+  SITE_CHROME_DRAFT_PATH,
+  SITE_CHROME_PATH,
+  isRecordSection,
+  siteUrlFor,
+} from '../sections.ts';
 import type { DocumentSectionDef, RecordSectionDef, SectionDef } from '../sections.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -303,6 +314,52 @@ export async function deleteRecords(
   const ctx = await ctxFrom(cookies);
   const result = await discardRecordsDraft(ctx, section, ifMatchSha(request));
   return ok({ section: section.id, commit: result.commit });
+}
+
+/* -------------------------------------------------------------------------- */
+/* The site chrome: the nav bar and the footer                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * GET /api/cms/site
+ *
+ * The nav and the footer are one file and not a section, so they get their own
+ * four endpoints rather than a sixth row in the section table. Everything else
+ * about them is the same as everything else: the same auth, the same
+ * draft-then-publish, the same blob shas quoted back for `If-Match`.
+ */
+export async function getSite(cookies: CookieJar): Promise<Response> {
+  const read = await readSiteChrome(await ctxFrom(cookies));
+  return ok({ path: SITE_CHROME_PATH, draftPath: SITE_CHROME_DRAFT_PATH, ...read });
+}
+
+/** PUT /api/cms/site — body: SiteChrome. Writes the DRAFT; publish moves it. */
+export async function putSite(cookies: CookieJar, request: Request): Promise<Response> {
+  const ctx = await ctxFrom(cookies);
+  const body = await jsonBody(request);
+  const result = await writeSiteChromeDraft(ctx, body, expectationFrom(request));
+  return ok({ commit: result.commit, sha: result.sha, data: result.data });
+}
+
+/** DELETE /api/cms/site — discard the draft. The published file is untouched. */
+export async function deleteSite(cookies: CookieJar, request: Request): Promise<Response> {
+  const ctx = await ctxFrom(cookies);
+  const result = await discardSiteChromeDraft(ctx, ifMatchSha(request));
+  return ok({ commit: result.commit });
+}
+
+/**
+ * POST /api/cms/site/publish
+ *
+ * A path of its own rather than `/api/cms/publish/site`, because that pattern's
+ * single segment is "a section id, or a phase 1 project slug"
+ * (`resolveSectionOrLegacySlug`) and the chrome is neither. One more segment
+ * here is cheaper than widening that rule for everything.
+ */
+export async function postSitePublish(cookies: CookieJar, request: Request): Promise<Response> {
+  const ctx = await ctxFrom(cookies);
+  const result = await publishSiteChrome(ctx, expectationFrom(request));
+  return ok({ commit: result.commit, sha: result.sha, data: result.data });
 }
 
 /* -------------------------------------------------------------------------- */

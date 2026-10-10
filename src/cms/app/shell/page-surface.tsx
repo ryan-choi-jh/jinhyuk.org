@@ -24,6 +24,9 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { REFERENCE_WIDTH } from '../../schema.ts';
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock } from '../../schema.ts';
+// The nav and the footer around the page are the real ones, from
+// src/content/data/site.json. See the note where they are rendered.
+import { SiteChromeView } from '../chrome/chrome-view.tsx';
 import { blockPlainText } from '../state/doc-ops.ts';
 import { isBandSelected, isBlockSelected, isItemSelected, selectedItemIds } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
@@ -83,7 +86,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
         >
           <div className="cms-surface" ref={surfaceRef} style={{ transform: `scale(${scale})` }}>
             <div className="cms-surface__inner">
-              <SiteChrome where="top" />
+              <SiteChromeView where="top" section={doc.meta.section} />
               {groups.map((group) => (
                 <div className="cms-group" key={group.host.id}>
                   <BandBox
@@ -114,7 +117,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
                   This page has no bands. Add one from the outline on the left.
                 </p>
               )}
-              <SiteChrome where="bottom" />
+              <SiteChromeView where="bottom" />
             </div>
           </div>
         </div>
@@ -512,41 +515,13 @@ function ShapeOutline({ item }: { item: CanvasItem }) {
   );
 }
 
-/**
- * The site's nav and footer, drawn around the page so a document is framed
- * the way a reader meets it. Inert by design: it is scenery, and clicking it
- * should do nothing. The real markup lives in src/layouts/Base.astro; this
- * mirrors its shape, and src/cms/app/shell/styles.ts mirrors global.css for
- * the type.
+/*
+ * THE NAV AND THE FOOTER around the page used to be drawn here, from a
+ * hardcoded list of four invented labels and five grey squares. They are
+ * content now — `src/content/data/site.json`, edited in the CMS under Home —
+ * so the scenery is `../chrome/chrome-view.tsx`, reading the same file the
+ * published page does, with the same icons. It is still inert
+ * (`aria-hidden`, `pointer-events: none` in ./styles.ts): scenery, not
+ * navigation. The real markup lives in src/layouts/Base.astro; this mirrors
+ * its shape, and ./styles.ts mirrors global.css for the type.
  */
-const CHROME_LINKS = ['Projects', 'Essays', 'Photography', 'Filmography'] as const;
-
-function SiteChrome({ where }: { where: 'top' | 'bottom' }) {
-  if (where === 'top') {
-    return (
-      <div className="cms-chrome" aria-hidden="true">
-        <div className="cms-chrome__nav">
-          <span className="cms-chrome__mark">Ryan Choi</span>
-          <div className="cms-chrome__links">
-            {CHROME_LINKS.map((label) => (
-              <span key={label}>{label}</span>
-            ))}
-          </div>
-          <div className="cms-chrome__toggle" />
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="cms-chrome" aria-hidden="true">
-      <div className="cms-chrome__footer">
-        <span>© {new Date().getFullYear()} Ryan Choi</span>
-        <span className="cms-chrome__social">
-          {[0, 1, 2, 3, 4].map((n) => (
-            <i key={n} />
-          ))}
-        </span>
-      </div>
-    </div>
-  );
-}

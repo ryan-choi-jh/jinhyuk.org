@@ -1,0 +1,50 @@
+{
+  "nav": [
+    {
+      "label": "PROJECTS",
+      "href": "/projects/"
+    },
+    {
+      "label": "ESSAYS",
+      "href": "/essays/"
+    },
+    {
+      "label": "PHOTOGRAPHY",
+      "href": "/photography/"
+    },
+    {
+      "label": "FILMOGRAPHY",
+      "href": "/filmography/"
+    }
+  ],
+  "footer": {
+    "copyright": "© {year} Ryan Choi",
+    "social": [
+      {
+        "name": "GitHub",
+        "href": "https://github.com/ryan-choi-jh",
+        "icon": "github"
+      },
+      {
+        "name": "LinkedIn",
+        "href": "https://www.linkedin.com/in/jinhyuk-ryan-choi/",
+        "icon": "linkedin"
+      },
+      {
+        "name": "X",
+        "href": "https://x.com/ryanchoi_jh",
+        "icon": "x"
+      },
+      {
+        "name": "YouTube",
+        "href": "https://www.youtube.com/@ryanjhchoi",
+        "icon": "youtube"
+      },
+      {
+        "name": "Email",
+        "href": "mailto:ryanjhchoi@hotmail.com",
+        "icon": "email"
+      }
+    ]
+  }
+}
