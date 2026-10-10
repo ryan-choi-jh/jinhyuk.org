@@ -338,10 +338,9 @@ function Overview({
 
   return (
     <div className="cms-overview" data-testid="overview">
-      <h1>The whole site</h1>
+      <h1>Jin Hyuk.org CMS</h1>
       <p>
-        Five surfaces. Three hold documents — bands of prose and canvas — and two hold records, which
-        are typed fields and media. Everything is edited here and written as JSON.
+        All edits are saved as draft then published to the site. Everything written as JSON
       </p>
       <div className="cms-overview__grid">
         {SECTIONS.map((section) => {
