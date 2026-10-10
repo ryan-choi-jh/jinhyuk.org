@@ -1,0 +1,72 @@
+{
+  "albums": [
+    {
+      "id": "album_first_build",
+      "slug": "first-build",
+      "title": "First Build",
+      "year": "2026",
+      "cover": "ph_build_04",
+      "summary": "Six frames from the first thing I built for myself instead of as a tutorial exercise.",
+      "photos": [
+        {
+          "id": "ph_build_01",
+          "src": "/projects/track-daily-habit-tracker/blocks/2/value/src.png",
+          "alt": "The Track welcome screen on a phone",
+          "caption": "Where it opens.",
+          "w": 1206,
+          "h": 2622
+        },
+        {
+          "id": "ph_build_02",
+          "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
+          "alt": "A habit card with its heatmap filled in",
+          "w": 1206,
+          "h": 2622
+        },
+        {
+          "id": "ph_build_03",
+          "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
+          "alt": "The month view, most squares empty",
+          "caption": "A bad month, which the app forgives.",
+          "w": 1206,
+          "h": 2622
+        },
+        {
+          "id": "ph_build_04",
+          "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
+          "alt": "The cover screen, built from photographs",
+          "caption": "The chosen cover, four in rather than first.",
+          "w": 1206,
+          "h": 2622
+        },
+        {
+          "id": "ph_build_05",
+          "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
+          "alt": "Adding a habit",
+          "w": 1206,
+          "h": 2622
+        },
+        {
+          "id": "ph_build_06",
+          "src": "/projects/track-daily-habit-tracker/blocks/14/value/src.png",
+          "caption": "No alt and no intrinsic size: both are optional, and the grid has to cope."
+        }
+      ]
+    },
+    {
+      "id": "album_developing",
+      "slug": "developing",
+      "title": "Currently Developing",
+      "year": "2026",
+      "photos": [
+        {
+          "id": "ph_developing_01",
+          "src": "/photography/placeholder.webp",
+          "alt": "A drawing of Ryan Choi in a cable-knit sweater, camera raised to his eye, photographing hot air balloons over the rock spires of Cappadocia.",
+          "w": 1200,
+          "h": 918
+        }
+      ]
+    }
+  ]
+}

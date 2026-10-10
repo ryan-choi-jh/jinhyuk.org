@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WS-5 prose editor harness</title>
+    <!-- The real site stylesheet, so --ink / --muted / --accent are the real
+         tokens and flipping data-theme flips them exactly as the site does. -->
+    <link rel="stylesheet" href="/styles/global.css" />
+    <style>
+      /* Harness chrome only. Nothing here styles prose: the point of the
+         harness is to see what WS-5 emits, not to decide how it looks. */
+      body { margin: 0; padding: 24px; }
+      .hz-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+      .hz-head h1 { margin: 0; font-size: 18px; }
+      .hz-head button { padding: 4px 10px; }
+      .hz-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+      .hz-row { display: contents; }
+      .hz-cell { min-width: 0; padding: 10px 12px; border: 1px solid var(--rule, #e4e4e4); border-radius: 8px; }
+      .hz-tag { display: block; margin-bottom: 6px; font: 500 11px/1 ui-monospace, monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted, #6b6b6b); }
+      .hz-json { margin: 0; overflow-x: auto; font: 400 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
+      #report { margin-top: 28px; padding: 14px 16px; border: 1px solid var(--rule, #e4e4e4); border-radius: 8px; }
+      #report pre { margin: 0; font: 400 12px/1.6 ui-monospace, monospace; white-space: pre-wrap; }
+      .hz-verdict { font: 600 14px/1 ui-monospace, monospace; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="report"><span class="hz-verdict" id="verdict">RUNNING</span><pre id="results">…</pre></div>
+    <script type="application/json" id="results-json">{}</script>
+    <script src="./bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Fixture: prose and canvas",
+    "slug": "fixture-canvas",
+    "date": "2026-10-08",
+    "summary": "Prose in flow, then one canvas band holding two images and a squiggle. The positioning baseline.",
+    "url": "https://habit-tracker-xi-gilt.vercel.app/welcome",
+    "cover": "/projects/track-daily-habit-tracker/IMG_2065.png"
+  },
+  "bands": [
+    {
+      "id": "b_canvas_intro",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_canvas_intro",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "Track opens on today, with every habit as its own card and its heatmap sitting right there on the card, so progress is never more than a glance away." }
+          ]
+        },
+        {
+          "id": "h2_canvas_screens",
+          "kind": "h2",
+          "content": [{ "type": "text", "text": "The two screens that matter" }]
+        },
+        {
+          "id": "p_canvas_screens",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "The welcome screen on the left, the cover you build yourself on the right. Everything else in the app is in service of those two." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_canvas_stage",
+      "type": "canvas",
+      "height": 700,
+      "items": [
+        {
+          "id": "i_canvas_sq",
+          "kind": "shape",
+          "shape": "squiggle",
+          "x": 790,
+          "y": 210,
+          "w": 420,
+          "h": 180,
+          "z": 0,
+          "color": "#ff5722",
+          "strokeWidth": 3
+        },
+        {
+          "id": "i_canvas_welcome",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/2/value/src.png",
+          "alt": "The Track welcome screen",
+          "caption": "The welcome screen",
+          "x": 140,
+          "y": 24,
+          "w": 280,
+          "h": 609,
+          "z": 1
+        },
+        {
+          "id": "i_canvas_cover",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/IMG_2065.png",
+          "alt": "A cover built from photographs of people at their moment",
+          "caption": "My own cover",
+          "x": 470,
+          "y": 60,
+          "w": 280,
+          "h": 609,
+          "z": 2
+        }
+      ]
+    },
+    {
+      "id": "b_canvas_outro",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_canvas_outro",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "Below the breakpoint these two stack at full width in document order and the squiggle comes with them. No positioning survives that far down." }
+          ]
+        }
+      ]
+    }
+  ]
+}

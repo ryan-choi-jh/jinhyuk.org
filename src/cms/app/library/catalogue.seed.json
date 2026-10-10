@@ -1,0 +1,897 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "shape_divider_full",
+      "kind": "shape",
+      "name": "Divider, full width",
+      "category": "annotation",
+      "tags": [
+        "divider",
+        "rule",
+        "hairline",
+        "separator",
+        "full-width"
+      ],
+      "note": "A straight rule the width of the content column, in the site's hairline grey.",
+      "generator": "line",
+      "defaults": {
+        "width": 1344,
+        "height": 2,
+        "color": "#e4e4e4",
+        "strokeWidth": 1,
+        "seedId": "i_lib_divider_full"
+      }
+    },
+    {
+      "id": "shape_divider_text",
+      "kind": "shape",
+      "name": "Divider, text column",
+      "category": "annotation",
+      "tags": [
+        "divider",
+        "rule",
+        "hairline",
+        "separator",
+        "text-column"
+      ],
+      "note": "The same rule at 720px, so it lines up with the reading measure.",
+      "generator": "line",
+      "defaults": {
+        "width": 720,
+        "height": 2,
+        "color": "#e4e4e4",
+        "strokeWidth": 1,
+        "seedId": "i_lib_divider_text"
+      }
+    },
+    {
+      "id": "shape_squiggle_accent",
+      "name": "Accent squiggle",
+      "category": "annotation",
+      "tags": [
+        "squiggle",
+        "accent",
+        "orange",
+        "underline",
+        "hand-drawn"
+      ],
+      "note": "The orange one, a touch heavier. A preset held in the catalogue rather than in code, which is how a favourite gets saved.",
+      "kind": "shape",
+      "generator": "squiggle",
+      "defaults": {
+        "width": 300,
+        "height": 64,
+        "color": "#ff5722",
+        "strokeWidth": 3,
+        "seedId": "i_lib_squiggle_accent"
+      }
+    },
+    {
+      "id": "shape_rect_tint",
+      "name": "Tinted box",
+      "category": "frame",
+      "tags": [
+        "rect",
+        "box",
+        "highlight",
+        "tint",
+        "frame"
+      ],
+      "note": "A drawn box over a 13% amber wash, for highlighting a figure without hiding it.",
+      "kind": "shape",
+      "generator": "rect",
+      "defaults": {
+        "width": 340,
+        "height": 220,
+        "color": "#111111",
+        "strokeWidth": 2,
+        "fill": "#f5a62322",
+        "seedId": "i_lib_rect_tint"
+      }
+    },
+    {
+      "id": "a_home-hero-webp",
+      "kind": "asset",
+      "name": "Home hero illustration",
+      "category": "hero",
+      "tags": [
+        "hero",
+        "home",
+        "illustration",
+        "paper",
+        "landscape"
+      ],
+      "note": "The illustration behind the homepage intro. WebP, the one the page actually serves.",
+      "src": "/home/hero.webp",
+      "width": 2688,
+      "height": 1648,
+      "format": "webp",
+      "bytes": 357832,
+      "preview": {
+        "src": "/library/thumbs/home-hero-webp.jpg",
+        "w": 600,
+        "h": 368
+      }
+    },
+    {
+      "id": "a_home-hero-jpg",
+      "kind": "asset",
+      "name": "Home hero, JPEG fallback",
+      "category": "hero",
+      "tags": [
+        "hero",
+        "home",
+        "illustration",
+        "fallback",
+        "jpeg"
+      ],
+      "note": "Same drawing as the WebP, kept for anything that cannot read WebP.",
+      "src": "/home/hero.jpg",
+      "width": 2688,
+      "height": 1648,
+      "format": "jpeg",
+      "bytes": 632726,
+      "preview": {
+        "src": "/library/thumbs/home-hero-jpg.jpg",
+        "w": 600,
+        "h": 368
+      }
+    },
+    {
+      "id": "a_photography-placeholder-webp",
+      "kind": "asset",
+      "name": "Photography placeholder",
+      "category": "photography",
+      "tags": [
+        "photography",
+        "placeholder",
+        "transparent",
+        "album"
+      ],
+      "note": "Stand-in tile for an album with no cover yet. Has an alpha channel.",
+      "src": "/photography/placeholder.webp",
+      "width": 1200,
+      "height": 918,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 215924
+    },
+    {
+      "id": "a_filmography-eudrajwcwwg-jpg",
+      "kind": "asset",
+      "name": "Untitled, poster frame",
+      "category": "film-still",
+      "tags": [
+        "filmography",
+        "poster",
+        "short-film",
+        "2019",
+        "leamington"
+      ],
+      "note": "Poster frame for the 2019 short. Written, directed and edited.",
+      "src": "/filmography/EudrajWcwwg.jpg",
+      "width": 1280,
+      "height": 720,
+      "format": "jpeg",
+      "bytes": 86270,
+      "preview": {
+        "src": "/library/thumbs/filmography-eudrajwcwwg-jpg.jpg",
+        "w": 600,
+        "h": 337
+      }
+    },
+    {
+      "id": "a_filmography-6sulwrlfucc-jpg",
+      "kind": "asset",
+      "name": "The Space Race, poster frame",
+      "category": "film-still",
+      "tags": [
+        "filmography",
+        "poster",
+        "short-film",
+        "2019",
+        "space-race"
+      ],
+      "note": "Poster frame. Role: Perseus. UCL Film Festival, directed by Dominic Blondel.",
+      "src": "/filmography/6SUlwRLFuCc.jpg",
+      "width": 1280,
+      "height": 720,
+      "format": "jpeg",
+      "bytes": 74504,
+      "preview": {
+        "src": "/library/thumbs/filmography-6sulwrlfucc-jpg.jpg",
+        "w": 600,
+        "h": 337
+      }
+    },
+    {
+      "id": "a_filmography-2jixj6uouds-jpg",
+      "kind": "asset",
+      "name": "The Space Race trailer, poster frame",
+      "category": "film-still",
+      "tags": [
+        "filmography",
+        "poster",
+        "trailer",
+        "2019",
+        "space-race"
+      ],
+      "src": "/filmography/2jiXj6uOuDs.jpg",
+      "width": 1280,
+      "height": 720,
+      "format": "jpeg",
+      "bytes": 35973,
+      "preview": {
+        "src": "/library/thumbs/filmography-2jixj6uouds-jpg.jpg",
+        "w": 600,
+        "h": 337
+      }
+    },
+    {
+      "id": "a_filmography-i98vcdfruqe-jpg",
+      "kind": "asset",
+      "name": "The Getaway, poster frame",
+      "category": "film-still",
+      "tags": [
+        "filmography",
+        "poster",
+        "short-film",
+        "2018",
+        "getaway"
+      ],
+      "note": "Poster frame. Role: Tom. Best Film at the BFTen Short Film Competition.",
+      "src": "/filmography/i98vcdfRUqE.jpg",
+      "width": 1280,
+      "height": 720,
+      "format": "jpeg",
+      "bytes": 53649,
+      "preview": {
+        "src": "/library/thumbs/filmography-i98vcdfruqe-jpg.jpg",
+        "w": 600,
+        "h": 337
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-2-8d3408cb",
+      "kind": "asset",
+      "name": "Track, welcome screen",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "onboarding",
+        "projects"
+      ],
+      "src": "/projects/track-daily-habit-tracker/blocks/2/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 1912262,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-2-8d3408cb.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-img-2065-png",
+      "kind": "asset",
+      "name": "Track, welcome screen alt",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "onboarding",
+        "projects"
+      ],
+      "src": "/projects/track-daily-habit-tracker/IMG_2065.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 1913718,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-img-2065-png.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-6-bd7ea2cf",
+      "kind": "asset",
+      "name": "Track, dashboard",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "dashboard",
+        "heatmap",
+        "projects"
+      ],
+      "note": "Every habit carries its own heatmap.",
+      "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 327569,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-6-bd7ea2cf.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-8-a4f8e321",
+      "kind": "asset",
+      "name": "Track, one habit a full year",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "heatmap",
+        "projects"
+      ],
+      "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 236605,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-8-a4f8e321.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-10-9602c9ea",
+      "kind": "asset",
+      "name": "Track, emoji and colour picker",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "picker",
+        "colour",
+        "projects"
+      ],
+      "note": "Pick an emoji and a colour; the heatmap takes that colour.",
+      "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 229469,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-10-9602c9ea.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-12-bf19998c",
+      "kind": "asset",
+      "name": "Track, week list view",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "list",
+        "week",
+        "projects"
+      ],
+      "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 232856,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-12-bf19998c.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_projects-track-daily-habit-tracker-blocks-14-c711dece",
+      "kind": "asset",
+      "name": "Track, monthly overview",
+      "category": "screenshot",
+      "tags": [
+        "track",
+        "app",
+        "phone",
+        "month",
+        "overview",
+        "projects"
+      ],
+      "src": "/projects/track-daily-habit-tracker/blocks/14/value/src.png",
+      "width": 1206,
+      "height": 2622,
+      "format": "png",
+      "bytes": 344091,
+      "preview": {
+        "src": "/library/thumbs/projects-track-daily-habit-tracker-blocks-14-c711dece.jpg",
+        "w": 276,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_01-first-swing-png",
+      "kind": "asset",
+      "name": "First swing",
+      "category": "hero-scene",
+      "tags": [
+        "childhood",
+        "golf",
+        "paper",
+        "scene",
+        "toddler"
+      ],
+      "src": "/library/01-first-swing.webp",
+      "width": 939,
+      "height": 808,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 93696,
+      "preview": {
+        "src": "/library/thumbs/01-first-swing-png.png",
+        "w": 600,
+        "h": 516
+      }
+    },
+    {
+      "id": "a_02-daejeon-family-png",
+      "kind": "asset",
+      "name": "Daejeon, family",
+      "category": "hero-scene",
+      "tags": [
+        "daejeon",
+        "family",
+        "korea",
+        "paper",
+        "scene"
+      ],
+      "src": "/library/02-daejeon-family.webp",
+      "width": 1241,
+      "height": 817,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 240310,
+      "preview": {
+        "src": "/library/thumbs/02-daejeon-family-png.png",
+        "w": 600,
+        "h": 395
+      }
+    },
+    {
+      "id": "a_03-cello-hedgehog-png",
+      "kind": "asset",
+      "name": "Cello and hedgehog",
+      "category": "hero-scene",
+      "tags": [
+        "cello",
+        "childhood",
+        "music",
+        "paper",
+        "scene"
+      ],
+      "src": "/library/03-cello-hedgehog.webp",
+      "width": 808,
+      "height": 839,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 145312,
+      "preview": {
+        "src": "/library/thumbs/03-cello-hedgehog-png.png",
+        "w": 578,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_04-eagles-77-png",
+      "kind": "asset",
+      "name": "Eagles 77",
+      "category": "hero-scene",
+      "tags": [
+        "american-football",
+        "paper",
+        "scene",
+        "school"
+      ],
+      "src": "/library/04-eagles-77.webp",
+      "width": 1024,
+      "height": 811,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 197748,
+      "preview": {
+        "src": "/library/thumbs/04-eagles-77-png.png",
+        "w": 600,
+        "h": 475
+      }
+    },
+    {
+      "id": "a_05-water-skiing-png",
+      "kind": "asset",
+      "name": "Water skiing",
+      "category": "hero-scene",
+      "tags": [
+        "paper",
+        "scene",
+        "sport",
+        "summer",
+        "water"
+      ],
+      "src": "/library/05-water-skiing.webp",
+      "width": 1242,
+      "height": 736,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 166108,
+      "preview": {
+        "src": "/library/thumbs/05-water-skiing-png.png",
+        "w": 600,
+        "h": 355
+      }
+    },
+    {
+      "id": "a_06-rc-buggy-png",
+      "kind": "asset",
+      "name": "RC buggy",
+      "category": "hero-scene",
+      "tags": [
+        "childhood",
+        "paper",
+        "scene",
+        "toy"
+      ],
+      "src": "/library/06-rc-buggy.webp",
+      "width": 934,
+      "height": 941,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 132768,
+      "preview": {
+        "src": "/library/thumbs/06-rc-buggy-png.png",
+        "w": 595,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_07-rugby-png",
+      "kind": "asset",
+      "name": "Rugby",
+      "category": "hero-scene",
+      "tags": [
+        "paper",
+        "scene",
+        "school",
+        "sport"
+      ],
+      "src": "/library/07-rugby.webp",
+      "width": 925,
+      "height": 945,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 197274,
+      "preview": {
+        "src": "/library/thumbs/07-rugby-png.png",
+        "w": 587,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_08-cricket-png",
+      "kind": "asset",
+      "name": "Cricket",
+      "category": "hero-scene",
+      "tags": [
+        "england",
+        "paper",
+        "scene",
+        "school",
+        "sport"
+      ],
+      "src": "/library/08-cricket.webp",
+      "width": 804,
+      "height": 938,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 139434,
+      "preview": {
+        "src": "/library/thumbs/08-cricket-png.png",
+        "w": 514,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_09-united-png",
+      "kind": "asset",
+      "name": "Manchester United",
+      "category": "hero-scene",
+      "tags": [
+        "fandom",
+        "football",
+        "paper",
+        "scene",
+        "united"
+      ],
+      "src": "/library/09-united.webp",
+      "width": 991,
+      "height": 912,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 121006,
+      "preview": {
+        "src": "/library/thumbs/09-united-png.png",
+        "w": 600,
+        "h": 552
+      }
+    },
+    {
+      "id": "a_10-alpine-carve-png",
+      "kind": "asset",
+      "name": "Alpine carve",
+      "category": "hero-scene",
+      "tags": [
+        "mountain",
+        "paper",
+        "scene",
+        "ski",
+        "snow"
+      ],
+      "src": "/library/10-alpine-carve.webp",
+      "width": 1248,
+      "height": 771,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 160376,
+      "preview": {
+        "src": "/library/thumbs/10-alpine-carve-png.png",
+        "w": 600,
+        "h": 370
+      }
+    },
+    {
+      "id": "a_11-clapperboard-png",
+      "kind": "asset",
+      "name": "Clapperboard",
+      "category": "hero-scene",
+      "tags": [
+        "directing",
+        "film",
+        "paper",
+        "scene"
+      ],
+      "src": "/library/11-clapperboard.webp",
+      "width": 1024,
+      "height": 934,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 226566,
+      "preview": {
+        "src": "/library/thumbs/11-clapperboard-png.png",
+        "w": 600,
+        "h": 547
+      }
+    },
+    {
+      "id": "a_12-books-png",
+      "kind": "asset",
+      "name": "Books",
+      "category": "hero-scene",
+      "tags": [
+        "paper",
+        "philosophy",
+        "ppe",
+        "reading",
+        "scene"
+      ],
+      "src": "/library/12-books.webp",
+      "width": 1024,
+      "height": 658,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 130818,
+      "preview": {
+        "src": "/library/thumbs/12-books-png.png",
+        "w": 600,
+        "h": 385
+      }
+    },
+    {
+      "id": "a_13-beret-png",
+      "kind": "asset",
+      "name": "Beret",
+      "category": "hero-scene",
+      "tags": [
+        "korea",
+        "military",
+        "paper",
+        "scene",
+        "service"
+      ],
+      "src": "/library/13-beret.webp",
+      "width": 953,
+      "height": 912,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 196168,
+      "preview": {
+        "src": "/library/thumbs/13-beret-png.png",
+        "w": 600,
+        "h": 574
+      }
+    },
+    {
+      "id": "a_14-desk-2am-png",
+      "kind": "asset",
+      "name": "Desk at 2am",
+      "category": "hero-scene",
+      "tags": [
+        "desk",
+        "night",
+        "paper",
+        "scene",
+        "work"
+      ],
+      "src": "/library/14-desk-2am.webp",
+      "width": 1241,
+      "height": 771,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 163678,
+      "preview": {
+        "src": "/library/thumbs/14-desk-2am-png.png",
+        "w": 600,
+        "h": 372
+      }
+    },
+    {
+      "id": "a_15-hats-png",
+      "kind": "asset",
+      "name": "Hats",
+      "category": "hero-scene",
+      "tags": [
+        "banking",
+        "careers",
+        "paper",
+        "scene",
+        "work"
+      ],
+      "src": "/library/15-hats.webp",
+      "width": 655,
+      "height": 961,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 177274,
+      "preview": {
+        "src": "/library/thumbs/15-hats-png.png",
+        "w": 409,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_16-today-png",
+      "kind": "asset",
+      "name": "Today, San Francisco",
+      "category": "hero-scene",
+      "tags": [
+        "desk",
+        "paper",
+        "present",
+        "scene",
+        "sf"
+      ],
+      "note": "The last cell of the hero grid.",
+      "src": "/library/16-today.webp",
+      "width": 616,
+      "height": 932,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 103474,
+      "preview": {
+        "src": "/library/thumbs/16-today-png.png",
+        "w": 396,
+        "h": 600
+      }
+    },
+    {
+      "id": "a_d1-spinning-top-png",
+      "kind": "asset",
+      "name": "Spinning top",
+      "category": "doodle",
+      "tags": [
+        "ink",
+        "motif",
+        "paper",
+        "scene",
+        "small"
+      ],
+      "src": "/library/d1-spinning-top.webp",
+      "width": 348,
+      "height": 415,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 29290
+    },
+    {
+      "id": "a_d4-marigold-png",
+      "kind": "asset",
+      "name": "Marigold",
+      "category": "doodle",
+      "tags": [
+        "flower",
+        "motif",
+        "paper",
+        "scene",
+        "small"
+      ],
+      "src": "/library/d4-marigold.webp",
+      "width": 633,
+      "height": 276,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 37808,
+      "preview": {
+        "src": "/library/thumbs/d4-marigold-png.png",
+        "w": 600,
+        "h": 261
+      }
+    },
+    {
+      "id": "a_d6-golden-gate-png",
+      "kind": "asset",
+      "name": "Golden Gate",
+      "category": "doodle",
+      "tags": [
+        "bridge",
+        "motif",
+        "paper",
+        "scene",
+        "sf"
+      ],
+      "src": "/library/d6-golden-gate.webp",
+      "width": 705,
+      "height": 438,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 63220,
+      "preview": {
+        "src": "/library/thumbs/d6-golden-gate-png.png",
+        "w": 600,
+        "h": 372
+      }
+    },
+    {
+      "id": "a_photog-balloons-png",
+      "kind": "asset",
+      "name": "Photographing balloons",
+      "category": "photography",
+      "tags": [
+        "camera",
+        "cappadocia",
+        "paper",
+        "placeholder",
+        "scene",
+        "watercolour"
+      ],
+      "note": "The photography page empty state. Transparent, sits on either theme.",
+      "src": "/library/photog-balloons.webp",
+      "width": 1283,
+      "height": 981,
+      "transparent": true,
+      "format": "webp",
+      "bytes": 222238,
+      "preview": {
+        "src": "/library/thumbs/photog-balloons-png.png",
+        "w": 600,
+        "h": 458
+      }
+    }
+  ]
+}

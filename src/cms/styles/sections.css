@@ -1,0 +1,316 @@
+/* ===========================================================================
+   src/cms/styles/sections.css
+   WS-B. The stylesheet for the surfaces that are not documents.
+
+   `doc.css` styles what renderDoc() produces. This styles what the index
+   pages and the album page produce, and it is deliberately small, because
+   almost none of it is new: the card grid, the masthead, the ledger, the
+   video facade and the lightbox chrome are all already in
+   src/styles/global.css, and the renderers emit those classes so that the
+   pages keep looking exactly as they look live today.
+
+   What is actually in here, and why each of the three groups has to exist:
+
+     1. `.card-link`. An album has a page now, so a tile is a link, and a
+        link needs a `display` before `.card-media`'s aspect-ratio means
+        anything. One declaration block; the computed layout is unchanged.
+     2. The album page. The one new surface in phase 2, so the one place
+        with genuinely new rules. Every value is taken from global.css:
+        --section-gap above the grid, the --media-edge hairline on each
+        photograph, the --nav face and --accent for the year, the 900px
+        breakpoint, the 24px grid gap the card grids use.
+     3. The lightbox additions. An album has more than one photograph, so
+        the hero's overlay gains arrows, a counter, and a fit that shows a
+        whole photograph instead of the hero's pan-across-at-72vh.
+
+   Expects global.css to be loaded as well. The var() fallbacks are the
+   light-theme token values, so a harness that loads only this file still
+   renders honestly; a page that loads both gets the real tokens and
+   therefore dark mode.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. The album tile is a link
+   `.card` keeps its own `display: flex` and `gap`; with one child that gap
+   has nothing left to apply to, so moving the column onto the anchor leaves
+   the computed layout identical to the live `<li><div><div>`.
+   --------------------------------------------------------------------------- */
+
+.card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------------------
+   2. The album page
+   --------------------------------------------------------------------------- */
+
+/* `.masthead` already supplies the 71px of head room and the 32/44 h1. */
+.album-meta {
+  margin: 10px 0 0;
+  font-family: var(--nav, 'Bricolage Grotesque', system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  color: var(--accent, #ff5722);
+}
+
+/* `.lead` carries the italic; this is only the standfirst's own measure and
+   the space under the accent line, matching `.masthead .deck`. */
+.album-lead {
+  margin: 14px 0 0;
+  max-width: 720px;
+}
+
+/* A justified gallery.
+
+   Each photograph gets `flex-grow` and `flex-basis` proportional to its own
+   aspect ratio, which is in `--ar` on the element, written there by the
+   renderer from the intrinsic width and height the upload endpoint recorded.
+   Flexbox then resolves a row's widths in proportion to those ratios, so
+   `height = width / ar` comes out the same for every photograph in the row:
+   the rows line up and nothing is cropped to get there.
+
+   `--album-row` is the height a row aims for, and the one number to turn.
+   400px puts two 3:2 frames or three mixed ones across the 1344px column,
+   which is what an album of 35mm photographs mostly is. Raising it makes
+   everything bigger and puts fewer on a row; a single landscape at 520 fills
+   the column on its own.
+
+   Document order survives, which is why this is not CSS columns. The editor
+   lets someone drag photographs into an order; a column layout would read
+   them top-to-bottom-then-across and silently undo that. */
+.album-grid {
+  --album-row: 400px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px 24px;
+  padding-top: var(--section-gap, 72px);
+}
+
+/* Soaks up the slack on the last row, so a single trailing photograph stays
+   its own size instead of stretching across the whole column. */
+.album-grid::after {
+  content: '';
+  flex-grow: 100000;
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.album-photo {
+  margin: 0;
+  min-width: 0;
+  /* The 3:2 fallback is for a photograph the endpoint gave no dimensions for;
+     `w` and `h` are optional and travel together (contracts 10.2). */
+  flex-grow: var(--ar, 1.5);
+  flex-shrink: 1;
+  flex-basis: calc(var(--ar, 1.5) * var(--album-row));
+}
+
+/* A button, because clicking it opens the overlay, but it must not look like
+   one: no border, no background, no padding. `zoom-in` is the cursor the
+   homepage hero uses for the same gesture. */
+.album-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.album-open:focus {
+  outline: none;
+}
+
+.album-open:focus-visible {
+  outline: 2px solid var(--accent, #ff5722);
+  outline-offset: 3px;
+}
+
+/* The same hairline the album tiles, the film posters and the canvas images
+   carry, without which a photograph that is white to its edges dissolves into
+   the page. The placeholder fill is what the box looks like before the file
+   arrives. */
+.album-photo img {
+  width: 100%;
+  height: auto;
+  background: var(--placeholder, #ededed);
+  border: 1px solid var(--media-edge, #e4e4e4);
+}
+
+/* A photograph the upload endpoint gave no dimensions for. There is no ratio
+   to lay a row out from, so it is not given a guessed one — guessing 3:2 for
+   a portrait phone screenshot is how one photograph ends up alone on its own
+   row and eight hundred pixels tall. Instead it takes the row height as a cap
+   and whatever width that implies, and does not stretch. The row reflows once
+   the file loads, which is the cost of missing dimensions and the reason the
+   endpoint records them.
+
+   After `.album-photo img`, not before: `width: 100%` there and `max-height`
+   here are the same specificity, and in the other order the width wins and
+   the photograph is squashed to the cap instead of fitted to it. */
+.album-photo--unsized {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.album-photo--unsized img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--album-row);
+}
+
+/* `.doc-caption` and `article figcaption`, to the pixel. */
+.album-caption {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: 0;
+  font-weight: 300;
+  color: var(--muted, #6b6b6b);
+}
+
+/* ---------------------------------------------------------------------------
+   3. The album overlay
+   `.lightbox`, `.lightbox-stage`, `.lightbox-close`, `.lightbox-hint` and
+   `body.is-locked` all come from global.css. These are the differences an
+   album needs, scoped to `.album-lightbox` so the homepage hero is untouched.
+   --------------------------------------------------------------------------- */
+
+/* The hero is a wide grid meant to be panned across at 72vh. A photograph is
+   meant to be seen whole, so it is fitted rather than filled, and then there
+   is nothing to scroll and the stage can centre it. */
+.album-lightbox .lightbox-stage {
+  justify-content: center;
+  overflow: hidden;
+}
+
+.album-lightbox .lightbox-stage img {
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 112px);
+  max-height: calc(100dvh - 112px);
+  margin: auto;
+  object-fit: contain;
+}
+
+/* Mirrors `.lightbox-close` across the top of the overlay. */
+.lightbox-count {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 14px;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  font-family: var(--nav, 'Bricolage Grotesque', system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* Same 44px target, same bare white mark and drop shadow as the close button,
+   so the three controls read as one set. */
+.lightbox-prev,
+.lightbox-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #ffffff;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+}
+
+.lightbox-prev {
+  left: 10px;
+}
+
+.lightbox-next {
+  right: 10px;
+}
+
+.lightbox-prev svg,
+.lightbox-next svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lightbox-prev:focus,
+.lightbox-next:focus {
+  outline: none;
+}
+
+.lightbox-prev:focus-visible,
+.lightbox-next:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile — MOBILE_BREAKPOINT from src/cms/schema.ts, and the same 900px every
+   other rule on the site breaks at.
+
+   There is no room to justify rows on a phone, so the gallery becomes one
+   column in document order, which is the same thing the canvas does in
+   doc.css and for the same reason.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .album-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .album-photo {
+    flex: none;
+    width: 100%;
+  }
+
+  /* There are no rows to fit into any more, so the row-height cap on a
+     photograph with no intrinsic size has nothing left to protect, and all it
+     does here is leave one photograph half the width of its neighbours. */
+  .album-photo--unsized img {
+    width: 100%;
+    max-height: none;
+  }
+
+  .album-grid::after {
+    display: none;
+  }
+
+  .album-lightbox .lightbox-stage img {
+    max-width: calc(100vw - 32px);
+    max-height: calc(100dvh - 128px);
+  }
+
+  .lightbox-prev {
+    left: 2px;
+  }
+
+  .lightbox-next {
+    right: 2px;
+  }
+
+  .lightbox-count {
+    left: 10px;
+  }
+}

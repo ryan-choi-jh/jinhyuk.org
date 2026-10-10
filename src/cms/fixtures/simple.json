@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Fixture: prose only",
+    "slug": "fixture-simple",
+    "date": "2026-10-08",
+    "summary": "The baseline document. One prose band, every block kind and every allowed mark, no canvas at all."
+  },
+  "bands": [
+    {
+      "id": "b_simple_prose",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_open",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "I started coding this year, and " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Track" },
+            { "type": "text", "text": " is one of the first things I built for myself instead of as a tutorial exercise. I wanted a habit tracker that felt good on the days I showed up and " },
+            { "type": "text", "marks": [{ "type": "italic" }], "text": "did not make me feel like garbage" },
+            { "type": "text", "text": " on the days I did not." }
+          ]
+        },
+        {
+          "id": "h2_heatmap",
+          "kind": "h2",
+          "content": [{ "type": "text", "text": "Why a heatmap" }]
+        },
+        {
+          "id": "p_heatmap",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "The whole app is inspired by the contribution grid: a square fills in, and a month of showing up turns into a shape you can read at a glance. You can " },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://habit-tracker-xi-gilt.vercel.app/welcome",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "try the live version"
+            },
+            { "type": "text", "text": " if you want to see it fill in." }
+          ]
+        },
+        {
+          "id": "quote_motive",
+          "kind": "quote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "text": "Most habit trackers run on streaks and guilt. I wanted the opposite: something that quietly rewards consistency and forgives the gaps." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p_cover",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "The part I love is that " },
+            {
+              "type": "text",
+              "marks": [{ "type": "textStyle", "attrs": { "color": "#ff5722" } }],
+              "text": "you build your own cover"
+            },
+            { "type": "text", "text": ". You choose whatever images get you fired up, and you see them every time you open the app." }
+          ]
+        },
+        {
+          "id": "h3_detail",
+          "kind": "h3",
+          "content": [{ "type": "text", "text": "What I actually track" }]
+        },
+        {
+          "id": "ul_habits",
+          "kind": "ul",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Drinking enough water" }] }]
+            },
+            {
+              "type": "listItem",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Getting the steps in" }] }]
+            },
+            {
+              "type": "listItem",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Taking the daily vitamins" }] }]
+            }
+          ]
+        },
+        {
+          "id": "ol_steps",
+          "kind": "ol",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Open the app on today" }] }]
+            },
+            {
+              "type": "listItem",
+              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Tap the row, watch the square light up" }] }]
+            }
+          ]
+        },
+        {
+          "id": "p_close",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "After all, it is just a cover. But opening the app to something that moves you does more for consistency than a push notification ever has." }
+          ]
+        }
+      ]
+    }
+  ]
+}

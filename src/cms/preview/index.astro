@@ -1,0 +1,144 @@
+---
+/**
+ * src/cms/preview/index.astro  ->  /cms/preview
+ *
+ * WS-7, extended by WS-H. What there is to preview.
+ *
+ * Phase 1 listed slugs, because there was one collection and a slug was the
+ * whole address. Phase 2's address is a section plus a key, so this is the
+ * site as the CMS sees it: five sections from WS-A's registry, each with its
+ * own surface and the entries inside it. It reads what WS-C's store and the
+ * record collections report, so it is the same list the editor's sidebar will
+ * show.
+ *
+ * It does not know how many sections there are. Adding a sixth to
+ * `src/cms/sections.ts` puts it on this page.
+ *
+ * Injected under `withKeystatic`, like the other two.
+ */
+export const prerender = false;
+
+import './styles/chrome.css';
+
+import { PREVIEW_BASE, loginHref, previewHref } from './state.ts';
+import { listPreviewSections } from './source.ts';
+import { surfaceLabel } from './target.ts';
+
+const index = await listPreviewSections(Astro.cookies);
+
+/** The one-line description of what a section's own surface is. */
+const kindOf = (storage: string, shape: string): string =>
+  `${shape} · ${storage === 'records' ? 'record editor' : 'document editor'}`;
+
+/**
+ * "5 films", "1 project".
+ *
+ * Built here and not in the markup, because two expressions on two lines of a
+ * template render with a newline between them, and `{n} {noun}{'s'}` came out
+ * as "5 film s".
+ */
+const countLabel = (row: (typeof index.sections)[number]): string =>
+  `${row.entries.length} ${row.section.noun}${row.entries.length === 1 ? '' : 's'}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview — the site</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="data:," />
+  </head>
+
+  <body>
+    <header class="pv-bar">
+      <div class="pv-id">
+        <span class="pv-title">Preview</span>
+        <span class="pv-slug">{index.source.label}</span>
+      </div>
+    </header>
+
+    {index.source.kind === 'none' && (
+      <p class="pv-notice">
+        Not signed in.{' '}
+        <a class="pv-link" href={loginHref(PREVIEW_BASE)}>Connect GitHub</a> to see what is in the
+        repository.
+      </p>
+    )}
+
+    {index.error !== undefined && (
+      <p class="pv-notice">
+        <strong>Could not read the site.</strong>
+        <pre>{index.error}</pre>
+      </p>
+    )}
+
+    <div class="pv-list">
+      <h1>The site</h1>
+      <p>
+        Every surface the CMS can write, and every entry inside it. A draft is previewed by default
+        where there is one.
+      </p>
+
+      {index.sections.map((row) => (
+        <section class="pv-section">
+          <div class="pv-section-head">
+            <a class="pv-section-title" href={previewHref(row.path)}>
+              {row.section.label}
+            </a>
+            <span class="pv-section-kind">{kindOf(row.section.storage, row.section.shape)}</span>
+            <span class="pv-section-kind">{surfaceLabel(row.target)}</span>
+            {row.section.shape === 'collection' && (
+              <span class="pv-section-count">{countLabel(row)}</span>
+            )}
+          </div>
+
+          {row.section.shape === 'collection' && row.entries.length === 0 && (
+            <p class="pv-section-empty">
+              Nothing here yet. The first {row.section.noun} the editor writes will appear.
+            </p>
+          )}
+
+          {row.entries.length > 0 && (
+            <ul class="pv-cards">
+              {row.entries.map((entry) => {
+                const entryPath = row.entryPath(entry.key);
+                const href =
+                  // A singleton's entry IS its section surface, so the row
+                  // links there rather than to an address that does not exist.
+                  row.section.shape === 'singleton'
+                    ? previewHref(row.path)
+                    : entryPath === null
+                      ? null
+                      : previewHref(entryPath);
+                const body = (
+                  <>
+                    <span class="pv-card-title">{entry.title}</span>
+                    <span class="pv-card-slug">{entry.subtitle ?? entry.key}</span>
+                    {entry.invalid === true && <span class="pv-badge" data-kind="invalid">invalid</span>}
+                    {entry.hasDraft && <span class="pv-badge" data-kind="draft">draft</span>}
+                    {entry.hasPublished && <span class="pv-badge" data-kind="published">published</span>}
+                  </>
+                );
+                return (
+                  <li>
+                    {href === null ? (
+                      /* A film has no page of its own, so there is nothing to
+                         preview on its own; it plays in place on the list. */
+                      <span class="pv-card pv-card--flat" title="Plays in place on the list page.">
+                        {body}
+                      </span>
+                    ) : (
+                      <a class="pv-card" href={href}>{body}</a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      ))}
+    </div>
+  </body>
+</html>

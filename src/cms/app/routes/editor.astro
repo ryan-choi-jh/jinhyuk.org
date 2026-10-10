@@ -1,0 +1,230 @@
+---
+/**
+ * src/cms/app/routes/editor.astro  ->  /cms/<slug>
+ *
+ * WS-8. The route the editor lives at.
+ *
+ * Server rendered, and excluded from the static GitHub Pages build in exactly
+ * the way WS-2's endpoints and WS-7's preview are: injected from
+ * astro.config.mjs under the `withKeystatic` condition, with the file outside
+ * src/pages/ so it is not a route in both builds. Anything under src/pages/
+ * exists in the static build too, and an on-demand route there fails it.
+ *
+ * What the server does and why, rather than letting the island do it:
+ *
+ *  - IT READS THE PAGE. The editor cannot usefully render before it has a
+ *    document, so fetching one from the browser would mean a spinner on every
+ *    load for no gain. Reading it here also means the two blob shas are in
+ *    hand before the first keystroke, which is what makes the first save
+ *    carry a real expectation (WS-2's conflict detection) instead of trusting
+ *    whatever is in the repo by the time it lands.
+ *
+ *  - IT HANDLES "NO SESSION" AS A PAGE, NOT A 401. `ctxFrom` throws a 401,
+ *    which is right for an endpoint and wrong here: a person who is not
+ *    signed in should see a sign-in link. So the token comes from
+ *    `sessionToken`, and its absence is a state.
+ *
+ *  - IT INVENTS A BLANK DOCUMENT for a slug that has no page yet, with the
+ *    ids generated once, here. Generating them in the island would produce
+ *    different ids on every render.
+ */
+export const prerender = false;
+
+import { DocMetaSchema, newId } from '../../schema.ts';
+import type { Doc } from '../../schema.ts';
+import { sessionToken } from '../../server/auth.ts';
+import { REPO, defaultBranch } from '../../server/config.ts';
+import { messageOf } from '../../server/errors.ts';
+import { readPage } from '../../server/store.ts';
+import { loginHref, previewHref } from '../../preview/state.ts';
+import { blankDoc, titleFromSlug } from '../integration/doc-edits.ts';
+import { CmsEditor } from '../index.tsx';
+
+const raw = Astro.params.slug ?? '';
+const parsedSlug = DocMetaSchema.shape.slug.safeParse(raw);
+
+// /cms/preview is WS-7's. A static segment wins over a dynamic one in Astro's
+// router, so this is belt and braces rather than the thing that routes it.
+if (raw === 'preview') return Astro.redirect('/cms/preview', 302);
+
+const slug = parsedSlug.success ? parsedSlug.data : null;
+const branch = defaultBranch();
+
+const token = slug === null ? null : await sessionToken(Astro.cookies);
+
+type Loaded = {
+  doc: Doc;
+  published: Doc | null;
+  hasDraft: boolean;
+  draftSha: string | null;
+  publishedSha: string | null;
+  isNew: boolean;
+};
+
+let loaded: Loaded | null = null;
+let problem: string | null = null;
+
+if (slug !== null && token !== null) {
+  try {
+    const read = await readPage({ token, branch }, slug);
+    const doc = read.draft ?? read.published;
+    if (doc === null) {
+      // Either the page does not exist, or both files exist and neither
+      // validates. The second is a problem, not a blank page.
+      const broken = read.draftError ?? read.publishedError;
+      if (broken !== undefined) {
+        problem = `The file for “${slug}” is in the repository but does not validate, so it cannot be opened in the editor: ${broken}`;
+      } else {
+        loaded = {
+          doc: blankDoc({
+            slug,
+            title: titleFromSlug(slug),
+            date: new Date().toISOString().slice(0, 10),
+            bandId: newId('b'),
+            blockId: newId('p'),
+          }),
+          published: null,
+          hasDraft: false,
+          draftSha: null,
+          publishedSha: null,
+          isNew: true,
+        };
+      }
+    } else {
+      loaded = {
+        doc,
+        published: read.published,
+        hasDraft: read.draft !== null,
+        draftSha: read.draftSha,
+        publishedSha: read.publishedSha,
+        isNew: false,
+      };
+      if (read.draftError !== undefined) {
+        problem = `The draft of “${slug}” does not validate and was ignored; you are editing the published page. ${read.draftError}`;
+      }
+    }
+  } catch (error) {
+    problem = messageOf(error);
+  }
+}
+
+const title = loaded === null ? (slug ?? 'CMS') : loaded.doc.meta.title;
+const here = `/cms/${encodeURIComponent(slug ?? '')}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <!-- The same faces the site loads, so the page in the middle measures and
+         breaks exactly where the published page does. Without this the editor
+         falls back and every line-break decision made here is a guess. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&display=swap"
+    />
+    <title>{title} · CMS</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #15171a;
+        color: #e8e8e8;
+        font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      .gate {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 80px 24px;
+      }
+      .gate h1 {
+        margin: 0 0 10px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .gate p {
+        margin: 0 0 14px;
+        color: #a8a8a8;
+      }
+      .gate code {
+        font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #d8d8d8;
+      }
+      .gate a.button {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 6px;
+        background: #ff5722;
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .gate a {
+        color: #ff8a65;
+      }
+      .problem {
+        margin: 0 0 18px;
+        padding: 10px 12px;
+        border: 1px solid #52241f;
+        border-radius: 6px;
+        background: #2a1715;
+        color: #f0b3ae;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    {
+      slug === null ? (
+        <div class="gate">
+          <h1>“{raw}” is not a page name</h1>
+          <p>
+            A slug is lowercase kebab-case, for example
+            <code>track-daily-habit-tracker</code>.
+          </p>
+          <p><a href="/cms">All pages</a></p>
+        </div>
+      ) : token === null ? (
+        <div class="gate">
+          <h1>Sign in to edit</h1>
+          <p>
+            The editor commits to <code>{REPO}</code> on <code>{branch}</code> as you, through the
+            GitHub App, so it needs your GitHub session.
+          </p>
+          <p>
+            <a class="button" href={loginHref(here)}>Sign in with GitHub</a>
+          </p>
+        </div>
+      ) : loaded === null ? (
+        <div class="gate">
+          <h1>Cannot open “{slug}”</h1>
+          <p class="problem">{problem ?? 'Unknown error.'}</p>
+          <p>
+            <a href="/cms">All pages</a> ·{' '}
+            <a href={previewHref(slug)}>Preview</a>
+          </p>
+        </div>
+      ) : (
+        <>
+          {problem !== null && <p class="problem">{problem}</p>}
+          <CmsEditor
+            client:only="react"
+            slug={slug}
+            doc={loaded.doc}
+            published={loaded.published}
+            hasDraft={loaded.hasDraft}
+            shas={{ draftSha: loaded.draftSha, publishedSha: loaded.publishedSha }}
+            repo={REPO}
+            branch={branch}
+            isNew={loaded.isNew}
+          />
+        </>
+      )
+    }
+  </body>
+</html>

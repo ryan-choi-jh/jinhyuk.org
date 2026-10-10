@@ -1,0 +1,365 @@
+---
+/**
+ * src/cms/preview/frame.astro  ->  /cms/preview/frame/<path>
+ *
+ * WS-7, extended by WS-H. The page. Not a representation of it, not a styled
+ * approximation of it: the site's own layout, the site's own stylesheets,
+ * WS-B's renderers, and WS-B's client scripts, arranged exactly as the site's
+ * own pages arrange them.
+ *
+ * Phase 1 rendered one thing, a project document. This now renders all six
+ * surfaces, and the dispatch is a single switch over `target.surface`:
+ *
+ *   document   home | one essay | one project     renderDocPage / renderDoc
+ *   ledger     the essays or projects index        renderLedgerPage
+ *   films      the filmography list                renderFilmography
+ *   albums     the photography index               renderPhotography
+ *   album      one album page                      renderAlbumPage
+ *
+ * Nothing is reimplemented here. Every string of HTML below comes out of
+ * `src/cms/render/`, which is what makes the preview worth looking at: there
+ * is nothing for it and the published page to drift from (docs/cms-rebuild.md
+ * 2.4).
+ *
+ * It is a route of its own rather than markup inside the chrome for one
+ * reason: an iframe's width is a real viewport width, so the 3.4 mobile
+ * fallback's `@media (max-width: 900px)` fires at 390 inside the frame while
+ * the chrome around it stays on a desktop. Any approach that rendered the
+ * surface inside the chrome's own document would have to fake that media
+ * query, and a faked fallback is worth nothing.
+ *
+ * Opening this URL directly is a supported thing to do, and gives the page
+ * with no chrome at all.
+ *
+ * TWO THINGS THAT ARE EASY TO GET WRONG, both learned from WS-B's notes:
+ *
+ *  - WHERE THE BODY GOES. Everything here is dropped into the layout's slot
+ *    with `<Fragment set:html>` and NOT inside a wrapper div. `renderDoc`
+ *    returns `<div class="doc">`, which has to sit in the full-width content
+ *    column where `.project-body` sits on the live page; inside `article`
+ *    (max-width: 720px) a canvas would silently render at half size.
+ *    `renderAlbumPage` returns THREE top-level elements, and the third is a
+ *    `position: fixed` overlay that must not end up inside anything that
+ *    establishes containment.
+ *  - BOTH STYLESHEETS, ALWAYS. `doc.css` styles what `renderDoc` produces and
+ *    `sections.css` styles the four index surfaces and the album page. They
+ *    are scoped to their own class names, so loading both on every surface
+ *    costs one request in dev and removes a conditional that would be wrong
+ *    the first time a document gained a card grid.
+ *
+ * This route only exists where there is an adapter. astro.config.mjs injects
+ * it under the same `withKeystatic` condition as WS-C's /api/cms/* routes, so
+ * the static GitHub Pages build contains none of it.
+ */
+export const prerender = false;
+
+import Base from '../../layouts/Base.astro';
+
+// The two stylesheets, by import, so Vite bundles and hashes them (WS-B's
+// docStyles() and sectionStyles() name these paths). Both are scoped under
+// their own class names, so loading them beside global.css cannot disturb the
+// site's own styles.
+import '../styles/doc.css';
+import '../styles/sections.css';
+// WS-6's real shape generator, for its side effect, before the first
+// renderDoc. Without this line shapes still draw, from WS-1's built-in
+// fallback, and a preview would be showing a different squiggle from the
+// published page.
+import '../render/with-shape-assets.ts';
+
+import { isFilmography, isPhotography } from '../schema.ts';
+import type { Album } from '../schema.ts';
+import {
+  albumPageMeta,
+  renderAlbumPage,
+  renderDoc,
+  renderDocPage,
+  renderEmptyLine,
+  renderFilmography,
+  renderLedgerPage,
+  renderMasthead,
+  renderPhotography,
+} from '../render/index.ts';
+import {
+  availabilityOf,
+  ledgerItemsFor,
+  loadTarget,
+  resolveSource,
+  withResolvedMedia,
+} from './source.ts';
+import type { PreviewSource } from './source.ts';
+import { entrySelectorOf, parseFailureMessage, parseTargetPath, siteHrefOf } from './target.ts';
+import { parseTheme, parseVersion, resolveVersion } from './state.ts';
+
+const rawPath = Astro.params.path ?? '';
+const requested = parseVersion(Astro.url.searchParams.get('v'));
+const theme = parseTheme(Astro.url.searchParams.get('theme'));
+
+const parsed = parseTargetPath(rawPath);
+
+/* -------------------------------------------------------------------------- */
+/* What to render                                                             */
+/* -------------------------------------------------------------------------- */
+
+type Rendered = {
+  surface: string;
+  /** The CSS selector the frame script reports boxes for. */
+  entries: string;
+  title: string;
+  description: string;
+  body: string;
+  /** Set when there is nothing to show, so the frame says so in the site's voice. */
+  problem: string | null;
+  /** The nav item the live version of this page would highlight. */
+  navHref: string | null;
+  /** Where the content came from, which is what decides the media rewrite. */
+  source: PreviewSource;
+};
+
+/** The empty state, dressed as a site page rather than as an error. */
+function nothing(source: PreviewSource, title: string, message: string): Rendered {
+  return {
+    surface: 'empty',
+    entries: '',
+    title: `Preview — ${title}`,
+    description: 'Nothing to preview',
+    body: renderMasthead(title) + renderEmptyLine(message),
+    problem: message,
+    navHref: null,
+    source,
+  };
+}
+
+async function build(): Promise<Rendered> {
+  if (!parsed.ok) {
+    // No target, so nothing has been read and the source is only a label.
+    const source = await resolveSource(Astro.cookies);
+    return nothing(source, 'Nothing to preview', parseFailureMessage(parsed.reason));
+  }
+
+  const target = parsed.target;
+  const load = await loadTarget(Astro.cookies, target);
+  const { version } = resolveVersion(requested, availabilityOf(load.content));
+  const content = load.content;
+  const navHref = siteHrefOf(target);
+  const source = load.source;
+  const base = { entries: entrySelectorOf(target), navHref, source } as const;
+  const empty = (message: string): Rendered => ({
+    ...nothing(source, target.section.label, message),
+    navHref,
+  });
+
+  if (load.loadError !== undefined) return empty(load.loadError);
+
+  /* ---- a document: home, one essay, one project ------------------------- */
+  if (target.surface === 'document' && content.surface === 'document') {
+    const doc = version === 'draft' ? content.draft : version === 'published' ? content.published : null;
+    if (doc === null) {
+      const why =
+        content.draftError ??
+        content.publishedError ??
+        `No draft and no published ${target.section.noun} at this address.`;
+      return empty(why);
+    }
+    return {
+      ...base,
+      surface: 'document',
+      title: doc.meta.title,
+      description: doc.meta.summary ?? doc.meta.title,
+      // `renderDocPage` is masthead plus body for an essay or a project, and
+      // `renderDoc` alone for the homepage, which has no masthead. WS-B wrote
+      // it so this file and WS-G's two page files cannot disagree about the
+      // order of the two calls, so this file does not make that decision.
+      body: renderDocPage(doc),
+      problem: null,
+    };
+  }
+
+  /* ---- an index page of documents --------------------------------------- */
+  if (target.surface === 'ledger' && content.surface === 'ledger') {
+    const items = ledgerItemsFor(target, content, version) ?? [];
+    return {
+      ...base,
+      surface: 'ledger',
+      title: target.section.label,
+      description: `Everything in ${target.section.label.toLowerCase()}.`,
+      body: renderLedgerPage(items, target.ledger),
+      problem: null,
+    };
+  }
+
+  /* ---- a record collection ---------------------------------------------- */
+  if (content.surface === 'films' || content.surface === 'albums' || content.surface === 'album') {
+    const file = version === 'draft' ? content.draft : version === 'published' ? content.published : null;
+
+    /**
+     * AN ERROR IS AN EMPTY STATE; AN EMPTY COLLECTION IS NOT.
+     *
+     * A file that exists and does not validate has to say so, because the
+     * alternative is previewing a page that silently lost its contents. A
+     * collection with no file yet is different: the live site renders that
+     * surface anyway, and `renderPhotography([])` reproduces its "Currently
+     * developing" state entity for entity. That is a real page, and the one
+     * most worth looking at before the first entry is written.
+     */
+    const brokenFile = content.draftError ?? content.publishedError ?? null;
+    if (brokenFile !== null && file === null) return empty(brokenFile);
+
+    if (target.surface === 'films') {
+      const films = file !== null && isFilmography(file) ? file.films : [];
+      return {
+        ...base,
+        surface: 'films',
+        title: target.section.label,
+        description: `${films.length} film${films.length === 1 ? '' : 's'}.`,
+        body: renderFilmography(films),
+        problem: null,
+      };
+    }
+
+    const albums: readonly Album[] = file !== null && isPhotography(file) ? file.albums : [];
+
+    if (target.surface === 'albums') {
+      return {
+        ...base,
+        surface: 'albums',
+        title: target.section.label,
+        description: `${albums.length} album${albums.length === 1 ? '' : 's'}.`,
+        body: renderPhotography(albums),
+        problem: null,
+      };
+    }
+
+    /* ---- one album page, the surface with no live counterpart ----------- */
+    const album = albums.find((candidate) => candidate.slug === target.key) ?? null;
+    if (album === null) {
+      // An album page, unlike a list, does not exist until the album does.
+      return empty(
+        `There is no album at /photography/${target.key}/ in the ${
+          version === 'published' ? 'published' : 'draft'
+        } collection.`,
+      );
+    }
+    const meta = albumPageMeta(album);
+    return {
+      ...base,
+      surface: 'album',
+      title: meta.title,
+      description: meta.description,
+      body: renderAlbumPage(album),
+      problem: null,
+    };
+  }
+
+  return empty('Nothing to preview here.');
+}
+
+const rendered = await build();
+
+/**
+ * NOTHING IN A PREVIEW LOADS LAZILY.
+ *
+ * `loading="lazy"` is right on the live page and wrong here, for two reasons
+ * that point the same way. A preview is a thing you scroll end to end and
+ * screenshot, and the last photograph of an album arriving a beat after you
+ * reach it is not information about the page. And a lazy image is not counted
+ * in the load event, so a camera captures the frame while the pictures are
+ * still arriving — which is exactly what happened: the sixth photograph of
+ * the album fixture came back as its placeholder fill in one screenshot and
+ * not the next, a picture that says the page is broken when it is not.
+ *
+ * Done here, on the server, and not in the frame's client script, because
+ * that is the difference between working and not: a script that flips the
+ * attribute after the document has parsed starts those loads too late for the
+ * load event to wait for them. Stripping the attribute from the markup means
+ * the browser never defers them in the first place.
+ *
+ * It changes WHEN an image loads, never WHERE it lands: WS-B's renderers put
+ * width/height or an aspect-ratio on every image, so the boxes are reserved
+ * either way. The live pages keep their lazy loading; only the preview opts
+ * out, which is the same bargain WS-B's own screenshot harness strikes.
+ */
+function loadEagerly(html: string): string {
+  return html.replace(/ loading="lazy"/g, '').replace(/ decoding="async"/g, ' decoding="sync"');
+}
+
+/**
+ * Point `/media/` at the branch when reading GitHub, so an image the editor
+ * committed a moment ago appears instead of 404ing until Pages rebuilds. A
+ * no-op in local mode, where this deployment's own `public/` is being served.
+ */
+const body = loadEagerly(withResolvedMedia(rendered.body, rendered.source));
+---
+
+<Base title={rendered.title} description={rendered.description}>
+  {
+    /* Force the theme the chrome asked for. `is:inline` and in the body, so it
+       runs after Base's own head script has resolved light/dark from
+       localStorage or the OS, and wins. With no ?theme the frame behaves
+       exactly like the live site. */
+  }
+  {theme !== null && (
+    <script is:inline define:vars={{ theme }}>
+      document.documentElement.dataset.theme = theme;
+    </script>
+  )}
+
+  {
+    /* What this frame is, for the frame script and for a test reading the DOM.
+       `data-pv-entries` is the selector whose boxes the chrome's change list
+       scrolls to; the frame script cannot work it out for itself without
+       importing the registry, which would pull zod into the previewed page. */
+  }
+  <script
+    is:inline
+    define:vars={{ surface: rendered.surface, entries: rendered.entries, navHref: rendered.navHref }}
+  >
+    document.documentElement.dataset.pvSurface = surface;
+    document.documentElement.dataset.pvEntries = entries;
+    // Base.astro highlights the nav from the URL, and this URL is
+    // /cms/preview/frame/..., so nothing would be marked current and a
+    // screenshot would differ from the live page by one underline. Set it to
+    // what the live version of this surface would have.
+    if (navHref) {
+      var link = document.querySelector('.site-nav-links a[href="' + navHref + '"]');
+      if (link) link.setAttribute('aria-current', 'page');
+    }
+  </script>
+
+  {
+    /* Under `astro dev` Astro floats a toolbar over the bottom of every page.
+       The published page has no such thing, so a preview that shows one is
+       lying about the bottom of the page. It does not exist in either
+       production build, so this rule only ever matches in dev. */
+  }
+  <style is:global>
+    astro-dev-toolbar {
+      display: none !important;
+    }
+  </style>
+
+  {/* Straight into the slot: see the note about `.doc` and the album overlay. */}
+  <Fragment set:html={body} />
+
+  {
+    /* The client modules the live pages carry, plus the frame's own reporter.
+       All three of WS-B's are no-ops on a surface that has none of their
+       markup — `initVideoFacades` wires `.video[data-video-id]`,
+       `initLightboxes` wires the hero overlay and every `.album-grid`, and
+       `initDocConnectors` draws nothing without anchored items and nothing at
+       all at or below 900px. So they are called unconditionally rather than
+       behind a surface check that would be a second place to get wrong.
+       The reporter is inert when this URL is opened outside a frame. */
+  }
+  <script>
+    import { initDocConnectors } from '../render/connectors.ts';
+    import { initLightboxes } from '../render/lightbox.ts';
+    import { initVideoFacades } from '../render/video.ts';
+    import { initPreviewFrame } from './client/frame.ts';
+
+    initDocConnectors();
+    initVideoFacades();
+    initLightboxes();
+    initPreviewFrame();
+  </script>
+</Base>

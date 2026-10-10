@@ -1,0 +1,635 @@
+/* The tool's own look. Nothing here is shared with the site, and the
+   site's stylesheet is deliberately not loaded: the page being previewed
+   brings its own, inside the frame. */
+:root {
+  color-scheme: light dark;
+  --pv-bg: #f2f2f3;
+  --pv-panel: #ffffff;
+  --pv-ink: #141414;
+  --pv-muted: #6b6b6b;
+  --pv-line: #dcdcdd;
+  --pv-accent: #1f6feb;
+  --pv-warn: #b24a00;
+  --pv-added: #137333;
+  --pv-removed: #a8071a;
+  --pv-changed: #8a5a00;
+  --pv-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pv-bg: #17181a;
+    --pv-panel: #1f2023;
+    --pv-ink: #ededee;
+    --pv-muted: #9b9b9e;
+    --pv-line: #32343a;
+    --pv-accent: #6aa3f7;
+    --pv-warn: #e8a35a;
+    --pv-added: #5fc98a;
+    --pv-removed: #f08a84;
+    --pv-changed: #e0b85a;
+    --pv-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--pv-bg);
+  color: var(--pv-ink);
+  font: 400 13px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- */
+/* Toolbar                                                          */
+/* ---------------------------------------------------------------- */
+
+.pv-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 10px 20px;
+  background: var(--pv-panel);
+  border-bottom: 1px solid var(--pv-line);
+}
+
+.pv-id {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.pv-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42ch;
+}
+
+.pv-slug {
+  color: var(--pv-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+}
+
+.pv-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: color-mix(in srgb, var(--pv-ink) 6%, transparent);
+  border-radius: 8px;
+}
+
+.pv-group-label {
+  color: var(--pv-muted);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.pv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pv-ink);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pv-btn:hover {
+  background: color-mix(in srgb, var(--pv-ink) 8%, transparent);
+}
+
+.pv-btn[aria-pressed='true'] {
+  background: var(--pv-panel);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  font-weight: 600;
+}
+
+.pv-btn[aria-disabled='true'] {
+  color: var(--pv-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pv-btn-sub {
+  color: var(--pv-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* The dot on the version you are NOT looking at, when it differs. This
+   is the smallest possible "there is something to compare here". */
+.pv-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pv-changed);
+}
+
+.pv-link {
+  color: var(--pv-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pv-link:hover {
+  text-decoration: underline;
+}
+
+.pv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 7px 20px;
+  background: var(--pv-panel);
+  border-bottom: 1px solid var(--pv-line);
+  color: var(--pv-muted);
+  font-size: 11.5px;
+}
+
+.pv-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#pv-readout[data-mobile='yes'] {
+  color: var(--pv-accent);
+  font-weight: 600;
+}
+
+.pv-notice {
+  margin: 0;
+  padding: 9px 20px;
+  background: color-mix(in srgb, var(--pv-warn) 12%, var(--pv-panel));
+  border-bottom: 1px solid var(--pv-line);
+  color: var(--pv-warn);
+  font-size: 12px;
+}
+
+.pv-notice pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------- */
+/* Changes                                                          */
+/* ---------------------------------------------------------------- */
+
+.pv-changes {
+  background: var(--pv-panel);
+  border-bottom: 1px solid var(--pv-line);
+  font-size: 12px;
+}
+
+.pv-changes > summary {
+  padding: 9px 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pv-changes > summary::marker {
+  color: var(--pv-muted);
+}
+
+.pv-rows {
+  display: grid;
+  grid-template-columns: 7ch 11ch 1fr;
+  gap: 0;
+  margin: 0;
+  padding: 0 20px 12px;
+  list-style: none;
+}
+
+.pv-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0;
+  border-top: 1px solid color-mix(in srgb, var(--pv-line) 60%, transparent);
+}
+
+.pv-row-btn {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pv-row-btn:hover .pv-row-label {
+  text-decoration: underline;
+}
+
+.pv-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pv-chip[data-status='added'] {
+  color: var(--pv-added);
+}
+.pv-chip[data-status='removed'] {
+  color: var(--pv-removed);
+}
+.pv-chip[data-status='changed'],
+.pv-chip[data-status='moved'] {
+  color: var(--pv-changed);
+}
+
+.pv-row-kind {
+  color: var(--pv-muted);
+  font-size: 11px;
+}
+
+.pv-row-label {
+  color: var(--pv-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pv-row[data-status='same'] .pv-row-label {
+  color: var(--pv-muted);
+}
+
+/* ---------------------------------------------------------------- */
+/* Stage                                                            */
+/* ---------------------------------------------------------------- */
+
+.pv-stage {
+  padding: 24px 20px 80px;
+  /* Without JavaScript the frame is not scaled, so a 1440 frame on a
+     smaller screen is reachable by scrolling rather than cut off. */
+  overflow-x: auto;
+}
+
+.pv-viewport {
+  position: relative;
+  margin: 0 auto;
+  background: var(--pv-panel);
+  border-radius: 10px;
+  box-shadow: var(--pv-shadow);
+  /* The scaled iframe is positioned inside this box, which is sized to
+     the scaled dimensions by client/chrome.ts. */
+  overflow: hidden;
+}
+
+.pv-frame {
+  display: block;
+  border: 0;
+  transform-origin: top left;
+  background: var(--pv-panel);
+}
+
+.pv-empty {
+  max-width: 60ch;
+  margin: 60px auto;
+  padding: 24px;
+  background: var(--pv-panel);
+  border: 1px solid var(--pv-line);
+  border-radius: 10px;
+}
+
+.pv-empty h1 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.pv-empty p {
+  margin: 0 0 10px;
+  color: var(--pv-muted);
+}
+
+.pv-keys {
+  color: var(--pv-muted);
+  font-size: 11px;
+}
+
+kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--pv-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pv-ink) 4%, transparent);
+  font: inherit;
+  font-size: 10.5px;
+}
+
+/* ------------------------------------------------------------------ */
+/* WS-H: the section tabs and the entry pills                         */
+/* ------------------------------------------------------------------ */
+
+/* Two rows under the toolbar: which section, and which entry inside it. They
+   are navigation and not controls, so they are links with aria-current rather
+   than buttons, and they keep working with the chrome script switched off. */
+
+.pv-sections,
+.pv-entries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--pv-panel);
+  border-bottom: 1px solid var(--pv-line);
+}
+
+.pv-sections {
+  gap: 2px;
+}
+
+.pv-tab {
+  padding: 5px 11px;
+  border-radius: 7px;
+  color: var(--pv-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pv-tab:hover {
+  background: color-mix(in srgb, var(--pv-ink) 7%, transparent);
+  color: var(--pv-ink);
+}
+
+/* The section you are in, which is not always the surface you are on: on
+   /cms/preview/essays/x the Essays tab is current and the essays INDEX is not
+   what is in the frame, so the two states are drawn differently. */
+.pv-tab[aria-current='page'] {
+  color: var(--pv-ink);
+  background: color-mix(in srgb, var(--pv-accent) 12%, transparent);
+}
+
+.pv-tab[aria-pressed='true'] {
+  color: var(--pv-panel);
+  background: var(--pv-accent);
+}
+
+.pv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--pv-line);
+  border-radius: 999px;
+  background: var(--pv-bg);
+  color: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pv-pill:hover {
+  border-color: var(--pv-accent);
+}
+
+.pv-pill[aria-pressed='true'] {
+  border-color: var(--pv-accent);
+  background: color-mix(in srgb, var(--pv-accent) 14%, var(--pv-bg));
+  font-weight: 600;
+}
+
+/* A film: there is no /filmography/<id>/ page, so it is a label and not a
+   link. Flat, not disabled-looking: nothing is broken, it simply plays in
+   place on the list. */
+.pv-pill--flat {
+  border-style: dashed;
+  color: var(--pv-muted);
+  cursor: default;
+}
+
+.pv-pill--flat:hover {
+  border-color: var(--pv-line);
+}
+
+.pv-pill-empty {
+  color: var(--pv-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ */
+/* WS-H: the meta rows in the change panel                            */
+/* ------------------------------------------------------------------ */
+
+/* An album's title, year, summary and cover, and a document's own details.
+   One line each, published on the left and draft on the right, because the
+   question is always "what did I change it to". */
+
+.pv-meta-rows {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px dashed var(--pv-line);
+}
+
+.pv-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+
+.pv-meta-was {
+  color: var(--pv-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--pv-removed) 60%, transparent);
+}
+
+.pv-meta-arrow {
+  color: var(--pv-muted);
+}
+
+.pv-meta-now {
+  color: var(--pv-added);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------ */
+/* The site map (index.astro)                                         */
+/* ------------------------------------------------------------------ */
+
+.pv-section {
+  margin: 0 0 26px;
+}
+
+.pv-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--pv-line);
+}
+
+.pv-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pv-section-title:hover {
+  color: var(--pv-accent);
+}
+
+.pv-section-kind {
+  color: var(--pv-muted);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.pv-section-count {
+  margin-left: auto;
+  color: var(--pv-muted);
+  font-size: 11.5px;
+}
+
+.pv-section-empty {
+  margin: 0;
+  color: var(--pv-muted);
+  font-size: 12.5px;
+  font-style: italic;
+}
+
+/* A row that is not a link, for an entry with no page of its own. */
+.pv-card--flat {
+  border-style: dashed;
+  cursor: default;
+}
+
+.pv-card--flat:hover {
+  border-color: var(--pv-line);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared list and card chrome (index.astro)                          */
+/* ------------------------------------------------------------------ */
+
+.pv-list {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 20px 80px;
+}
+
+.pv-list h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.pv-list > p {
+  margin: 0 0 20px;
+  color: var(--pv-muted);
+}
+
+.pv-cards {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pv-card {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--pv-panel);
+  border: 1px solid var(--pv-line);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pv-card:hover {
+  border-color: var(--pv-accent);
+}
+
+.pv-card-title {
+  font-weight: 600;
+}
+
+.pv-card-slug {
+  color: var(--pv-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  margin-right: auto;
+}
+
+.pv-badge {
+  padding: 1px 7px;
+  border: 1px solid var(--pv-line);
+  border-radius: 999px;
+  color: var(--pv-muted);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pv-badge[data-kind='draft'] {
+  border-color: color-mix(in srgb, var(--pv-changed) 50%, var(--pv-line));
+  color: var(--pv-changed);
+}
+
+.pv-badge[data-kind='invalid'] {
+  border-color: color-mix(in srgb, var(--pv-removed) 50%, var(--pv-line));
+  color: var(--pv-removed);
+}
+
+/* ------------------------------------------------------------------ */
+/* Astro's dev toolbar                                                */
+/* ------------------------------------------------------------------ */
+
+/* Under `astro dev` Astro injects a floating toolbar at the bottom centre of
+   every page, including this one and the page inside the frame. Two of them
+   end up stacked over the bottom of the preview, which is both ugly and
+   misleading: the published page has no such thing. It only exists in dev, so
+   hiding it here costs nothing and makes the preview honest. */
+astro-dev-toolbar {
+  display: none !important;
+}

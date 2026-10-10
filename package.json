@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "cms:verify": "node src/cms/fixtures/verify.ts"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",
@@ -14,8 +15,18 @@
     "@keystatic/astro": "^5.1.0",
     "@keystatic/core": "^0.5.50",
     "@markdoc/markdoc": "^0.5.10",
+    "@tiptap/extension-color": "^3.31.4",
+    "@tiptap/extension-link": "^3.31.4",
+    "@tiptap/extension-text-style": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "astro": "^5.7.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4"
   }
 }

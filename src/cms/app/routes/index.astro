@@ -1,0 +1,260 @@
+---
+/**
+ * src/cms/app/routes/index.astro  ->  /cms
+ *
+ * WS-8. Which pages there are, and a way to start a new one.
+ *
+ * Deliberately a plain server-rendered document with no island: it is a list
+ * of links, and shipping React to render it would be silly. The editor itself
+ * is the island, one route along.
+ *
+ * Creating a page is a GET form rather than a POST, because nothing is written
+ * here: a new slug just opens the editor at a blank document, and the first
+ * save is what creates the draft file. So this page is safe to reload, link
+ * to, and bookmark.
+ */
+export const prerender = false;
+
+import { DocMetaSchema } from '../../schema.ts';
+import { sessionToken } from '../../server/auth.ts';
+import { REPO, defaultBranch } from '../../server/config.ts';
+import { messageOf } from '../../server/errors.ts';
+import { listPages } from '../../server/store.ts';
+import type { PageSummary } from '../../server/store.ts';
+import { loginHref, previewHref } from '../../preview/state.ts';
+
+const asked = Astro.url.searchParams.get('slug');
+if (asked !== null) {
+  const parsed = DocMetaSchema.shape.slug.safeParse(asked.trim());
+  if (parsed.success) return Astro.redirect(`/cms/${parsed.data}`, 302);
+}
+
+const badSlug =
+  asked === null
+    ? null
+    : `“${asked}” is not a page name. Use lowercase letters, numbers and hyphens, for example "a-new-page".`;
+
+const branch = defaultBranch();
+const token = await sessionToken(Astro.cookies);
+
+let pages: PageSummary[] = [];
+let problem: string | null = null;
+if (token !== null) {
+  try {
+    pages = await listPages({ token, branch });
+  } catch (error) {
+    problem = messageOf(error);
+  }
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Pages · CMS</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #15171a;
+        color: #e8e8e8;
+        font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 56px 24px 96px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .sub {
+        margin: 0 0 28px;
+        color: #8c8c8c;
+        font-size: 12.5px;
+      }
+      code {
+        font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #d8d8d8;
+      }
+      ul {
+        margin: 0 0 28px;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid #2a2d31;
+      }
+      li {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 11px 2px;
+        border-bottom: 1px solid #2a2d31;
+      }
+      li a.name {
+        flex: 1 1 auto;
+        color: #e8e8e8;
+        font-weight: 500;
+        text-decoration: none;
+      }
+      li a.name:hover {
+        color: #ff8a65;
+      }
+      li .slug {
+        color: #6f6f6f;
+        font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .tag {
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .tag--draft {
+        background: #3a2a14;
+        color: #e8b86a;
+      }
+      .tag--unpublished {
+        background: #2a2d31;
+        color: #9aa0a6;
+      }
+      .tag--invalid {
+        background: #2a1715;
+        color: #f0b3ae;
+      }
+      li a.preview {
+        color: #8c8c8c;
+        font-size: 11.5px;
+      }
+      form {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      input[type='text'] {
+        flex: 1 1 220px;
+        min-width: 0;
+        padding: 7px 9px;
+        border: 1px solid #34383d;
+        border-radius: 6px;
+        background: #1b1e21;
+        color: #e8e8e8;
+        font: inherit;
+      }
+      button,
+      a.button {
+        padding: 7px 13px;
+        border: 1px solid #34383d;
+        border-radius: 6px;
+        background: #22262a;
+        color: #e8e8e8;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      a.button--primary {
+        border-color: #ff5722;
+        background: #ff5722;
+        color: #fff;
+      }
+      p.empty,
+      p.problem {
+        margin: 0 0 24px;
+        padding: 10px 12px;
+        border-radius: 6px;
+      }
+      p.empty {
+        border: 1px solid #2a2d31;
+        background: #1b1e21;
+        color: #a8a8a8;
+      }
+      p.problem {
+        border: 1px solid #52241f;
+        background: #2a1715;
+        color: #f0b3ae;
+        white-space: pre-wrap;
+      }
+      a {
+        color: #ff8a65;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Pages</h1>
+      <p class="sub">
+        <code>{REPO}</code> · branch <code>{branch}</code> · published pages live in
+        <code>src/content/pages/</code>, drafts in <code>src/content/drafts/</code>
+      </p>
+
+      {
+        token === null ? (
+          <>
+            <p class="empty">
+              The editor commits as you, through the GitHub App, so it needs your GitHub session.
+            </p>
+            <p>
+              <a class="button button--primary" href={loginHref('/cms')}>Sign in with GitHub</a>
+            </p>
+          </>
+        ) : (
+          <>
+            {problem !== null && <p class="problem">{problem}</p>}
+            {badSlug !== null && <p class="problem">{badSlug}</p>}
+
+            {pages.length === 0 && problem === null && (
+              <p class="empty">
+                No pages yet. Type a name below; the editor opens on a blank document and the first
+                save creates the draft.
+              </p>
+            )}
+
+            {pages.length > 0 && (
+              <ul>
+                {pages.map((page) => (
+                  <li>
+                    <a class="name" href={`/cms/${page.slug}`}>
+                      {page.title}
+                    </a>
+                    <span class="slug">{page.slug}</span>
+                    {page.invalid === true && <span class="tag tag--invalid">invalid</span>}
+                    {page.hasDraft && <span class="tag tag--draft">draft</span>}
+                    {!page.hasPublished && <span class="tag tag--unpublished">unpublished</span>}
+                    <a class="preview" href={previewHref(page.slug)}>
+                      preview
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <form method="get" action="/cms">
+              <label for="slug" style="color:#8c8c8c;font-size:12.5px">New page</label>
+              <input
+                id="slug"
+                type="text"
+                name="slug"
+                placeholder="a-new-page"
+                pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                required
+              />
+              <button type="submit">Open editor</button>
+            </form>
+          </>
+        )
+      }
+    </main>
+  </body>
+</html>

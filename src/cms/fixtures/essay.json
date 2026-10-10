@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Chasing the Workaround",
+    "slug": "fixture-essay",
+    "date": "2026-06-08",
+    "section": "essays",
+    "buttons": [
+      { "label": "Coffee on me ☕️", "href": "mailto:ryanjhchoi@hotmail.com" }
+    ]
+  },
+  "bands": [
+    {
+      "id": "b_essay_open",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "quote_essay_tldr",
+          "kind": "quote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                { "type": "text", "marks": [{ "type": "bold" }], "text": "TL;DR" },
+                { "type": "text", "text": ": After walking away from the banking idea, I went looking for what to build, and mostly learned how easily I over-abstract. The fix that stuck: stop chasing pain, which is invisible and stretches to fit anything, and start chasing the workarounds people have already built." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "h2_essay_looking",
+          "kind": "h2",
+          "content": [{ "type": "text", "text": "After I walked away, I had to actually go looking" }]
+        },
+        {
+          "id": "p_essay_looking",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "Last time I wrote about catching myself chasing an impressive-sounding idea I didn't actually want, and what that revealed about how I choose things. Walking away was the easy part to write about. The harder part is what comes after: a blank page, and the genuinely uncomfortable job of finding something " },
+            { "type": "text", "marks": [{ "type": "italic" }], "text": "real" },
+            { "type": "text", "text": " to point at." }
+          ]
+        },
+        {
+          "id": "p_essay_anchor",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "Most of what I've learned so far isn't about the world yet. It's about my own thinking, which is a less flattering subject and a more useful one. The " },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://jinhyuk.org/essays/whos-choosing/",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "previous essay"
+            },
+            { "type": "text", "text": " is where the thread starts." }
+          ]
+        },
+        {
+          "id": "h3_essay_rule",
+          "kind": "h3",
+          "content": [{ "type": "text", "text": "The rule I ended up with" }]
+        },
+        {
+          "id": "ul_essay_rule",
+          "kind": "ul",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "A workaround is proof the pain is " },
+                    { "type": "text", "marks": [{ "type": "textStyle", "attrs": { "color": "#ff5722" } }], "text": "real" },
+                    { "type": "text", "text": "." }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "It proves the pain recurs, because nobody builds a workaround for a one-off." }]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "And it proves the pain already costs something, because the workaround itself costs something." }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_essay_stage",
+      "type": "canvas",
+      "height": 680,
+      "items": [
+        {
+          "id": "i_essay_squiggle",
+          "kind": "shape",
+          "shape": "squiggle",
+          "x": 180,
+          "y": 240,
+          "w": 360,
+          "h": 150,
+          "z": 0,
+          "color": "#ff5722",
+          "strokeWidth": 3,
+          "anchor": { "bandId": "b_essay_open", "blockId": "p_essay_anchor" }
+        },
+        {
+          "id": "i_essay_shot",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
+          "alt": "A spreadsheet standing in for software, which is what a workaround looks like",
+          "caption": "An essay can hold a canvas now. This is the whole point of 3.1.",
+          "x": 532,
+          "y": 30,
+          "w": 280,
+          "h": 609,
+          "rotate": -2,
+          "z": 1
+        }
+      ]
+    },
+    {
+      "id": "b_essay_close",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_essay_close",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "I don't have the answer yet. I have a way of looking, which is more than I had a month ago." }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Track: Daily Habit Tracker",
+    "slug": "track-daily-habit-tracker",
+    "date": "2026-07-07",
+    "summary": "A minimalist habit tracker that makes showing up fun by turning your daily check-ins into a GitHub-style contribution heatmap.",
+    "url": "https://habit-tracker-xi-gilt.vercel.app/welcome"
+  },
+  "bands": [
+    {
+      "id": "b1",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b1p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I started coding this year, and Track is one of the first things I built for myself instead of as a tutorial exercise. I wanted a habit tracker that felt good on the days I showed up and didn't make me feel like garbage on the days I didn't. Most of the ones I tried run on streaks and guilt. I wanted the opposite; something that quietly rewards consistency and forgives the gaps."
+            }
+          ]
+        },
+        {
+          "id": "b1p2",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The whole app is inspired by the GitHub-contribution-style heatmap. When I was learning to code, the contribution graph was so effective in seeing my own effort turn into something I could visualize immediately: a grid filling in, square by square. It was almost embarrassingly motivating. I'd push a tiny commit just to keep a square lit :) I wanted to replicate that excitement for the things I do away from the digital world: drinking enough water, getting the steps in, taking my daily vitamins, and regularly expressing gratitude. Track turns each check-in into a square, and a month of showing up turns into a shape you can visualize immediately."
+            }
+          ]
+        },
+        {
+          "id": "b1p3",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The part I love: "
+            },
+            {
+              "type": "text",
+              "text": "you build your own cover",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ". This is my favorite detail. You choose whatever images get you most fired up, and you see them every time you open the app to log in your habits. Mine is a wall of people at their moment: Tiger Woods winning the Masters, Martin Lurther King Jr. at the Lincoln Memorial, Man United lifting their Champions League trophy, a rocket clearing the tower."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b2i1",
+          "kind": "image",
+          "x": 0,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/2/value/src.png",
+          "alt": "",
+          "caption": "The welcome screen"
+        },
+        {
+          "id": "b2i2",
+          "kind": "image",
+          "x": 356.25,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/IMG_2065.png",
+          "alt": ""
+        }
+      ]
+    },
+    {
+      "id": "b3",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b3p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "After all, it's just a cover. But opening the app to something that actually moves you does more for consistency than a push notification ever has!"
+            }
+          ]
+        },
+        {
+          "id": "b3p2",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The home screen opens on today with each habit as its own card and its heatmap sitting right there on the card, so progress is never more than a glance away. Tap any row to drill in (there's also a light social touch up top if you want to track habits together with your friend)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b4",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b4i1",
+          "kind": "image",
+          "x": 505.88,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
+          "alt": "",
+          "caption": "The dashboard (every habit carries its own heatmap)"
+        }
+      ]
+    },
+    {
+      "id": "b5",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b5p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Open a single habit and you get the full picture: current streak, longest streak, 30- and 90-day completion rates, a full 365-day heatmap, and a month calendar you can page through. This is where the heatmap earns its keep — a whole year of one habit in a single look."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b6",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b6i1",
+          "kind": "image",
+          "x": 505.88,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
+          "alt": "",
+          "caption": "One habit, a full year of it"
+        }
+      ]
+    },
+    {
+      "id": "b7",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b7p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Every habit is editable: name, category, an emoji for the icon, and a color that flows through its heatmap. You can hide a habit from the daily prompt while keeping its history, or delete it and its history for good."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b8",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b8i1",
+          "kind": "image",
+          "x": 505.88,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
+          "alt": "",
+          "caption": "Pick an emoji and a color; the heatmap takes that color"
+        }
+      ]
+    },
+    {
+      "id": "b9",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b9p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "There are three ways to look, and I switch between them by mood. The list view squeezes the last 7 days (or 5, or 14) into one tidy row per habit. I use it as a quick did-I-actually-do-it check on the week."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b10",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b10i1",
+          "kind": "image",
+          "x": 505.88,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
+          "alt": "",
+          "caption": "List view of the week, compressed"
+        }
+      ]
+    },
+    {
+      "id": "b11",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b11p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The overview lays each habit's month out as its own mini-heatmap, all side by side. This is the one that scratches the GitHub itch hardest."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b12",
+      "type": "canvas",
+      "height": 751,
+      "items": [
+        {
+          "id": "b12i1",
+          "kind": "image",
+          "x": 505.88,
+          "y": 0,
+          "w": 332.25,
+          "h": 720,
+          "src": "/projects/track-daily-habit-tracker/blocks/14/value/src.png",
+          "alt": "",
+          "caption": "The glanceable monthly overview"
+        }
+      ]
+    },
+    {
+      "id": "b13",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "b13p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Funnily enough, if you look closely at these shots, you'll notice I haven't exactly been crushing it lately — a lot of empty squares in the recent stretch. I've been heads-down building other things. But that's kind of the point of how it's designed: the empty squares don't scold me, and the whole pitch is sitting right there on the welcome screen. Showing up beats perfect. I'll get tomorrow's square!"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Fixture: dense canvas",
+    "slug": "fixture-dense",
+    "date": "2026-10-08",
+    "summary": "The hard case. An overlay band beside prose, rotated media, all five shape kinds, an anchored connector, and four overlapping items in one canvas.",
+    "cover": "/projects/track-daily-habit-tracker/blocks/6/value/src.png"
+  },
+  "bands": [
+    {
+      "id": "b_dense_prose_1",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_dense_intro",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "This page exists to break renderers. Everything the document model allows is on it at once, which is the only honest way to find out whether a layout holds." }
+          ]
+        },
+        {
+          "id": "h2_dense_build",
+          "kind": "h2",
+          "content": [{ "type": "text", "text": "Media beside a paragraph" }]
+        },
+        {
+          "id": "p_dense_anchor",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "The connector in the margin points at " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "this paragraph" },
+            { "type": "text", "text": ", by id, not by position. Move it, reorder the band, and the line is supposed to follow. It is the one place where the renderer has to measure the real page instead of trusting the stored geometry." }
+          ]
+        },
+        {
+          "id": "p_dense_more",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "The overlay band next to it reserves no vertical space of its own, so this column of text keeps setting the height and the screenshot off to the right just sits on top of it. On a phone the overlay flag is ignored and the same items drop into flow underneath." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_dense_overlay",
+      "type": "canvas",
+      "height": 460,
+      "overlay": true,
+      "items": [
+        {
+          "id": "i_dense_rule",
+          "kind": "shape",
+          "shape": "line",
+          "x": 860,
+          "y": 400,
+          "w": 420,
+          "h": 2,
+          "z": 0,
+          "color": "#e4e4e4",
+          "strokeWidth": 2
+        },
+        {
+          "id": "i_dense_rotated",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
+          "alt": "The Track dashboard, every habit carrying its own heatmap",
+          "caption": "The dashboard, tilted",
+          "x": 1070,
+          "y": 14,
+          "w": 190,
+          "h": 413,
+          "rotate": -6,
+          "z": 2
+        },
+        {
+          "id": "i_dense_connector",
+          "kind": "shape",
+          "shape": "arrow",
+          "x": 860,
+          "y": 150,
+          "w": 190,
+          "h": 90,
+          "rotate": 0,
+          "z": 3,
+          "color": "#ff5722",
+          "strokeWidth": 2,
+          "anchor": { "bandId": "b_dense_prose_1", "blockId": "p_dense_anchor" }
+        }
+      ]
+    },
+    {
+      "id": "b_dense_prose_2",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "h3_dense_shapes",
+          "kind": "h3",
+          "content": [{ "type": "text", "text": "All five shapes, one band" }]
+        },
+        {
+          "id": "p_dense_shapes",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "Squiggle, rect, ellipse and arrow, each with its own " },
+            { "type": "text", "marks": [{ "type": "textStyle", "attrs": { "color": "#a68fd8" } }], "text": "colour and stroke" },
+            { "type": "text", "text": ", two of them filled, two of them rotated. The wobble is seeded from the item id, so these must look identical in the editor, in the preview and on the published page." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b_dense_shapes",
+      "type": "canvas",
+      "height": 360,
+      "items": [
+        {
+          "id": "i_dense_squiggle",
+          "kind": "shape",
+          "shape": "squiggle",
+          "x": 60,
+          "y": 40,
+          "w": 380,
+          "h": 160,
+          "rotate": 4,
+          "z": 1,
+          "color": "#a68fd8",
+          "strokeWidth": 3
+        },
+        {
+          "id": "i_dense_rect",
+          "kind": "shape",
+          "shape": "rect",
+          "x": 500,
+          "y": 30,
+          "w": 300,
+          "h": 200,
+          "z": 2,
+          "color": "#6aa3e0",
+          "fill": "#6aa3e022",
+          "strokeWidth": 2,
+          "radius": 18
+        },
+        {
+          "id": "i_dense_ellipse",
+          "kind": "shape",
+          "shape": "ellipse",
+          "x": 700,
+          "y": 120,
+          "w": 220,
+          "h": 160,
+          "z": 3,
+          "color": "#5cb98a",
+          "fill": "#5cb98a22",
+          "strokeWidth": 2
+        },
+        {
+          "id": "i_dense_arrow",
+          "kind": "shape",
+          "shape": "arrow",
+          "x": 1060,
+          "y": 110,
+          "w": 220,
+          "h": 130,
+          "rotate": -12,
+          "z": 4,
+          "color": "#ff5722",
+          "strokeWidth": 3
+        }
+      ]
+    },
+    {
+      "id": "b_dense_stack",
+      "type": "canvas",
+      "height": 780,
+      "items": [
+        {
+          "id": "i_dense_stack_1",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
+          "alt": "A single habit, with streaks and a full year heatmap",
+          "x": 80,
+          "y": 40,
+          "w": 300,
+          "h": 652,
+          "rotate": -4,
+          "z": 1
+        },
+        {
+          "id": "i_dense_stack_2",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
+          "alt": "The month calendar you can page through",
+          "x": 300,
+          "y": 90,
+          "w": 300,
+          "h": 652,
+          "rotate": 2,
+          "z": 2
+        },
+        {
+          "id": "i_dense_stack_3",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
+          "alt": "Completion rates over thirty and ninety days",
+          "x": 520,
+          "y": 30,
+          "w": 300,
+          "h": 652,
+          "rotate": -2,
+          "z": 3
+        },
+        {
+          "id": "i_dense_stack_4",
+          "kind": "image",
+          "src": "/projects/track-daily-habit-tracker/blocks/14/value/src.png",
+          "alt": "Tracking a habit together with a friend",
+          "caption": "Four screenshots, overlapping, in stacking order",
+          "x": 740,
+          "y": 100,
+          "w": 300,
+          "h": 652,
+          "rotate": 5,
+          "z": 4
+        }
+      ]
+    },
+    {
+      "id": "b_dense_prose_3",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_dense_close",
+          "kind": "p",
+          "content": [
+            { "type": "text", "text": "If this page survives 1440, 1100 and 390 without a horizontal scrollbar and without a connector pointing at the wrong paragraph, the renderer is done." }
+          ]
+        }
+      ]
+    }
+  ]
+}

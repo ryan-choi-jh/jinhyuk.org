@@ -1,0 +1,571 @@
+/* ===========================================================================
+   src/cms/styles/doc.css
+   WS-1. The only stylesheet for anything renderDoc() produces.
+
+   Every value here is taken from src/styles/global.css rather than invented:
+   the measures (720px of reading width, 900px of quote), the type scale
+   (17.5/35 body, 22/32 h2, 18/28 h3, 26/40 quote, 14/21 caption), the margins
+   (28px between paragraphs, 48px above an h2) and the tokens (--ink, --muted,
+   --rule, --accent, --media-edge). A page that loads global.css gets the site's
+   typography; a page that loads only this file gets the same thing from the
+   fallbacks in the var() calls, which is what makes the fixtures screenshot
+   honestly on their own.
+
+   Scoped under .doc throughout, so dropping a rendered document into the
+   editor, the preview or the live page cannot touch anything around it.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   The document
+   --------------------------------------------------------------------------- */
+
+.doc {
+  /* The reading measure. 720px is the site's text column (article,
+     .project-body > p); a quote is allowed 900px (.project-body > blockquote).
+     Both are the width AT THE REFERENCE WIDTH, and both scale with the content
+     column below it, because canvas geometry does. A fixed 720px column inside
+     a canvas that shrinks would walk into the items placed beside it: at a
+     1100px window the right margin an overlay was authored into has already
+     moved left of 720px. Scaling the measure keeps every authored relationship
+     the same shape at every width down to the breakpoint.
+
+     The cq variants are only ever read by descendants. An element cannot use
+     its own container query units, and .doc is the container, so these stay
+     unresolved tokens here and resolve on the blocks that consume them. */
+  --doc-measure: 720px;
+  --doc-measure-quote: 900px;
+  --doc-measure-cq: calc(100cqw * 720 / 1344);
+  --doc-measure-quote-cq: calc(100cqw * 900 / 1344);
+
+  /* MOBILE_BREAKPOINT from src/cms/schema.ts. CSS cannot read a custom
+     property in a media query, so the media queries below repeat the literal;
+     this declaration is the one the connector script reads, so the stylesheet
+     and the script can never disagree about where the fallback starts. */
+  --doc-mobile-breakpoint: 900px;
+
+  /* `.doc` is the container every canvas coordinate resolves against: 1cqw is
+     1% of this box, so `top` in cqw and `left` in % are the same number
+     measured against the same width. At the designed 1440px page this box is
+     1344px wide, which is REFERENCE_WIDTH.
+
+     container-type also brings layout containment, which makes .doc the
+     containing block for the absolutely positioned bands and the connector
+     overlay. position: relative would do that alone; both are stated so the
+     intent survives someone removing one of them. */
+  container-type: inline-size;
+  position: relative;
+
+  /* Matches .project-body. */
+  padding-top: 8px;
+
+  color: var(--ink, #111111);
+  font-family: var(--sans, 'Inter', system-ui, -apple-system, sans-serif);
+  font-weight: 300;
+  font-size: 17.5px;
+  line-height: 35px;
+  letter-spacing: -0.02em;
+}
+
+.doc,
+.doc *,
+.doc *::before,
+.doc *::after {
+  box-sizing: border-box;
+}
+
+.doc img,
+.doc svg,
+.doc video,
+.doc iframe {
+  display: block;
+  max-width: 100%;
+}
+
+/* A lead band and the overlay bands that sit on it. Positioned, so an overlay
+   can be taken out of flow without escaping to the top of the page. */
+.doc-group {
+  position: relative;
+}
+
+/* The first thing in the document should not be pushed down by its own top
+   margin; an h2 opening a page would otherwise start 48px low. */
+.doc > .doc-group:first-child > .doc-band:first-child > :first-child {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Prose
+   In normal flow, which is what keeps the page readable on a phone (brief 2.2).
+   The measure is on the blocks, not on the band, so a canvas band beside them
+   still gets the full width.
+   --------------------------------------------------------------------------- */
+
+.doc-p,
+.doc-h2,
+.doc-h3,
+.doc-list {
+  max-width: min(var(--doc-measure), var(--doc-measure-cq));
+  margin-inline: 0;
+}
+
+.doc-p {
+  margin-block: 0 28px;
+}
+
+.doc-h2 {
+  margin-block: 48px 8px;
+  font-size: 22px;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.doc-h3 {
+  margin-block: 32px 4px;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.doc-list {
+  margin-block: 0 28px;
+  padding-left: 24px;
+}
+
+.doc-list li + li {
+  margin-top: 6px;
+}
+
+/* A nested list belongs to its parent item, so it gets the item's spacing and
+   not a paragraph's. */
+.doc-list ul,
+.doc-list ol {
+  margin: 6px 0 0;
+  padding-left: 24px;
+}
+
+.doc-quote {
+  max-width: min(var(--doc-measure-quote), var(--doc-measure-quote-cq));
+  margin-block: 0 28px;
+  margin-inline: 0;
+  padding-left: 20px;
+  border-left: 2px solid var(--accent, #ff5722);
+  font-size: 26px;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 300;
+  color: var(--ink, #111111);
+}
+
+.doc-quote p {
+  margin: 0 0 16px;
+}
+
+.doc-quote p:last-child {
+  margin-bottom: 0;
+}
+
+.doc strong {
+  font-weight: 600;
+}
+
+/* Underlined in running prose only, the way global.css does it: a hairline
+   underline in --rule that turns --accent on hover, so a link reads as a link
+   without shouting. */
+.doc a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--rule, #e4e4e4);
+}
+
+.doc a:hover {
+  text-decoration-color: var(--accent, #ff5722);
+}
+
+/* ---------------------------------------------------------------------------
+   Canvas
+   A free area. Items carry left and width as percentages of this box and top
+   in cqw, so the arrangement scales with the page instead of being pinned to
+   the screen it was made on (brief 3.3).
+   --------------------------------------------------------------------------- */
+
+.doc-band--canvas {
+  position: relative;
+  width: 100%;
+  /* .canvas in global.css. */
+  margin: 8px 0 44px;
+}
+
+/* An overlay band takes no vertical space and sits over the band before it
+   (brief 2.2). Out of flow inside its .doc-group, pinned to the lead band's
+   top-left, so the prose beside it keeps setting the height of the group. */
+.doc-band--overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  z-index: 2;
+}
+
+.doc-item {
+  position: absolute;
+  margin: 0;
+  /* Rotation turns about the middle of the box, so an item does not walk off
+     when its angle changes in the editor. */
+  transform-origin: center center;
+}
+
+/* The box the media fills. Sized by aspect-ratio from the authored w and h, so
+   it has its final height before the image loads: the page does not reflow as
+   pictures arrive, and the connector script measures the right box first time. */
+.doc-frame {
+  position: relative;
+  width: 100%;
+}
+
+.doc-frame > img,
+.doc-frame > video,
+.doc-frame > svg,
+.doc-frame > iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* object-fit so an authored box whose ratio drifts from the file's crops
+   instead of squashing. The same hairline the album tiles and film posters
+   carry (--media-edge), without which a screenshot that is white to its edges
+   dissolves into the page. */
+.doc-item--image .doc-frame > img,
+.doc-item--video .doc-frame > video {
+  object-fit: cover;
+  border: 1px solid var(--media-edge, #e4e4e4);
+}
+
+.doc-item--embed .doc-frame > iframe {
+  border: 1px solid var(--media-edge, #e4e4e4);
+}
+
+/* .media-caption in global.css. */
+.doc-caption {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: 0;
+  font-weight: 300;
+  color: var(--muted, #6b6b6b);
+}
+
+/* ---------------------------------------------------------------------------
+   Connectors
+   One svg over the whole document, drawn by src/cms/render/connectors.ts from
+   where the two boxes actually land. A connector joins a paragraph to an item
+   that can be in a different band, so the overlay spans the document rather
+   than a band.
+   --------------------------------------------------------------------------- */
+
+.doc-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* Above every item: item z values are small author-chosen integers, and a
+     1.6px line that disappears under a screenshot reads as a bug. */
+  z-index: 50;
+}
+
+.doc-connectors path {
+  fill: none;
+  stroke: var(--accent, #ff5722);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* ---------------------------------------------------------------------------
+   Masthead
+   Optional, from renderDocHead(). Mirrors article h1 / .post-meta / .lead /
+   .project-link so a rendered document looks like the page it replaces.
+   --------------------------------------------------------------------------- */
+
+.doc-head {
+  /* The masthead is not part of the canvas, so it keeps the site's own column
+     and simply stops at the edge on a narrow screen.
+
+     720px as a literal, not `var(--doc-measure)`. `.doc-head` is a SIBLING of
+     `.doc`, not a descendant: the tokens are declared on `.doc`, so the var
+     would not resolve here, and an unresolvable var makes the whole
+     declaration invalid at computed-value time — `max-width` then falls back
+     to `none` and the masthead silently runs the full canvas width. Which is
+     exactly what it did until WS-B's essay surface measured it. */
+  max-width: min(720px, 100%);
+  padding-top: 71px;
+}
+
+.doc-title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 44px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.doc-date {
+  margin: 10px 0 40px;
+  font-family: var(--nav, 'Bricolage Grotesque', system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  color: var(--accent, #ff5722);
+}
+
+.doc-visit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.doc-visit-label {
+  font-weight: 600;
+}
+
+.doc-visit-url {
+  color: var(--muted, #6b6b6b);
+}
+
+.doc-summary {
+  /* `.project-lead` / `.post-lead` in global.css: 40px of air under the
+     standfirst. With `.doc`'s own 8px of padding-top that is the 48px a live
+     project page has between its lead and the first line of its body. An
+     essay page has 40px, which is why `.doc--essays` drops the 8px below. */
+  margin: 0 0 40px;
+  font-weight: 300;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   Essays — WS-B, phase 2.
+
+   Essays became documents (docs/cms-sections.md 3.1), so they render through
+   the same renderer as a project page. They must not render like one: the two
+   surfaces have different typography in global.css, and the phase 2 rule is
+   that the only visible change on the whole site is the new album page.
+
+   Every value below is the live essay's, from `article *` in global.css,
+   against the project values the rules above carry:
+
+     paragraphs   27px between, not 28       article p vs .project-body > p
+     lists        27px after, 8px per item   article ul/li vs .project-body
+     quote        quiet: body size, --muted, a --rule hairline, 720px
+                  article blockquote vs .pb-quote's 26/40 --accent pull-quote
+     head room    the body starts 40px under the standfirst, not 48
+
+   A document with no `meta.section` — every phase 1 project page — matches
+   none of these selectors and is untouched.
+   --------------------------------------------------------------------------- */
+
+/* `article` has no padding above its body; `.project-body` has 8px. */
+.doc--essays {
+  padding-top: 0;
+}
+
+.doc--essays .doc-p {
+  margin-block: 0 27px;
+}
+
+.doc--essays .doc-list {
+  margin-block: 0 27px;
+}
+
+/* `article li { margin-bottom: 8px }` applies to every item, including the
+   last, where `.doc-list li + li` applies to neither the first nor the last. */
+.doc--essays .doc-list li {
+  margin-bottom: 8px;
+}
+
+.doc--essays .doc-list li + li {
+  margin-top: 0;
+}
+
+/* The reading column. A live essay's is a flat 720px (`article`), not the
+   scaling one a canvas document needs, and at a 1440px window the scrollbar
+   gutter alone takes the scaling measure to 712px — text wrapping eight pixels
+   early, for nothing, on a page with nothing placed beside it.
+
+   So an essay with no canvas in it keeps 720px, and the rule below gives the
+   scaling measure back to an essay that has gained one, where an item really
+   is authored to sit beside the text. `renderDoc` adds `doc--canvas` when the
+   document has a canvas band. */
+.doc--essays .doc-p,
+.doc--essays .doc-h2,
+.doc--essays .doc-h3,
+.doc--essays .doc-list,
+.doc--essays .doc-quote {
+  max-width: min(720px, 100%);
+}
+
+.doc--essays.doc--canvas .doc-p,
+.doc--essays.doc--canvas .doc-h2,
+.doc--essays.doc--canvas .doc-h3,
+.doc--essays.doc--canvas .doc-list,
+.doc--essays.doc--canvas .doc-quote {
+  max-width: min(var(--doc-measure), var(--doc-measure-cq));
+}
+
+.doc--essays .doc-quote {
+  margin-block: 0 27px;
+  border-left-color: var(--rule, #e4e4e4);
+  font-size: 17.5px;
+  line-height: 35px;
+  letter-spacing: -0.02em;
+  color: var(--muted, #6b6b6b);
+}
+
+/* `article p` inside a blockquote keeps its own 27px, with no :last-child
+   reset, so the quote's box ends a paragraph's distance after its last line.
+   That is what the live essays look like. */
+.doc--essays .doc-quote p {
+  margin: 0 0 27px;
+}
+
+.doc--essays .doc-quote p:last-child {
+  margin-bottom: 27px;
+}
+
+/* ---------------------------------------------------------------------------
+   End-of-document buttons — WS-B, phase 2.
+
+   `Doc.meta.buttons`, which the live essays already carry in their
+   frontmatter. The markup also carries `.essay-buttons` and `.button`, so
+   global.css supplies the whole look; these two rules supply the one thing it
+   cannot know about.
+
+   The measure is the reason. Live, `.essay-buttons` sits inside
+   `article { max-width: 720px }`, so its top rule stops at the text. A
+   document is as wide as its canvas, so the rule would run the full 1344px
+   unless it is told otherwise. 720px flat and not the `cqw` measure the prose
+   uses: the block is a sibling of `.doc`, not a descendant, so there is no
+   container for `cqw` to resolve against.
+   --------------------------------------------------------------------------- */
+
+.doc-buttons {
+  max-width: min(720px, 100%);
+}
+
+.doc-button {
+  /* `.doc a` underlines running prose. A button is not running prose, and
+     this is also the guard for a page that nests the block inside `.doc`. */
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile fallback — brief 3.4, contracts 2.4. A hard rule, not a preference.
+
+   Below MOBILE_BREAKPOINT (900px) canvas positioning is dropped entirely:
+   items stack in document order at full width, overlay is ignored, rotation is
+   kept, and connectors are not drawn.
+
+   The overrides carry !important because the geometry arrives as an inline
+   style attribute, which otherwise wins. Rotation is the one thing left alone:
+   it is in `transform` by itself, with position handled by left/top/width, so
+   keeping rotation costs nothing more than not overriding it.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .doc {
+    /* A rotated item at full width sticks out past its own box: a 294px-wide
+       screenshot turned 5 degrees reaches about 27px beyond each edge. clip
+       rather than hidden, so the vertical axis stays visible and the page does
+       not grow a horizontal scrollbar. */
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+
+  /* Nothing is out of flow any more, so the group has nothing to anchor. */
+  .doc-group {
+    position: static;
+  }
+
+  .doc-band--canvas {
+    position: static !important;
+    /* The reserved height was for absolutely positioned items. */
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin: 8px 0 28px;
+  }
+
+  .doc-band--overlay {
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: auto;
+  }
+
+  .doc-item {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    z-index: auto !important;
+  }
+
+  .doc-connectors {
+    display: none;
+  }
+
+  /* Nothing is placed beside the text any more, so the measure goes back to
+     the site's own: 720px, or the column, whichever is narrower. */
+  .doc-p,
+  .doc-h2,
+  .doc-h3,
+  .doc-list {
+    max-width: min(var(--doc-measure), 100%);
+  }
+
+  .doc-quote {
+    max-width: min(var(--doc-measure-quote), 100%);
+  }
+
+  .doc-head {
+    padding-top: 40px;
+  }
+
+  .doc-title {
+    font-size: 26px;
+    line-height: 34px;
+  }
+
+  /* global.css narrows `.intro p, article p, article ul, article ol` to 20px
+     below the breakpoint, and leaves `.project-body > p` at 28px. So the
+     essay body follows the article rules down and a project page does not. */
+  .doc--essays .doc-p,
+  .doc--essays .doc-list,
+  .doc--essays .doc-quote p,
+  .doc--essays .doc-quote p:last-child {
+    margin-bottom: 20px;
+  }
+
+  /* Nothing is placed beside the text below the breakpoint — the canvas has
+     become a list — so the scaling measure an essay's canvas earned goes
+     back to the column. It needs saying again at this specificity: a media
+     query adds none, so the `.doc-p` reset above cannot reach a rule written
+     as `.doc--essays.doc--canvas .doc-p`. */
+  .doc--essays.doc--canvas .doc-p,
+  .doc--essays.doc--canvas .doc-h2,
+  .doc--essays.doc--canvas .doc-h3,
+  .doc--essays.doc--canvas .doc-list,
+  .doc--essays.doc--canvas .doc-quote {
+    max-width: min(720px, 100%);
+  }
+}

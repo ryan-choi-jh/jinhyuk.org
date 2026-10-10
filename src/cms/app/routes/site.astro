@@ -1,0 +1,196 @@
+---
+/**
+ * src/cms/app/routes/site.astro
+ *
+ * WS-G. The one route the whole editor lives at. Injected three times from
+ * astro.config.mjs, because the three URLs are three Astro patterns and one
+ * application:
+ *
+ *   /cms                      the section list
+ *   /cms/<section>            that section's entry list
+ *   /cms/<section>/<slug>     one entry, open in its editor
+ *
+ * ONE ISLAND FOR ALL THREE. `<SiteShell>` owns where it is: WS-D's
+ * `parseCmsRoute` reads `location.pathname`, `createBrowserNavigator` pushes
+ * real history entries, and clicking a section or an entry is a `pushState`,
+ * not a page load. So the server's only job is to decide whether this URL is
+ * an editor URL at all, and to hand over the repo and branch the island cannot
+ * know. Everything else is client side, which is also what makes Back and
+ * Forward work between sections without re-reading the repository.
+ *
+ * WHAT THE SERVER DOES, AND WHY NOT THE ISLAND:
+ *
+ *  - IT GATES ON THE SESSION. `ctxFrom` throws a 401, which is right for an
+ *    endpoint and wrong here: someone who is not signed in should see a
+ *    sign-in link, not a JSON error. So the token comes from `sessionToken`
+ *    and its absence is a state, exactly as in phase 1's editor.astro.
+ *
+ *  - IT REFUSES A URL THAT IS NOT A PLACE. `parseCmsRoute` answers null for
+ *    `/cms/not-a-section`, and a 404 from the server is better than an island
+ *    that boots, finds nowhere to be and silently shows the overview.
+ *
+ *  - IT KEEPS PHASE 1's URLS WORKING. `/cms/<project-slug>` was the phase 1
+ *    editor; the same URL now means a section. A single segment that is not a
+ *    section but is a valid slug therefore redirects to
+ *    `/cms/projects/<slug>`, which is where that page lives now
+ *    (docs/cms-contracts.md 13.2: the phase 1 endpoints mean `projects`).
+ *
+ *  - IT DOES NOT READ THE DOCUMENT. Phase 1's route did, to hand the island a
+ *    doc and two blob shas. The site store reads the entry itself on mount and
+ *    records the shas from that read (./integration/site-api.ts), so reading
+ *    here as well would be a second GitHub round trip for the same bytes.
+ *
+ * Server rendered and kept out of the static GitHub Pages build the same way
+ * as everything else in the CMS: `prerender = false`, the file outside
+ * src/pages/, and the injectRoute calls inside astro.config.mjs's
+ * `withKeystatic` guard.
+ */
+export const prerender = false;
+
+import { IdSchema } from '../../schema.ts';
+import { getSection } from '../../sections.ts';
+import { sessionToken } from '../../server/auth.ts';
+import { REPO, defaultBranch } from '../../server/config.ts';
+import { loginHref } from '../../preview/state.ts';
+import { CMS_ROOT, parseCmsRoute } from '../state/route.ts';
+import { CmsApp } from '../index.tsx';
+
+const rawSection = Astro.params.section ?? null;
+const rawSlug = Astro.params.slug ?? null;
+
+// /cms/preview is WS-7's and is injected as a static route, which Astro's
+// router prefers over this dynamic one. Belt and braces, so the two cannot
+// fight even if that rule ever changes.
+if (rawSection === 'preview') {
+  return Astro.redirect(rawSlug === null ? '/cms/preview' : `/cms/preview/${rawSlug}`, 302);
+}
+
+/**
+ * A single segment that is not a section id, but is a legal slug, is a phase 1
+ * editor URL. It moves rather than 404s.
+ */
+if (
+  rawSection !== null &&
+  rawSlug === null &&
+  getSection(rawSection) === null &&
+  IdSchema.safeParse(rawSection).success
+) {
+  return Astro.redirect(`${CMS_ROOT}/projects/${rawSection}`, 302);
+}
+
+/** The pathname this route is standing in for, rebuilt from the parameters. */
+const pathname =
+  rawSection === null
+    ? CMS_ROOT
+    : rawSlug === null
+      ? `${CMS_ROOT}/${rawSection}`
+      : `${CMS_ROOT}/${rawSection}/${rawSlug}`;
+
+const route = parseCmsRoute(pathname);
+
+const branch = defaultBranch();
+const token = await sessionToken(Astro.cookies);
+
+const section = route === null || route.kind === 'overview' ? null : getSection(route.section);
+const title =
+  route === null
+    ? 'Not found'
+    : section === null
+      ? 'The whole site'
+      : route.kind === 'entry'
+        ? `${section.label} · ${route.key}`
+        : section.label;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <!-- The same faces the site loads, so the page in the middle measures and
+         breaks exactly where the published page does. Without this the editor
+         falls back and every line-break decision made here is a guess. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&display=swap"
+    />
+    <title>{title} · CMS</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #15171a;
+        color: #e8e8e8;
+        font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      .gate {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 80px 24px;
+      }
+      .gate h1 {
+        margin: 0 0 10px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .gate p {
+        margin: 0 0 14px;
+        color: #a8a8a8;
+      }
+      .gate code {
+        font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #d8d8d8;
+      }
+      .gate a {
+        color: #ff8a65;
+      }
+      .gate a.button {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 6px;
+        background: #ff5722;
+        color: #fff;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .gate ul {
+        margin: 0 0 14px;
+        padding-left: 18px;
+        color: #a8a8a8;
+      }
+    </style>
+  </head>
+  <body>
+    {
+      route === null ? (
+        <div class="gate">
+          <h1>There is no “{rawSection}{rawSlug === null ? '' : `/${rawSlug}`}” in the editor</h1>
+          <p>The editor has five sections, and a URL is one of these:</p>
+          <ul>
+            <li><code>/cms</code> — every section</li>
+            <li><code>/cms/&lt;section&gt;</code> — home, projects, essays, filmography, photography</li>
+            <li><code>/cms/&lt;section&gt;/&lt;slug&gt;</code> — one entry</li>
+          </ul>
+          <p><a href={CMS_ROOT}>Start at the top</a></p>
+        </div>
+      ) : token === null ? (
+        <div class="gate">
+          <h1>Sign in to edit</h1>
+          <p>
+            The editor commits to <code>{REPO}</code> on <code>{branch}</code> as you, through the
+            GitHub App, so it needs your GitHub session.
+          </p>
+          <p>
+            <a class="button" href={loginHref(pathname)}>Sign in with GitHub</a>
+          </p>
+        </div>
+      ) : (
+        <CmsApp client:only="react" repo={REPO} branch={branch} />
+      )
+    }
+  </body>
+</html>

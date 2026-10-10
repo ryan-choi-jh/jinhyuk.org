@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CanvasEditor harness &middot; WS-4</title>
+    <style>
+      :root {
+        --ink: #141414;
+        --muted: #6b6b6b;
+        --line: #e4e4e4;
+        --paper: #f6f6f4;
+        --accent: #2b7cff;
+        --bad: #d12e2e;
+        --good: #137a4b;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body { background: var(--paper); color: var(--ink); font-size: 13px; overflow: hidden; }
+      #root { height: 100%; }
+
+      .h-root { display: grid; grid-template-columns: 252px minmax(0, 1fr) 380px; height: 100%; }
+      .h-panel {
+        background: #fff; border-right: 1px solid var(--line); padding: 16px;
+        overflow: auto; display: flex; flex-direction: column; gap: 14px;
+      }
+      .h-right { border-right: none; border-left: 1px solid var(--line); }
+
+      h1 { font-size: 14px; margin: 0; letter-spacing: -0.01em; }
+      h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 4px 0 0; }
+      .h-note { margin: 0; color: var(--muted); line-height: 1.45; font-size: 12px; }
+      code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; }
+
+      .h-field { display: flex; flex-direction: column; gap: 6px; }
+      .h-field > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+      select, input[type='range'] { width: 100%; }
+      output { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--muted); }
+
+      .h-scales { display: flex; gap: 4px; }
+      .h-scales button {
+        flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 6px;
+        padding: 6px 0; font: inherit; font-size: 12px; cursor: pointer;
+      }
+      .h-scales button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+      .h-check { display: flex; align-items: center; gap: 8px; }
+      .h-reset {
+        border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 7px 10px;
+        font: inherit; cursor: pointer;
+      }
+      .h-reset:hover { background: var(--paper); }
+
+      .h-keys { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 11.5px; }
+      .h-keys dt { color: var(--ink); font-family: ui-monospace, Menlo, monospace; }
+      .h-keys dd { margin: 0; color: var(--muted); }
+
+      .h-stage { overflow: auto; padding: 28px; }
+      .h-stage-inner { display: inline-block; }
+
+      .h-readout { display: grid; gap: 6px; }
+      .h-readout > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+      .h-readout span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+      .h-readout strong { font-family: ui-monospace, Menlo, monospace; font-weight: 500; font-size: 12px; text-align: right; }
+      .h-readout em { color: var(--muted); font-style: normal; font-size: 10px; }
+
+      .h-valid { font-size: 11.5px; padding: 7px 9px; border-radius: 6px; white-space: pre-wrap; }
+      .h-valid.ok { background: #eaf6ef; color: var(--good); }
+      .h-valid.bad { background: #fdecec; color: var(--bad); }
+
+      pre {
+        margin: 0; background: #fbfbfa; border: 1px solid var(--line); border-radius: 6px;
+        padding: 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px;
+        line-height: 1.5; overflow: auto; max-height: 46vh; tab-size: 2;
+      }
+
+      .h-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 11.5px; }
+      .h-log li { color: var(--muted); }
+      .h-log code { color: var(--ink); margin-right: 6px; }
+      .h-log em { font-style: normal; opacity: 0.6; }
+      .h-log strong { color: var(--accent); font-weight: 500; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./harness.js"></script>
+  </body>
+</html>

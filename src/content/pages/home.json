@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Ryan Choi (최진혁)",
+    "slug": "home",
+    "date": "2026-10-09",
+    "section": "home"
+  },
+  "bands": [
+    {
+      "id": "b_hero",
+      "type": "canvas",
+      "height": 824,
+      "items": [
+        {
+          "id": "i_hero",
+          "kind": "image",
+          "src": "/home/hero.webp",
+          "alt": "A Korean 원고지 manuscript grid filled with hand-drawn scenes from Ryan Choi's life, from a toddler swinging a golf club to a desk overlooking San Francisco.",
+          "x": 0,
+          "y": 0,
+          "w": 1344,
+          "h": 824,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "id": "b_intro",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Korea born, England raised, San Francisco based. Philosophy, Politics and Economics major at Warwick, spent two years carrying a machine gun for the Korean Missile Command, and spent a decade exploring how companies get built, bought, and sold — Tech M&A at SVB and Moelis, then CoS at Artie."
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I'm interested in arts, technology, philosophy, and the strange business of figuring out what makes a life meaningful. I'm particularly drawn to philosophy through film — the kind of movies that leave you baffled, then send you down an endless maze of questions. "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ],
+              "text": "Mulholland Drive, Get Out, Inception,"
+            },
+            {
+              "type": "text",
+              "text": " and "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ],
+              "text": "Coco"
+            },
+            {
+              "type": "text",
+              "text": " are a few favorites."
+            }
+          ]
+        },
+        {
+          "id": "p3",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Manchester United fan since 2007. Golfer since age 2, though the evidence remains inconclusive."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,546 @@
+---
+/**
+ * src/cms/preview/preview.astro  ->  /cms/preview/<path>
+ *
+ * WS-7, extended by WS-H. The chrome around the page: which section, which
+ * entry, which version, how wide, what changed.
+ *
+ * It is a document of its own, not the site's layout. The thing being
+ * previewed is the site; wrapping it in the site would mean two nav bars, two
+ * footers and two sets of webfonts, and a tool that is hard to tell apart from
+ * the thing it is inspecting. So this page is deliberately plain, in the
+ * system font, and the surface under inspection lives in an iframe:
+ * frame.astro, at /cms/preview/frame/<path>.
+ *
+ * The iframe is not a shortcut. It is the only way to check the 3.4 mobile
+ * fallback on a desktop: an iframe's width is a real viewport width, so a
+ * 390px-wide frame fires `@media (max-width: 900px)` exactly as a phone does,
+ * while this page stays wide enough to hold a toolbar.
+ *
+ * Everything is in the URL (see state.ts), so every control is a plain link
+ * and the page works with JavaScript off. client/chrome.ts upgrades those
+ * links into something better: switching width does not reload the frame at
+ * all, and switching version swaps only the iframe's src, so the scroll
+ * position survives and a small change can be found by flicking between the
+ * two.
+ *
+ * WS-H ADDED TWO ROWS to the toolbar and one branch to the change list:
+ *
+ *  - THE SECTIONS. Five links, one per section, from WS-A's registry. This
+ *    route does not know how many there are.
+ *  - THE ENTRIES. Which essay, which project, which album. A record section
+ *    whose entries have no page of their own (filmography) shows its films as
+ *    labels rather than links, because there is no `/filmography/<id>/` to
+ *    preview and offering one would be offering a page the site does not have.
+ *  - THE CHANGE LIST now takes a `SurfaceDiff`, which is the band diff for a
+ *    document, an entry diff for a film or album list, a photograph diff for
+ *    an album page and a row diff for an index. One loop, four producers.
+ *
+ * It also answers phase 1's frame URL, `/cms/preview/<slug>/frame`, with a
+ * redirect to the canonical one. See `legacyFramePath` for why that rule is
+ * narrow enough not to shadow a real `<section>/<key>`.
+ *
+ * Injected from astro.config.mjs under `withKeystatic`, like WS-C's endpoints
+ * and the Keystatic-era preview, so it never reaches the static Pages build.
+ */
+export const prerender = false;
+
+// The tool's own stylesheet, shared with the list route. Imported rather than
+// inlined so there is one copy of it and Vite hashes it.
+import './styles/chrome.css';
+
+import { getSection, isRecordSection } from '../sections.ts';
+import {
+  FRAME_BASE,
+  PREVIEW_BASE,
+  PREVIEW_WIDTHS,
+  frameHref,
+  legacyFramePath,
+  loginHref,
+  parseTheme,
+  parseVersion,
+  parseWidth,
+  previewHref,
+  resolveVersion,
+  versionLabel,
+  widthLabel,
+} from './state.ts';
+import {
+  diffAlbums,
+  diffLedger,
+  diffRecords,
+  outlineOfAlbum,
+  outlineOfRecords,
+  surfaceDiffOfDocs,
+} from './diff.ts';
+import type { SurfaceDiff } from './diff.ts';
+import { availabilityOf, loadTarget, problemsOf, resolveSource } from './source.ts';
+import {
+  cmsHrefOf,
+  entryTarget,
+  isSameTarget,
+  parseFailureMessage,
+  parseTargetPath,
+  pathSegments,
+  sectionNav,
+  sectionTarget,
+  siteHrefOf,
+  surfaceLabel,
+  targetPath,
+} from './target.ts';
+import { isPhotography } from '../schema.ts';
+import type { Album, RecordFile } from '../schema.ts';
+
+const rawPath = Astro.params.path ?? '';
+const segments = pathSegments(rawPath);
+
+/* -------------------------------------------------------------------------- */
+/* Phase 1's frame URL                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `/cms/preview/<project-slug>/frame` -> `/cms/preview/frame/<project-slug>`.
+ *
+ * Only that exact shape, because the first segment is checked against the
+ * registry: `/cms/preview/essays/frame` is an essay whose slug is `frame`, not
+ * the essays index framed, and resolving it the other way would make one
+ * pathological slug unreachable for no gain.
+ */
+const legacy = legacyFramePath(segments, (id) => getSection(id) !== null);
+if (legacy !== null) {
+  const query = Astro.url.search;
+  return Astro.redirect(`${FRAME_BASE}/${encodeURIComponent(legacy)}${query}`, 302);
+}
+
+/* -------------------------------------------------------------------------- */
+/* The target                                                                 */
+/* -------------------------------------------------------------------------- */
+
+const requested = parseVersion(Astro.url.searchParams.get('v'));
+const width = parseWidth(Astro.url.searchParams.get('w'));
+const theme = parseTheme(Astro.url.searchParams.get('theme'));
+
+const parsed = parseTargetPath(rawPath);
+const target = parsed.ok ? parsed.target : null;
+const nav = sectionNav();
+
+const load = target === null ? null : await loadTarget(Astro.cookies, target);
+// The toolbar says where the content came from even when nothing resolved, so
+// "not signed in" is not reported as "no such page".
+const source = load?.source ?? (await resolveSource(Astro.cookies));
+const available =
+  load === null ? { draft: false, published: false } : availabilityOf(load.content);
+const { version, substituted } = resolveVersion(requested, available);
+
+/* -------------------------------------------------------------------------- */
+/* What changed                                                               */
+/* -------------------------------------------------------------------------- */
+
+/** The album named by the target, out of whichever side of the collection. */
+function albumIn(file: RecordFile | null, key: string): Album | null {
+  if (file === null || !isPhotography(file)) return null;
+  return file.albums.find((album) => album.slug === key) ?? null;
+}
+
+const EMPTY_DIFF: SurfaceDiff = {
+  comparable: false,
+  identical: false,
+  meta: [],
+  rows: [],
+  counts: { added: 0, removed: 0, changed: 0, moved: 0, same: 0 },
+  summary: 'Nothing to preview.',
+};
+
+function diffOf(): SurfaceDiff {
+  if (load === null || target === null) return EMPTY_DIFF;
+  const content = load.content;
+
+  if (content.surface === 'document') {
+    return surfaceDiffOfDocs(content.draft, content.published);
+  }
+  if (content.surface === 'ledger') {
+    return diffLedger(content.draft, content.published, target.section.noun);
+  }
+  if (!isRecordSection(target.section)) return EMPTY_DIFF;
+  const def = target.section.records;
+
+  if (target.surface === 'album') {
+    const draft = albumIn(content.draft, target.key);
+    const published = albumIn(content.published, target.key);
+    const diff = diffAlbums(draft, published);
+    // One side missing is "no draft", not "no album": show the outline of
+    // whichever side is there so the panel is a list of photographs rather
+    // than blank.
+    if (!diff.comparable && diff.rows.length === 0) {
+      return { ...diff, rows: outlineOfAlbum(draft ?? published) };
+    }
+    return diff;
+  }
+
+  const diff = diffRecords(content.draft, content.published, def);
+  if (!diff.comparable && diff.rows.length === 0) {
+    return { ...diff, rows: outlineOfRecords(content.draft ?? content.published, def) };
+  }
+  return diff;
+}
+
+const diff = diffOf();
+const changedRows = diff.rows.filter((row) => row.status !== 'same');
+const openPanel = changedRows.length > 0;
+
+/** Only link a row the version on screen actually contains. */
+const inView = (row: (typeof diff.rows)[number]): boolean =>
+  version === 'draft' ? row.draftIndex !== null : row.publishedIndex !== null;
+
+/**
+ * A document's rows are bands with ids in the markup, so the chrome scrolls to
+ * one by id. Every other surface's rows are the Nth box of a selector, so it
+ * scrolls by index — and the index is the one for the version on screen.
+ */
+const scrollIndexOf = (row: (typeof diff.rows)[number]): string | null => {
+  const index = version === 'published' ? row.publishedIndex : row.draftIndex;
+  return index === null ? null : String(index);
+};
+const rowsAreBands = load?.content.surface === 'document';
+
+/* -------------------------------------------------------------------------- */
+/* Labels and links                                                           */
+/* -------------------------------------------------------------------------- */
+
+const path = target === null ? rawPath : targetPath(target);
+const here = previewHref(path, { version, width, theme });
+
+/**
+ * Whether there is a page to put in the frame.
+ *
+ * A LIST SURFACE EXISTS EVEN WHEN IT IS EMPTY, and that is not a technicality:
+ * `renderPhotography([])` reproduces the live "Currently developing" state
+ * entity for entity, and an essays index with nothing published renders
+ * "Nothing published yet. Soon." Those are real pages and the ones most worth
+ * checking before the first entry is written. A document is the opposite: no
+ * file means no page, and the chrome says so rather than framing a blank.
+ */
+const listSurface =
+  target !== null && (target.surface === 'ledger' || target.surface === 'films' || target.surface === 'albums');
+const frameSrc =
+  target === null || (version === null && !listSurface)
+    ? null
+    : frameHref(path, { version, theme });
+
+const entryKey = target?.key ?? null;
+const entryTitle =
+  entryKey === null
+    ? null
+    : (load?.entries.find((entry) => entry.key === entryKey)?.title ?? entryKey);
+const title =
+  target === null ? 'Nothing to preview' : (entryTitle ?? target.section.label);
+
+const problems = load === null ? [] : problemsOf(load);
+if (!parsed.ok) problems.push(parseFailureMessage(parsed.reason));
+
+/** Entries that can be previewed on their own, as links; the rest as labels. */
+const entryLinks =
+  target === null || load === null
+    ? []
+    : load.entries.map((entry) => {
+        const entryFor = entryTarget(target.section, entry.key);
+        return {
+          entry,
+          href:
+            entryFor === null
+              ? null
+              : previewHref(targetPath(entryFor), { version: null, width, theme }),
+          current: entryKey === entry.key,
+        };
+      });
+
+const showEntries = target !== null && target.section.shape === 'collection';
+/** The section's own page, which for a collection is its index. */
+const sectionOwnHref =
+  target === null
+    ? null
+    : previewHref(targetPath(sectionTarget(target.section)), { version: null, width, theme });
+
+const STATUS_LABEL: Record<string, string> = {
+  added: 'added',
+  removed: 'removed',
+  changed: 'edited',
+  moved: 'moved',
+  same: '',
+};
+---
+
+<!doctype html>
+<html lang="en" data-pv-ready="0">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{`Preview — ${title}`}</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="data:," />
+  </head>
+
+  <body>
+    <div
+      id="pv"
+      data-path={path}
+      data-section={target?.section.id ?? ''}
+      data-surface={target?.surface ?? 'none'}
+      data-version={version ?? ''}
+      data-width={String(width)}
+      data-theme={theme ?? ''}
+      data-has-draft={available.draft ? '1' : '0'}
+      data-has-published={available.published ? '1' : '0'}
+    >
+      <header class="pv-bar">
+        <div class="pv-id">
+          <span class="pv-title">{title}</span>
+          <span class="pv-slug">{target === null ? rawPath : surfaceLabel(target)}</span>
+          <a class="pv-link" href={PREVIEW_BASE}>all sections</a>
+          {target !== null && (
+            <a class="pv-link" href={cmsHrefOf(target)}>edit ↗</a>
+          )}
+          {target !== null && (
+            <a class="pv-link" href={siteHrefOf(target)} target="_blank" rel="noopener">
+              live ↗
+            </a>
+          )}
+          {frameSrc !== null && (
+            <a class="pv-link" href={frameSrc} target="_blank" rel="noopener">frame only ↗</a>
+          )}
+        </div>
+
+        <div class="pv-group" role="group" aria-label="Version">
+          <span class="pv-group-label">Version</span>
+          {(['draft', 'published'] as const).map((which) => {
+            const has = available[which];
+            const differs = diff.comparable && !diff.identical;
+            return (
+              <a
+                class="pv-btn"
+                data-pv-version={has ? which : undefined}
+                href={has ? previewHref(path, { version: which, width, theme }) : '#'}
+                aria-pressed={String(version === which)}
+                aria-disabled={has ? undefined : 'true'}
+                title={has ? undefined : `There is no ${which} version of this.`}
+              >
+                {versionLabel(which)}
+                {!has && <span class="pv-btn-sub">none</span>}
+                {has && differs && version !== which && <span class="pv-dot" aria-hidden="true"></span>}
+              </a>
+            );
+          })}
+        </div>
+
+        <div class="pv-group" role="group" aria-label="Width">
+          <span class="pv-group-label">Width</span>
+          {PREVIEW_WIDTHS.map((preset) => (
+            <a
+              class="pv-btn"
+              data-pv-width={String(preset)}
+              href={previewHref(path, { version, width: preset, theme })}
+              aria-pressed={String(width === preset)}
+              title={`${preset}px — ${widthLabel(preset)}`}
+            >
+              {preset}
+              <span class="pv-btn-sub">{widthLabel(preset)}</span>
+            </a>
+          ))}
+        </div>
+
+        <div class="pv-group" role="group" aria-label="Theme">
+          <span class="pv-group-label">Theme</span>
+          {(
+            [
+              ['', 'Auto'],
+              ['light', 'Light'],
+              ['dark', 'Dark'],
+            ] as const
+          ).map(([value, label]) => (
+            <a
+              class="pv-btn"
+              data-pv-theme={value}
+              href={previewHref(path, {
+                version,
+                width,
+                theme: value === '' ? null : value,
+              })}
+              aria-pressed={String((theme ?? '') === value)}
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+      </header>
+
+      {/* The site, as sections. From WS-A's registry, so this row does not
+          know how many there are. */}
+      <nav class="pv-sections" aria-label="Section">
+        {nav.map((item) => (
+          <a
+            class="pv-tab"
+            href={previewHref(targetPath(item.target), { version: null, width, theme })}
+            aria-current={
+              target !== null && target.section.id === item.section.id ? 'page' : undefined
+            }
+            aria-pressed={String(target !== null && isSameTarget(target, item.target))}
+          >
+            {item.section.label}
+          </a>
+        ))}
+      </nav>
+
+      {showEntries && target !== null && (
+        <nav class="pv-entries" aria-label={`${target.section.label} entries`}>
+          <span class="pv-group-label">{`${target.section.noun}s`}</span>
+          {sectionOwnHref !== null && (
+            <a
+              class="pv-pill"
+              href={sectionOwnHref}
+              aria-pressed={String(entryKey === null)}
+            >
+              {target.section.label} index
+            </a>
+          )}
+          {entryLinks.length === 0 && <span class="pv-pill-empty">nothing here yet</span>}
+          {entryLinks.map((link) =>
+            link.href === null ? (
+              <span class="pv-pill pv-pill--flat" title="This has no page of its own.">
+                {link.entry.title}
+              </span>
+            ) : (
+              <a class="pv-pill" href={link.href} aria-pressed={String(link.current)}>
+                {link.entry.title}
+                {link.entry.hasDraft && !link.entry.hasPublished && (
+                  <span class="pv-badge" data-kind="draft">draft</span>
+                )}
+              </a>
+            ),
+          )}
+        </nav>
+      )}
+
+      <div class="pv-meta">
+        <span class="pv-source">{source.label}</span>
+        <span id="pv-readout">measuring…</span>
+        <span>frame at <strong id="pv-zoom">100%</strong></span>
+        <span class="pv-keys">
+          <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> width · <kbd>d</kbd>/<kbd>p</kbd> version ·
+          <kbd>t</kbd> toggle
+        </span>
+      </div>
+
+      {source.kind === 'none' && (
+        <p class="pv-notice">
+          Not signed in, so there is nothing to read.{' '}
+          <a class="pv-link" href={loginHref(here)}>Connect GitHub</a> to preview what is in the
+          repository.
+        </p>
+      )}
+
+      {substituted && requested !== null && (
+        <p class="pv-notice">
+          There is no {requested} version of this, so this is the{' '}
+          {version === null ? 'nothing' : versionLabel(version).toLowerCase()}.
+          {requested === 'draft' && ' Publishing deletes the draft, so this is what you see after publishing.'}
+        </p>
+      )}
+
+      {problems.map((problem) => (
+        <p class="pv-notice">
+          <strong>Could not load that cleanly.</strong>
+          <pre>{problem}</pre>
+        </p>
+      ))}
+
+      <details class="pv-changes" open={openPanel}>
+        <summary>
+          {diff.comparable
+            ? diff.summary
+            : diff.rows.length === 0
+              ? diff.summary
+              : `${diff.summary} ${diff.rows.length} ${diff.rows.length === 1 ? 'row' : 'rows'}.`}
+        </summary>
+
+        {diff.meta.length > 0 && (
+          <ul class="pv-meta-rows">
+            {diff.meta.map((entry) => (
+              <li class="pv-meta-row">
+                <span class="pv-row-kind">{entry.field}</span>
+                <span class="pv-meta-was">{entry.published ?? '—'}</span>
+                <span class="pv-meta-arrow" aria-hidden="true">→</span>
+                <span class="pv-meta-now">{entry.draft ?? '—'}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {diff.rows.length > 0 && (
+          <ul class="pv-rows">
+            {diff.rows.map((row) => {
+              const index = scrollIndexOf(row);
+              const linkable = inView(row) && (rowsAreBands || index !== null);
+              return (
+                <li class="pv-row" data-status={row.status}>
+                  {linkable ? (
+                    <button
+                      class="pv-row-btn"
+                      type="button"
+                      data-pv-band={rowsAreBands ? row.id : undefined}
+                      data-pv-entry={rowsAreBands ? undefined : index}
+                    >
+                      <span class="pv-chip" data-status={row.status}>{STATUS_LABEL[row.status]}</span>
+                      <span class="pv-row-kind">{row.kind}</span>
+                      <span class="pv-row-label">{row.label}</span>
+                    </button>
+                  ) : (
+                    <>
+                      <span class="pv-chip" data-status={row.status}>{STATUS_LABEL[row.status]}</span>
+                      <span class="pv-row-kind">{row.kind}</span>
+                      <span class="pv-row-label">{row.label}</span>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </details>
+
+      <div class="pv-stage" id="pv-stage">
+        {frameSrc !== null ? (
+          <div class="pv-viewport" id="pv-viewport" style={`width:${width}px;height:1200px`}>
+            <iframe
+              class="pv-frame"
+              id="pv-frame"
+              src={frameSrc}
+              title={`Preview of ${title}`}
+              style={`width:${width}px;height:1200px`}
+            ></iframe>
+          </div>
+        ) : (
+          <div class="pv-empty">
+            <h1>Nothing to preview</h1>
+            {!parsed.ok ? (
+              <p>{parseFailureMessage(parsed.reason)}</p>
+            ) : source.kind === 'none' ? (
+              <p>Sign in and this page will show whatever is in the repository.</p>
+            ) : (
+              <p>
+                There is no draft and no published {target?.section.noun ?? 'page'} at{' '}
+                <strong>{path}</strong>. Save a draft in the editor and it will appear here.
+              </p>
+            )}
+            <p><a class="pv-link" href={PREVIEW_BASE}>Back to the list of sections</a></p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <script>
+      import { initPreviewChrome } from './client/chrome.ts';
+
+      initPreviewChrome();
+    </script>
+  </body>
+</html>
