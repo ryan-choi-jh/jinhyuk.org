@@ -1,36 +1,18 @@
 ---
+/**
+ * The projects index, from the metadata of `src/content/pages/projects/*.json`.
+ *
+ * Was the Keystatic reader over `src/content/projects/*.mdoc`. The markup, the
+ * date format (2026.07, to the month), the `.ledger-summary` line and the
+ * empty line are the renderer's now (src/cms/render/pages/ledger.ts).
+ */
 import Base from '../../layouts/Base.astro';
-import { createReader } from '@keystatic/core/reader';
-import keystaticConfig from '../../../keystatic.config';
+import { ledgerItemsFromMetas, renderLedgerPage } from '../../cms/render/index.ts';
+import { projectMetas } from '../../lib/site-content.ts';
 
-const reader = createReader(process.cwd(), keystaticConfig);
-
-const projects = (await reader.collections.projects.all())
-  .filter((p) => !p.entry.draft)
-  .sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1));
-
-// Projects show year and month: 2026.07
-const fmt = (d: string) => d.slice(0, 7).replace('-', '.');
+const body = renderLedgerPage(ledgerItemsFromMetas(projectMetas(), 'projects'), 'projects');
 ---
 
 <Base title="Projects" description="Things Ryan Choi has built.">
-  <div class="masthead">
-    <h1>Projects</h1>
-  </div>
-
-  {projects.length === 0 ? (
-    <p class="empty">Nothing here yet. Soon.</p>
-  ) : (
-    <ul class="ledger">
-      {projects.map(({ slug, entry }) => (
-        <li>
-          <div class="ledger-body">
-            <a class="ledger-title" href={`/projects/${slug}/`}>{entry.title}</a>
-            {entry.summary && <span class="ledger-summary">{entry.summary}</span>}
-          </div>
-          <span class="ledger-date">{fmt(entry.date)}</span>
-        </li>
-      ))}
-    </ul>
-  )}
+  <Fragment set:html={body} />
 </Base>

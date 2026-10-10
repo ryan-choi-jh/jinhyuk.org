@@ -1,46 +1,24 @@
 ---
+/**
+ * The photography index, from `src/content/data/photography.json`.
+ *
+ * Was `src/data/photography.ts`, TypeScript source with an empty list in it.
+ * The renderer chooses between the same two states the live page chooses
+ * between (src/cms/render/pages/photography.ts): the "currently developing"
+ * illustration while there are no albums, and the `.cards--thirds` tile grid
+ * once there are. The one change phase 2 asks for is that a tile is now a link
+ * to the album's own page (docs/cms-sections.md 3.4), which is why
+ * sections.css is here: it holds `.card-link` and nothing the empty state
+ * touches.
+ */
 import Base from '../../layouts/Base.astro';
-import { albums } from '../../data/photography';
+import '../../cms/styles/sections.css';
+import { renderPhotography } from '../../cms/render/index.ts';
+import { albums } from '../../lib/site-content.ts';
+
+const body = renderPhotography(albums());
 ---
 
 <Base title="Photography" description="Photographs by Ryan Choi.">
-  <div class="masthead">
-    <h1>Photography</h1>
-  </div>
-
-  {albums.length === 0 ? (
-    <div class="empty-state">
-      <img
-        class="empty-art"
-        src="/photography/placeholder.webp"
-        alt="A drawing of Ryan Choi in a cable-knit sweater, camera raised to his eye, photographing hot air balloons over the rock spires of Cappadocia."
-        width="1200"
-        height="918"
-        loading="lazy"
-        decoding="async"
-      />
-      <div class="empty-text">
-        <p class="empty-label">Currently developing</p>
-        <p class="empty-note">
-          An empty gallery is a bold artistic statement.<br class="brk-wide" />
-          Unfortunately, it wasn&rsquo;t intentional.<br class="brk-narrow" />
-          The film photos are on their way.
-        </p>
-      </div>
-    </div>
-  ) : (
-    <ul class="cards cards--thirds">
-      {albums.map((album) => (
-        <li class="card">
-          <div class="card-media">
-            {album.cover && <img src={album.cover} alt={album.title} loading="lazy" />}
-          </div>
-          <div class="card-text">
-            <span class="card-title">{album.title}</span>
-            <span class="card-meta">{album.year}</span>
-          </div>
-        </li>
-      ))}
-    </ul>
-  )}
+  <Fragment set:html={body} />
 </Base>

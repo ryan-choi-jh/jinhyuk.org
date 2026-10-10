@@ -1,32 +1,19 @@
 ---
+/**
+ * The essays index, from the metadata of `src/content/pages/essays/*.json`.
+ *
+ * Was `getCollection('writing')`. The markup, the date format (2026.06.09, to
+ * the day) and the empty line are the renderer's now
+ * (src/cms/render/pages/ledger.ts), which also sorts newest first, so this
+ * page is the data source and nothing else.
+ */
 import Base from '../../layouts/Base.astro';
-import { getCollection } from 'astro:content';
+import { ledgerItemsFromMetas, renderLedgerPage } from '../../cms/render/index.ts';
+import { essayMetas } from '../../lib/site-content.ts';
 
-const posts = (await getCollection('writing'))
-  .filter((p) => !p.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
-
-// Essays show the full date: 2026.06.09
-const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '.');
+const body = renderLedgerPage(ledgerItemsFromMetas(essayMetas(), 'essays'), 'essays');
 ---
 
 <Base title="Essays" description="Essays by Ryan Choi.">
-  <div class="masthead">
-    <h1>Essays</h1>
-  </div>
-
-  {posts.length === 0 ? (
-    <p class="empty">Nothing published yet. Soon.</p>
-  ) : (
-    <ul class="ledger">
-      {posts.map((post) => (
-        <li>
-          <div class="ledger-body">
-            <a class="ledger-title" href={`/essays/${post.id}/`}>{post.data.title}</a>
-          </div>
-          <span class="ledger-date">{fmt(post.data.date)}</span>
-        </li>
-      ))}
-    </ul>
-  )}
+  <Fragment set:html={body} />
 </Base>

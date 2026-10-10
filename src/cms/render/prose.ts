@@ -245,6 +245,51 @@ function renderListItems(nodes: unknown[]): string {
   return parts.join('');
 }
 
+/**
+ * The `id` a heading carries, so `#fragment` links into an essay keep
+ * resolving. The markdown pipeline the site used put one on every heading, and
+ * without it every link anyone has ever shared into the middle of an essay
+ * breaks silently.
+ *
+ * The rule matches github-slugger, which is what the old pipeline used:
+ * lower-cased, apostrophes dropped rather than replaced, every other run of
+ * non-alphanumerics collapsed to a single hyphen, and the ends trimmed.
+ * Checked against the live page: "If I'm chasing who I become, any problem
+ * will do — and that's the danger" gives
+ * "if-im-chasing-who-i-become-any-problem-will-do--and-thats-the-danger",
+ * including the double hyphen where the em dash sat between two spaces.
+ */
+export function headingSlug(text: string): string {
+  return text
+    .toLowerCase()
+    // Punctuation is deleted, not replaced, which is why "I'm" slugs to "im".
+    .replace(/[^a-z0-9\s]/g, '')
+    // Then each space becomes a hyphen, and runs are NOT collapsed. An em dash
+    // sat between two spaces leaves two spaces behind and therefore "--",
+    // which is what the live page has.
+    .replace(/\s/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/** The plain text of an inline tree, for slugging a heading. */
+function inlineText(content: unknown): string {
+  const out: string[] = [];
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node === null || typeof node !== 'object') return;
+    const record = node as Record<string, unknown>;
+    if (record['type'] === 'text' && typeof record['text'] === 'string') {
+      out.push(record['text']);
+    }
+    Object.values(record).forEach(walk);
+  };
+  walk(content);
+  return out.join('');
+}
+
 /** Element name and class for each block kind. One table, so the CSS selectors
  *  and the markup cannot drift. */
 const BLOCK_SHELL: Readonly<Record<ProseBlockKind, { tag: string; className: string }>> = {
@@ -282,7 +327,16 @@ export function renderProseBlock(block: ProseBlock): string {
       break;
   }
 
-  return `<${shell.tag} class="${shell.className}"${attr('data-block-id', block.id)}>${inner}</${shell.tag}>`;
+  // A heading also gets the id the markdown pipeline used to give it, so
+  // links into the middle of an essay survive the move.
+  const headingId =
+    block.kind === 'h2' || block.kind === 'h3' ? headingSlug(inlineText(content)) : '';
+
+  return (
+    `<${shell.tag} class="${shell.className}"` +
+    (headingId === '' ? '' : attr('id', headingId)) +
+    `${attr('data-block-id', block.id)}>${inner}</${shell.tag}>`
+  );
 }
 
 /** One prose band: blocks in document order, in normal flow (brief 2.2). */

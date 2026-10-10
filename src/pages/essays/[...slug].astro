@@ -1,45 +1,38 @@
 ---
+/**
+ * One essay, from `src/content/pages/essays/<slug>.json`.
+ *
+ * Was the `writing` content collection: markdown rendered by Astro, with the
+ * title, the date, the summary and the end-of-post buttons written out here.
+ * All four are the renderer's now. `renderDocPage` is `renderDocHead` plus
+ * `renderDoc`, which is the masthead, the body and `meta.buttons` — the same
+ * three pieces in the same order, with doc.css holding them to the live
+ * essay's typography (`.doc--essays`, src/cms/styles/doc.css).
+ *
+ * There is no `<article>` wrapper any more, and there must not be:
+ * `article { max-width: 720px }` would cap the whole document at the reading
+ * measure, and an essay can hold a canvas band now (docs/cms-sections.md 3.1)
+ * that needs the full column. The measure moved onto the blocks, which is
+ * where `.project-body > p` already had it.
+ */
 import Base from '../../layouts/Base.astro';
-import { getCollection, render } from 'astro:content';
+import '../../cms/styles/doc.css';
+import { renderDocPage } from '../../cms/render/index.ts';
+import { essayDocs } from '../../lib/site-content.ts';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('writing');
-  return posts
-    .filter((p) => !p.data.draft)
-    .map((post) => ({ params: { slug: post.id }, props: { post } }));
+  return essayDocs().map((doc) => ({ params: { slug: doc.meta.slug }, props: { doc } }));
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
-
-const buttons = post.data.buttons ?? [];
-const isExternal = (href: string) => /^https?:\/\//.test(href);
-
-const fmt = (d: Date) =>
-  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const { doc } = Astro.props;
+const body = renderDocPage(doc);
 ---
 
-<Base title={post.data.title} description={post.data.title}>
-  <article class="post-content">
-    <h1>{post.data.title}</h1>
-    <p class="post-meta">{fmt(post.data.date)}</p>
-    {post.data.summary && <p class="lead post-lead">{post.data.summary}</p>}
-    <Content />
-
-    {buttons.length > 0 && (
-      <div class="essay-buttons">
-        {buttons.map((b) => (
-          <a
-            class="button"
-            href={b.href}
-            {...(isExternal(b.href)
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {})}
-          >
-            {b.label}
-          </a>
-        ))}
-      </div>
-    )}
-  </article>
+<Base title={doc.meta.title} description={doc.meta.title}>
+  <Fragment set:html={body} />
 </Base>
+
+<script>
+  import { initDocConnectors } from '../../cms/render/connectors.ts';
+  initDocConnectors();
+</script>

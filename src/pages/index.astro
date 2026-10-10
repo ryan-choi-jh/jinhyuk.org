@@ -1,123 +1,31 @@
 ---
+/**
+ * The homepage, from `src/content/pages/home.json`.
+ *
+ * Was `src/content/home.yaml` read through the Keystatic reader, with the hero
+ * illustration, the enlarge overlay and their script written out here by hand.
+ * All four are the renderer's now: `renderDoc` sees `meta.section: "home"` and
+ * builds the site's own `.hero`, `.hero-hint`, `.intro` and `.lightbox`
+ * (src/cms/render/pages/home.ts), and `initLightboxes` is the inline script
+ * from this file, ported into a module the album page shares.
+ *
+ * doc.css is imported because a band after the hero and the intro renders as
+ * an ordinary document (docs/cms-sections.md 3.2). Every one of its rules is
+ * scoped under `.doc`, so it cannot reach the hero or the intro.
+ */
 import Base from '../layouts/Base.astro';
-import { createReader } from '@keystatic/core/reader';
-import keystaticConfig from '../../keystatic.config';
+import '../cms/styles/doc.css';
+import { renderDoc } from '../cms/render/index.ts';
+import { homeDoc } from '../lib/site-content.ts';
 
-// Read the editable home-page content (name + intro) that Keystatic manages.
-const reader = createReader(process.cwd(), keystaticConfig);
-const home = await reader.singletons.home.read();
-
-const name = home?.name ?? 'Ryan Choi (최진혁)';
-
-// The intro is a plain textarea in the editor. Blank lines separate
-// paragraphs, and *asterisks* mark italics (used for film titles).
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-const inlineItalics = (s: string) =>
-  escapeHtml(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-const introParagraphs = (home?.intro ?? '')
-  .split(/\n\s*\n/)
-  .map((p) => p.trim().replace(/\s*\n\s*/g, ' '))
-  .filter(Boolean)
-  .map(inlineItalics);
+const body = renderDoc(homeDoc());
 ---
 
 <Base description="Ryan (Jin Hyuk) Choi — Korea born, England raised, San Francisco based.">
-  <div class="hero" tabindex="-1">
-    <button class="hero-open" type="button" aria-label="Enlarge the illustration">
-      <img
-        src="/home/hero.webp"
-        alt="A Korean 원고지 manuscript grid filled with hand-drawn scenes from Ryan Choi's life, from a toddler swinging a golf club to a desk overlooking San Francisco."
-        width="2688"
-        height="1648"
-        fetchpriority="high"
-        decoding="async"
-      />
-    </button>
-  </div>
-
-  <span class="hero-hint">TAP THE GRID TO ENLARGE</span>
-
-  <div class="intro">
-    <p class="name">{name}</p>
-    {introParagraphs.map((html) => <p set:html={html} />)}
-  </div>
-
-  <div class="lightbox" id="hero-lightbox" tabindex="-1" role="dialog" aria-modal="true" aria-label="Illustration, enlarged">
-    <div class="lightbox-stage">
-      <img src="/home/hero.webp" alt="" width="2688" height="1648" loading="lazy" decoding="async" />
-    </div>
-    <button class="lightbox-close" type="button" aria-label="Close">
-      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-        <path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
-    </button>
-    <span class="lightbox-hint">DRAG &amp; PINCH</span>
-  </div>
-
-  <script is:inline>
-    (function () {
-      var box = document.getElementById('hero-lightbox');
-      var hero = document.querySelector('.hero');
-      var open = document.querySelector('.hero-open');
-      var close = box && box.querySelector('.lightbox-close');
-      var stage = box && box.querySelector('.lightbox-stage');
-      if (!box || !hero || !open || !close || !stage) return;
-
-      function show() {
-        box.classList.add('is-open');
-        document.body.classList.add('is-locked');
-        // Start in the middle of the illustration rather than at its left edge.
-        stage.scrollLeft = (stage.scrollWidth - stage.clientWidth) / 2;
-        // Focus the overlay, not the close button: Safari counts a
-        // programmatic focus as keyboard-ish and would draw the button's
-        // focus ring over the artwork before anyone has touched it. A
-        // keyboard user tabs from here to the button and gets the ring.
-        box.focus();
-      }
-
-      function hide() {
-        box.classList.remove('is-open');
-        document.body.classList.remove('is-locked');
-        // Same reason: back to the hero container, so no ring is painted
-        // around the illustration. Tab from there reaches the trigger.
-        hero.focus();
-      }
-
-      // Enlarging is for touch devices and small windows only; on a
-      // desktop the grid is already legible, so the hero is inert there
-      // and stays out of the tab order.
-      var canZoom = window.matchMedia('(pointer: coarse), (max-width: 1024px)');
-
-      function syncTrigger() {
-        // Tab order only — don't aria-hide it, or the illustration's alt
-        // text disappears from screen readers along with the button.
-        open.tabIndex = canZoom.matches ? 0 : -1;
-      }
-
-      open.addEventListener('click', function () {
-        if (canZoom.matches) show();
-      });
-
-      try {
-        canZoom.addEventListener('change', syncTrigger);
-      } catch (e) {
-        /* older browsers: the resize listener and click guard still hold */
-      }
-      window.addEventListener('resize', syncTrigger);
-      syncTrigger();
-      close.addEventListener('click', hide);
-
-      // Clicking the backdrop closes; clicking the illustration itself doesn't.
-      box.addEventListener('click', function (e) {
-        if (e.target === box || e.target === stage) hide();
-      });
-
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && box.classList.contains('is-open')) hide();
-      });
-    })();
-  </script>
+  <Fragment set:html={body} />
 </Base>
+
+<script>
+  import { initLightboxes } from '../cms/render/lightbox.ts';
+  initLightboxes();
+</script>

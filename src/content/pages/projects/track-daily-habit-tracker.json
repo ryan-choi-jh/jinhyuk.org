@@ -4,6 +4,7 @@
     "title": "Track: Daily Habit Tracker",
     "slug": "track-daily-habit-tracker",
     "date": "2026-07-07",
+    "section": "projects",
     "summary": "A minimalist habit tracker that makes showing up fun by turning your daily check-ins into a GitHub-style contribution heatmap.",
     "url": "https://habit-tracker-xi-gilt.vercel.app/welcome"
   },

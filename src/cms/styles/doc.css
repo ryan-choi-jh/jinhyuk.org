@@ -165,8 +165,12 @@
   margin-bottom: 0;
 }
 
+/* The live page has no rule for this: the UA's `bolder` against the body's
+   300 resolves to 400, so bold text is only one step heavier. Matching it
+   keeps the cutover a change of data source. 600 is the better-looking value
+   and a one-line change if that is wanted as a deliberate decision. */
 .doc strong {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 /* Underlined in running prose only, the way global.css does it: a hairline
@@ -372,6 +376,15 @@
    none of these selectors and is untouched.
    --------------------------------------------------------------------------- */
 
+/* A project page's reading column is a flat 720px live (`.project-body > p`),
+   not a scaled one. Without this, at 1100px the column measured 530px and the
+   page came out 700px shorter than the published one. `.doc--essays` already
+   had this for the same reason; projects had no equivalent. */
+.doc--projects {
+  --doc-measure-cq: 720px;
+  --doc-measure-quote-cq: 900px;
+}
+
 /* `article` has no padding above its body; `.project-body` has 8px. */
 .doc--essays {
   padding-top: 0;
@@ -480,6 +493,22 @@
    --------------------------------------------------------------------------- */
 
 @media (max-width: 900px) {
+  /* The type scale, which this block used to leave alone. global.css drops
+     `body` to 14/24 below the breakpoint and the live article inherits it, so
+     a document that stayed at 17.5/35 rendered every essay and project page
+     about 60% taller than the published one. Measured against the live page at
+     390: paragraphs and quotes are 14/24, and a heading does not change. */
+  .doc {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .doc-quote {
+    font-size: 14px;
+    line-height: 24px;
+    letter-spacing: -0.01em;
+  }
+
   .doc {
     /* A rotated item at full width sticks out past its own box: a 294px-wide
        screenshot turned 5 degrees reaches about 27px beyond each edge. clip
@@ -556,6 +585,18 @@
     margin-bottom: 20px;
   }
 
+  /* An essay's quote is deliberately body-sized rather than the 26px display
+     quote, and `.doc--essays .doc-quote` sets that at two classes. A mobile
+     rule written at one class cannot reach it, so the quote stayed at 17.5/35
+     while everything around it stepped down, and that one block accounted for
+     the whole 169px an essay was running long at 390. */
+  .doc--essays .doc-quote,
+  .doc--essays .doc-quote p {
+    font-size: 14px;
+    line-height: 24px;
+    letter-spacing: -0.02em;
+  }
+
   /* Nothing is placed beside the text below the breakpoint — the canvas has
      become a list — so the scaling measure an essay's canvas earned goes
      back to the column. It needs saying again at this specificity: a media
@@ -568,4 +609,15 @@
   .doc--essays.doc--canvas .doc-quote {
     max-width: min(720px, 100%);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Last-child margin
+   `.doc` is a container (`container-type: inline-size`), which establishes a
+   formatting context and stops the final block's bottom margin collapsing out
+   of it. Live, that margin collapses and the footer sits 120px below the last
+   line; here it was 147px. Dropping the trailing margin restores it.
+   --------------------------------------------------------------------------- */
+.doc > .doc-group:last-child > .doc-band:last-child > :last-child {
+  margin-bottom: 0;
 }

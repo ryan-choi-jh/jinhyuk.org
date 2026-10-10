@@ -1,13 +1,14 @@
 ---
-import { getCollection } from 'astro:content';
-
 // Old essay addresses (/writing/<slug>/) redirect to the new ones
 // (/essays/<slug>/) so existing links and bookmarks keep working.
+//
+// The slug list comes from the CMS's essay documents now, not from the
+// `writing` markdown collection, so the one thing this page is for — the list
+// of addresses that used to exist — tracks the essays that actually exist.
+import { essayDocs } from '../../lib/site-content.ts';
+
 export async function getStaticPaths() {
-  const posts = await getCollection('writing');
-  return posts
-    .filter((p) => !p.data.draft)
-    .map((post) => ({ params: { slug: post.id } }));
+  return essayDocs().map((doc) => ({ params: { slug: doc.meta.slug } }));
 }
 
 const { slug } = Astro.params;

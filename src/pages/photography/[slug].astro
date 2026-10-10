@@ -1,0 +1,42 @@
+---
+/**
+ * One album, at `/photography/<slug>/`.
+ *
+ * The only new surface on the site (docs/cms-sections.md 3.4): everything else
+ * in this cutover is an existing page changing where its content comes from.
+ * The page is `renderAlbumPage` — masthead, the justified photo grid, and the
+ * enlarge overlay — and `albumPageMeta` supplies the title and the description
+ * so this file does not invent either.
+ *
+ * `[slug]` and not `[...slug]`: an album slug is a single path segment, and a
+ * rest parameter can match the empty string, which would put this page in a
+ * fight with `./index.astro` over `/photography/`.
+ *
+ * With no albums in the collection this builds nothing, which is the state the
+ * site is in today.
+ */
+import Base from '../../layouts/Base.astro';
+import '../../cms/styles/sections.css';
+import { albumPageMeta, albumPagePaths, renderAlbumPage } from '../../cms/render/index.ts';
+import { albums } from '../../lib/site-content.ts';
+
+export async function getStaticPaths() {
+  return albumPagePaths(albums()).map(({ slug, album }) => ({
+    params: { slug },
+    props: { album },
+  }));
+}
+
+const { album } = Astro.props;
+const { title, description } = albumPageMeta(album);
+const body = renderAlbumPage(album);
+---
+
+<Base title={title} description={description}>
+  <Fragment set:html={body} />
+</Base>
+
+<script>
+  import { initLightboxes } from '../../cms/render/lightbox.ts';
+  initLightboxes();
+</script>

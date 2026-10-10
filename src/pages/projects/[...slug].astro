@@ -1,28 +1,37 @@
 ---
+/**
+ * One project page, from `src/content/pages/projects/<slug>.json`.
+ *
+ * Was `.mdoc` read through the Keystatic reader and rendered by
+ * `src/lib/project-doc.ts`. The body is `renderDoc` now; the masthead above it
+ * is still this page's own.
+ *
+ * The masthead stays here deliberately. `renderDocHead` exists and the essay
+ * page uses it, but a project's "Visit" link is not the same object: live it is
+ * `.project-link`, a 13px nav-face row on a hairline underline with an arrow
+ * glyph, and `renderDocHead` emits `.doc-visit`, a 15px row with a bold label
+ * and no arrow or rule. Swapping it would change how this page looks, and the
+ * cutover is a change of data source only. `renderDocHead` is explicitly
+ * optional and not part of the renderer contract (docs/cms-contracts.md 4), so
+ * a page is allowed to build its own header — this one does, out of `doc.meta`
+ * instead of out of Keystatic's entry.
+ *
+ * The `.project-body` wrapper is gone: `.doc` is that box now, with the same
+ * 8px of padding-top, and doc.css carries the measures and the link underlines
+ * that `.project-body > p` used to.
+ */
 import Base from '../../layouts/Base.astro';
-import { createReader } from '@keystatic/core/reader';
-import keystaticConfig from '../../../keystatic.config';
-import { renderProjectBody } from '../../lib/project-doc';
+import '../../cms/styles/doc.css';
+import { renderDoc } from '../../cms/render/index.ts';
+import { projectDocs } from '../../lib/site-content.ts';
 
 export async function getStaticPaths() {
-  const reader = createReader(process.cwd(), keystaticConfig);
-  const projects = await reader.collections.projects.all();
-  return Promise.all(
-    projects
-      .filter((p) => !p.entry.draft)
-      .map(async (p) => ({
-        params: { slug: p.slug },
-        props: {
-          project: p.entry,
-          // content() resolves to { node }, the Markdoc AST. Render it here
-          // so the page template stays about layout.
-          body: renderProjectBody((await p.entry.content()).node),
-        },
-      }))
-  );
+  return projectDocs().map((doc) => ({ params: { slug: doc.meta.slug }, props: { doc } }));
 }
 
-const { project, body } = Astro.props;
+const { doc } = Astro.props;
+const { meta } = doc;
+const body = renderDoc(doc);
 
 const fmt = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', {
@@ -42,28 +51,28 @@ const prettyUrl = (url: string) => {
 };
 ---
 
-<Base title={project.title} description={project.summary || project.title}>
+<Base title={meta.title} description={meta.summary || meta.title}>
   <article class="project">
-    <h1>{project.title}</h1>
-    <p class="post-meta">{fmt(project.date)}</p>
+    <h1>{meta.title}</h1>
+    <p class="post-meta">{fmt(meta.date)}</p>
 
-    {project.url && (
-      <a class="project-link" href={project.url} target="_blank" rel="noopener noreferrer">
+    {meta.url && (
+      <a class="project-link" href={meta.url} target="_blank" rel="noopener noreferrer">
         <span class="project-link-label">Visit</span>
-        <span class="project-link-url">{prettyUrl(project.url)}</span>
+        <span class="project-link-url">{prettyUrl(meta.url)}</span>
         <svg class="project-link-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M4.5 11.5 11.5 4.5M11.5 4.5H6M11.5 4.5V10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </a>
     )}
 
-    {project.summary && <p class="lead project-lead">{project.summary}</p>}
+    {meta.summary && <p class="lead project-lead">{meta.summary}</p>}
   </article>
 
-  <div class="project-body" set:html={body} />
-
-  <script>
-    import { initConnectors } from '../../scripts/connectors';
-    initConnectors();
-  </script>
+  <Fragment set:html={body} />
 </Base>
+
+<script>
+  import { initDocConnectors } from '../../cms/render/connectors.ts';
+  initDocConnectors();
+</script>
