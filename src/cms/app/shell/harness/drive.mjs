@@ -482,6 +482,55 @@ async function run(page) {
   console.log(`    shot  ${await page.shot('03-item-edited')}`);
 
   /* ---------------------------------------------------------------------- */
+  section('connectors are drawn over the editing surface');
+  {
+    // The fixture anchors i_dense_connector to a paragraph. Until this worked,
+    // an anchored item looked inert here and the curve only appeared in
+    // Preview — a strange way to find out the anchor had taken.
+    const conn = await page.evaluate(`(() => {
+      const svg = document.querySelector('.cms-surface .doc-connectors');
+      const paths = svg === null ? [] : [...svg.querySelectorAll('path')];
+      const inner = document.querySelector('.cms-surface__inner');
+      return {
+        svg: svg !== null,
+        paths: paths.length,
+        d: paths[0]?.getAttribute('d') ?? null,
+        hooked: document.querySelectorAll('.doc-item[data-anchor-block]').length,
+        seeded: document.querySelectorAll('[data-connector-seed]').length > 0,
+        breakpoint: getComputedStyle(inner).getPropertyValue('--doc-mobile-breakpoint').trim(),
+      };
+    })()`);
+    check('the overlay is in the surface', conn.svg);
+    check('the anchored item carries the hook the script looks for', conn.hooked === 1, `${conn.hooked}`);
+    check('and a wobble seed, so the curve matches the published one', conn.seeded);
+    check('the breakpoint is readable from the surface', conn.breakpoint === '900px', conn.breakpoint);
+    check('a curve is drawn', conn.paths === 1, `${conn.paths} path(s)`);
+
+    // Moving the item must move the line: that is the whole point of drawing
+    // it here rather than only in Preview.
+    await page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas' && b.items.some((i) => i.anchor));
+      const i = band.items.find((x) => x.anchor);
+      s.updateCanvasItem(band.id, i.id, { y: i.y + 90 });
+    })()`);
+    await page.settle();
+    await sleep(250);
+    const moved = await page.evaluate(
+      `document.querySelector('.cms-surface .doc-connectors path')?.getAttribute('d') ?? null`,
+    );
+    check('and it follows the item', moved !== null && moved !== conn.d);
+
+    await page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas' && b.items.some((i) => i.anchor));
+      const i = band.items.find((x) => x.anchor);
+      s.updateCanvasItem(band.id, i.id, { y: i.y - 90 });
+    })()`);
+    await page.settle();
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('a canvas band follows its contents');
   {
     // Non-destructive on purpose: this runs in the middle of the harness, and

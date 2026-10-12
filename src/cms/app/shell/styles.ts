@@ -346,7 +346,33 @@ export const SHELL_CSS = `
    .site-nav carries the same 48px even though it sits outside .wrap. Giving
    the inset to this one box hands it to the nav, the bands and the footer at
    once, exactly as the site does. */
-.cms-surface__inner { padding: 0 ${PAGE_GUTTER}px 80px; }
+.cms-surface__inner {
+  padding: 0 ${PAGE_GUTTER}px 80px;
+  /* The connector overlay is absolutely positioned against this box, and it
+     is also the root drawDocConnectors measures everything relative to. */
+  position: relative;
+  /* The script reads this to decide whether to draw at all: connectors are
+     not drawn in the mobile fallback. Same value and same property name as
+     src/cms/styles/doc.css, because it is the same script reading it. */
+  --doc-mobile-breakpoint: ${MOBILE_BREAKPOINT}px;
+}
+/* Copied from .doc-connectors in doc.css. Above the items, because a 1.6px
+   line vanishing under a screenshot reads as a bug. */
+.cms-surface .doc-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 50;
+}
+.cms-surface .doc-connectors path {
+  fill: none;
+  stroke: var(--accent, #ff5722);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
 /* The nothing-here line on a page with no bands. Its 72px of side padding was
    left over from when band boxes carried that inset; with the gutter on
    __inner it was indenting the message a further 72px past where any real

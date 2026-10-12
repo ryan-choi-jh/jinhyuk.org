@@ -29,8 +29,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { PAGE_WIDTH, REFERENCE_WIDTH } from '../../schema.ts';
+import { PAGE_WIDTH, REFERENCE_WIDTH, seedFromId } from '../../schema.ts';
 import { renderDocHead, renderProjectHead } from '../../render/index.ts';
+import { drawDocConnectors, watchDocConnectors } from '../../render/connectors.ts';
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock } from '../../schema.ts';
 // The nav and the footer around the page are the real ones, from
 // src/content/data/site.json. See the note where they are rendered.
@@ -56,6 +57,7 @@ export type PageSurfaceProps = {
 export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSrc }: PageSurfaceProps) {
   const measureRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
   const [available, setAvailable] = useState(PAGE_WIDTH);
   const [surfaceHeight, setSurfaceHeight] = useState(0);
 
@@ -86,6 +88,33 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
   // sheet, gutters included. Fitting the column alone would push the two
   // margins off the sides of the pane, which is the thing they are here to
   // show.
+  // Connectors, drawn by the page's own script over the editing surface.
+  //
+  // Two effects because there are two reasons to redraw. `watchDocConnectors`
+  // covers the ones the script knows about — images arriving, webfonts
+  // settling, the window and the pane resizing — and is installed once. The
+  // second covers the one it cannot see: a React render, which is what moving
+  // or resizing an item produces. It is throttled to a frame, so dragging an
+  // item redraws the curve at most once per frame rather than once per
+  // pointer event.
+  //
+  // The svg lives inside the scaled surface and `drawDocConnectors` measures
+  // in client pixels, so its viewBox comes out scaled by exactly the same
+  // factor as the element it sits in. The two cancel, and the curve lands in
+  // the right place at every zoom.
+  useEffect(() => {
+    const element = innerRef.current;
+    if (element === null) return;
+    return watchDocConnectors(element);
+  }, []);
+
+  useEffect(() => {
+    const element = innerRef.current;
+    if (element === null) return;
+    const frame = requestAnimationFrame(() => drawDocConnectors(element));
+    return () => cancelAnimationFrame(frame);
+  });
+
   const scale = zoom === 'fit' ? Math.min(1, available / PAGE_WIDTH) : zoom;
   const groups = groupBands(doc.bands);
 
@@ -97,7 +126,15 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
           style={{ width: PAGE_WIDTH * scale, height: surfaceHeight * scale }}
         >
           <div className="cms-surface" ref={surfaceRef} style={{ transform: `scale(${scale})` }}>
-            <div className="cms-surface__inner">
+            <div className="cms-surface__inner" ref={innerRef}>
+              {/* The connector overlay. Same element, same class and the same
+                  script as the published page: `drawDocConnectors` finds this
+                  svg, the anchored items by `.doc-item[data-anchor-block]`,
+                  and the paragraphs by `data-block-id`, all of which the
+                  surface now emits. Until this existed, an anchored item
+                  looked inert in the editor and the curve only appeared in
+                  Preview, which is a strange way to find out it worked. */}
+              <svg className="doc-connectors" aria-hidden="true" focusable="false" />
               <SiteChromeView where="top" section={doc.meta.section} />
               <DocHead doc={doc} />
               {groups.map((group) => (
@@ -514,9 +551,21 @@ function CanvasItemPlaceholder({
 
   return (
     <div
-      className={selected ? 'cms-ph-item cms-ph-item--selected' : 'cms-ph-item'}
+      /* `doc-item` so the page's connector script can find this, exactly as
+         it finds the real canvas editor's items. See the note in
+         ../canvas/CanvasEditor.tsx; the class carries no styling here. */
+      className={[
+        'cms-ph-item',
+        selected ? 'cms-ph-item--selected' : '',
+        item.anchor === undefined ? '' : 'doc-item',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={style}
       data-item-id={item.id}
+      data-anchor-block={item.anchor?.blockId}
+      data-connector-seed={seedFromId(item.id)}
+      data-connector-color={item.color}
       data-testid={`surface-item-${item.id}`}
       onMouseDown={(event) => {
         event.stopPropagation();

@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 
-import { REFERENCE_WIDTH } from '../../schema.ts';
+import { REFERENCE_WIDTH, seedFromId } from '../../schema.ts';
 import type { CanvasItem } from '../../schema.ts';
 import {
   CORNERS,
@@ -642,9 +642,18 @@ export function CanvasEditor({
           return (
             <div
               key={item.id}
-              className="cv-item"
+              /* `doc-item` is the published page's class, and it is here only
+                 because that is the hook src/cms/render/connectors.ts looks
+                 for: `.doc-item[data-anchor-block]`. The editor loads none of
+                 doc.css, so the class carries no styling here — it is the one
+                 word that lets the SAME connector script draw the SAME curve
+                 over the editing surface as over the page. */
+              className={item.anchor === undefined ? 'cv-item' : 'cv-item doc-item'}
               style={itemStyle(item, order.get(item.id) ?? 1)}
               data-cv-item={item.id}
+              data-anchor-block={item.anchor?.blockId}
+              data-connector-seed={seedFromId(item.id)}
+              data-connector-color={item.color}
               onPointerDown={(event) => onItemPointerDown(event, item.id)}
               onPointerEnter={() => setHoverId(item.id)}
               onPointerLeave={() => setHoverId((current) => (current === item.id ? null : current))}
