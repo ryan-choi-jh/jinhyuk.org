@@ -120,15 +120,15 @@
     {
       "id": "b4",
       "type": "canvas",
-      "height": 751,
+      "height": 440,
       "items": [
         {
           "id": "b4i1",
           "kind": "image",
-          "x": 505.88,
-          "y": 0,
-          "w": 332.25,
-          "h": 720,
+          "x": 862,
+          "y": -71,
+          "w": 235,
+          "h": 511,
           "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
           "alt": "",
           "caption": "The dashboard (every habit carries its own heatmap)"
