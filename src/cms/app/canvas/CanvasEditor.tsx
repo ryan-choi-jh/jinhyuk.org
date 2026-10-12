@@ -39,7 +39,7 @@ import {
 } from './geometry.ts';
 import type { CornerId, Point, Rect } from './geometry.ts';
 import { DEFAULT_SNAP_THRESHOLD } from './snap.ts';
-import type { SnapGuide } from './snap.ts';
+import type { SizeGuide, SnapGuide } from './snap.ts';
 import {
   beginMarquee,
   beginMove,
@@ -186,6 +186,22 @@ const CSS = `
   border: var(--cv-hair) solid ${SELECTION_COLOUR}; background: rgba(43,124,255,.12);
 }
 .cv-guide { position: absolute; pointer-events: none; background: ${GUIDE_COLOUR}; }
+/* A measurement two or more items share, marked along the edge it describes:
+   a bar the width of every box that is this wide, or down the side of every
+   box that is this tall. Two bars the same length say "these match" in a way
+   a number in a panel never does. */
+.cv-measure {
+  position: absolute; pointer-events: none;
+  background: ${GUIDE_COLOUR};
+  border-radius: 1px;
+}
+.cv-measure-label {
+  position: absolute; pointer-events: none;
+  padding: 1px 4px; border-radius: 3px;
+  background: ${GUIDE_COLOUR}; color: #fff;
+  font: 600 10px/1.4 ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+}
 .cv-toolbar {
   position: absolute; display: flex; gap: 2px; align-items: center;
   width: max-content; white-space: nowrap; pointer-events: auto;
@@ -266,6 +282,7 @@ export function CanvasEditor({
   const [internalSelection, setInternalSelection] = useState<string[]>([]);
   const [preview, setPreview] = useState<CanvasItem[] | null>(null);
   const [guides, setGuides] = useState<SnapGuide[]>([]);
+  const [sizeGuides, setSizeGuides] = useState<SizeGuide[]>([]);
   const [marquee, setMarquee] = useState<Rect | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -353,6 +370,7 @@ export function CanvasEditor({
             : updateRotate(active.gesture, pointer, mods);
 
       setGuides(update.guides);
+      setSizeGuides(update.sizeGuides ?? []);
       setPreview(update.items);
       if (update.changed) {
         active.changed = true;
@@ -369,6 +387,7 @@ export function CanvasEditor({
     detach();
     setDragging(false);
     setGuides([]);
+    setSizeGuides([]);
     setMarquee(null);
     setPreview(null);
     if (active === null) return;
@@ -389,6 +408,7 @@ export function CanvasEditor({
     detach();
     setDragging(false);
     setGuides([]);
+    setSizeGuides([]);
     setMarquee(null);
     setPreview(null);
     if (active.gesture.kind === 'marquee') {
@@ -732,6 +752,51 @@ export function CanvasEditor({
           </div>
         ) : null}
 
+        {sizeGuides.flatMap((guide) =>
+          guide.boxes.map((box, index) => (
+            <div
+              key={`m-${guide.kind}-${index}-${box.x}-${box.y}`}
+              className="cv-measure"
+              data-cv-measure={`${guide.kind}:${Math.round(guide.value)}`}
+              style={
+                guide.kind === 'width'
+                  ? {
+                      left: box.x,
+                      top: box.y + box.h + 3,
+                      width: box.w,
+                      height: Math.max(hair * 1.5, 1.5),
+                      zIndex: 1_000_009,
+                    }
+                  : {
+                      left: box.x + box.w + 3,
+                      top: box.y,
+                      width: Math.max(hair * 1.5, 1.5),
+                      height: box.h,
+                      zIndex: 1_000_009,
+                    }
+              }
+            />
+          )),
+        )}
+        {sizeGuides.map((guide) => {
+          // One label, on the box being resized, which `snapSize` puts first.
+          const box = guide.boxes[0];
+          if (box === undefined) return null;
+          return (
+            <div
+              key={`ml-${guide.kind}`}
+              className="cv-measure-label"
+              data-cv-measure-label={`${guide.kind}:${Math.round(guide.value)}`}
+              style={
+                guide.kind === 'width'
+                  ? { left: box.x + box.w / 2 - 16, top: box.y + box.h + 8, zIndex: 1_000_011 }
+                  : { left: box.x + box.w + 8, top: box.y + box.h / 2 - 8, zIndex: 1_000_011 }
+              }
+            >
+              {guide.kind === 'width' ? 'W' : 'H'} {Math.round(guide.value)}
+            </div>
+          );
+        })}
         {guides.map((guide, index) => (
           <div
             key={`${guide.axis}-${guide.value}-${guide.kind}-${index}`}

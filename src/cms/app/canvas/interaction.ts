@@ -33,10 +33,11 @@ import {
   rotateBoxTo,
   roundResizedBox,
   unionRect,
+  CORNERS,
 } from './geometry.ts';
 import type { Box, CornerId, Point, Rect } from './geometry.ts';
-import { collectSnapTargets, snapPoint, snapRect } from './snap.ts';
-import type { SnapGuide, SnapTarget, StageSize } from './snap.ts';
+import { collectSizeTargets, collectSnapTargets, snapPoint, snapRect, snapSize } from './snap.ts';
+import type { SizeGuide, SizeTarget, SnapGuide, SnapTarget, StageSize } from './snap.ts';
 import { patchItems, withGeometry, withRotation } from './items.ts';
 import type { CanvasItem } from '../../schema.ts';
 
@@ -61,6 +62,8 @@ export type UpdateOptions = Modifiers & {
 export type GestureUpdate = {
   items: CanvasItem[];
   guides: SnapGuide[];
+  /** Measurements this item now shares with others. Resize only. */
+  sizeGuides?: SizeGuide[];
   /** False when the gesture has not yet produced a different document. */
   changed: boolean;
 };
@@ -156,6 +159,8 @@ export type ResizeGesture = {
   startItems: readonly CanvasItem[];
   startBox: Box;
   targets: readonly SnapTarget[];
+  /** The other items' measurements, for matching size rather than position. */
+  sizeTargets: readonly SizeTarget[];
 };
 
 export function beginResize(
@@ -173,6 +178,7 @@ export function beginResize(
     startItems: items,
     startBox: boxOf(item),
     targets: collectSnapTargets(items, [id], stage),
+    sizeTargets: collectSizeTargets(items, new Set([id])),
   };
 }
 
@@ -199,7 +205,33 @@ export function updateResize(
   const resized = resizeBox(gesture.startBox, gesture.corner, target, {
     constrainRatio: options.shift,
   });
-  const rect = roundResizedBox(gesture.startBox, gesture.corner, resized);
+  let rect = roundResizedBox(gesture.startBox, gesture.corner, resized);
+
+  // MATCH ANOTHER ITEM'S SIZE. Position snapping cannot do this: two pictures
+  // can share a perfect baseline and still differ by four pixels in width,
+  // which is exactly the error you cannot see and the one that makes a row of
+  // screenshots look wrong without showing you why.
+  //
+  // The corner you are dragging stays under the pointer, so the correction
+  // comes off the OPPOSITE edge: widening a west corner moves x, an east one
+  // does not. Not applied while shift is held, because then the ratio is the
+  // constraint and matching one side would break it.
+  let sizeGuides: SizeGuide[] = [];
+  if (canSnap) {
+    const fitted = snapSize(rect, gesture.sizeTargets, options.refThreshold);
+    const corner = CORNERS.find((candidate) => candidate.id === gesture.corner);
+    const west = corner !== undefined && corner.sx === -1;
+    const north = corner !== undefined && corner.sy === -1;
+    rect = {
+      x: west ? rect.x + rect.w - fitted.w : rect.x,
+      y: north ? rect.y + rect.h - fitted.h : rect.y,
+      w: fitted.w,
+      h: fitted.h,
+    };
+    // Recomputed against the box that actually resulted, so the marks are
+    // only drawn for measurements that are now genuinely shared.
+    sizeGuides = snapSize(rect, gesture.sizeTargets, 0).guides;
+  }
 
   const patches = new Map<string, CanvasItem>();
   for (const item of gesture.startItems) {
@@ -214,7 +246,7 @@ export function updateResize(
     guides = snapPoint(movedCorner, gesture.targets, GUIDE_SLOP).guides;
   }
 
-  return { items, guides, changed: items !== gesture.startItems };
+  return { items, guides, sizeGuides, changed: items !== gesture.startItems };
 }
 
 /* -------------------------------------------------------------------------- */

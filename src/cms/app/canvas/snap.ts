@@ -217,3 +217,102 @@ export function snapPoint(point: Point, targets: readonly SnapTarget[], threshol
 
   return { delta: { x: dx ?? 0, y: dy ?? 0 }, guides };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Matching SIZE, not position                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Everything above aligns POSITIONS: edges and centres. Two pictures can sit
+ * on a perfect shared baseline and still be four pixels different in width,
+ * and nothing here would have said so — which is the one thing you cannot see
+ * by eye and the thing that makes a row of screenshots look wrong without
+ * showing you why.
+ *
+ * So, separately: while an item is being resized, its width and height snap
+ * to the width and height of the others, and the editor marks which ones it
+ * now matches. Independently, because matching a neighbour's width while
+ * keeping your own height is a perfectly ordinary thing to want.
+ */
+
+/** Another item's measurements, and the box to mark if one is matched. */
+export type SizeTarget = { w: number; h: number; rect: Rect };
+
+/**
+ * A measurement the resized item now shares with others. `boxes` holds every
+ * box that has it, the resized one first, so the editor can mark them all.
+ */
+export type SizeGuide = {
+  kind: 'width' | 'height';
+  value: number;
+  boxes: Rect[];
+};
+
+export type SizeSnapResult = {
+  /** The corrected size, in reference px. */
+  w: number;
+  h: number;
+  guides: SizeGuide[];
+};
+
+export function collectSizeTargets(
+  items: readonly CanvasItem[],
+  excludeIds: ReadonlySet<string>,
+): SizeTarget[] {
+  const out: SizeTarget[] = [];
+  for (const item of items) {
+    if (excludeIds.has(item.id)) continue;
+    const rect = aabbOf(boxOf(item));
+    if (rect.w <= 0 || rect.h <= 0) continue;
+    out.push({ w: rect.w, h: rect.h, rect });
+  }
+  return out;
+}
+
+/** The nearest target measurement within `threshold`, or null. */
+function nearestMeasure(
+  value: number,
+  targets: readonly SizeTarget[],
+  pick: (target: SizeTarget) => number,
+  threshold: number,
+): number | null {
+  let best: number | null = null;
+  let bestGap = threshold;
+  for (const target of targets) {
+    const measure = pick(target);
+    const gap = Math.abs(measure - value);
+    // `<=` so an exact match still registers when the threshold is 0.
+    if (gap <= bestGap) {
+      // Already the same size: nothing to correct, but it IS a match, so
+      // return it anyway and let the caller mark it.
+      bestGap = gap;
+      best = measure;
+    }
+  }
+  return best;
+}
+
+export function snapSize(
+  rect: Rect,
+  targets: readonly SizeTarget[],
+  threshold: number,
+): SizeSnapResult {
+  if (targets.length === 0) return { w: rect.w, h: rect.h, guides: [] };
+
+  const w = nearestMeasure(rect.w, targets, (t) => t.w, Math.max(0, threshold)) ?? rect.w;
+  const h = nearestMeasure(rect.h, targets, (t) => t.h, Math.max(0, threshold)) ?? rect.h;
+
+  const guides: SizeGuide[] = [];
+  const snapped: Rect = { ...rect, w, h };
+
+  const sharing = (pick: (target: SizeTarget) => number, value: number): Rect[] =>
+    targets.filter((target) => Math.abs(pick(target) - value) < EPSILON).map((target) => target.rect);
+
+  const sameW = sharing((t) => t.w, w);
+  if (sameW.length > 0) guides.push({ kind: 'width', value: w, boxes: [snapped, ...sameW] });
+
+  const sameH = sharing((t) => t.h, h);
+  if (sameH.length > 0) guides.push({ kind: 'height', value: h, boxes: [snapped, ...sameH] });
+
+  return { w, h, guides };
+}

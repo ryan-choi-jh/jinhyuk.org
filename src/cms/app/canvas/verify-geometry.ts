@@ -33,6 +33,7 @@ import {
   normaliseAngle,
 } from './geometry.ts';
 import type { CornerId, Point } from './geometry.ts';
+import { collectSizeTargets, snapSize } from './snap.ts';
 import { DEFAULT_SNAP_THRESHOLD, collectSnapTargets, snapRect } from './snap.ts';
 import {
   beginMarquee,
@@ -765,6 +766,54 @@ section('what comes out is still a valid document');
     revalidated.ok,
     revalidated.ok ? '' : formatIssues(revalidated.issues),
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Matching size                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `snapSize` is what lets you tell whether two pictures are actually the same
+ * size, which position snapping never could: a shared baseline says nothing
+ * about width.
+ */
+{
+  const img = (id: string, x: number, w: number, h: number): CanvasItem => ({
+    id,
+    kind: 'image',
+    src: '/x.png',
+    x,
+    y: 0,
+    w,
+    h,
+    z: 1,
+  });
+  const others = collectSizeTargets([img('a', 0, 300, 200), img('b', 400, 180, 90)], new Set(['c']));
+
+  const near = snapSize({ x: 0, y: 0, w: 296, h: 50 }, others, 6);
+  check('a width within the threshold snaps to the neighbour exactly', near.w === 300, String(near.w));
+  check('and the height is left alone when nothing is near it', near.h === 50, String(near.h));
+  check(
+    'the match is reported, with both boxes to mark',
+    near.guides.length === 1 && near.guides[0]?.kind === 'width' && near.guides[0]?.boxes.length === 2,
+    JSON.stringify(near.guides.map((g) => [g.kind, g.value, g.boxes.length])),
+  );
+
+  const far = snapSize({ x: 0, y: 0, w: 260, h: 50 }, others, 6);
+  check('a width well clear of any neighbour is not pulled', far.w === 260, String(far.w));
+  check('and nothing is marked', far.guides.length === 0, String(far.guides.length));
+
+  const both = snapSize({ x: 0, y: 0, w: 302, h: 88 }, others, 6);
+  check('width and height match independently', both.w === 300 && both.h === 90, `${both.w}x${both.h}`);
+
+  const already = snapSize({ x: 0, y: 0, w: 300, h: 200 }, others, 0);
+  check(
+    'an exact match is still reported at zero threshold, so the marks stay up',
+    already.guides.length === 2,
+    String(already.guides.length),
+  );
+
+  check('nothing to compare against is not a match', snapSize({ x: 0, y: 0, w: 10, h: 10 }, [], 6).guides.length === 0);
 }
 
 /* -------------------------------------------------------------------------- */
