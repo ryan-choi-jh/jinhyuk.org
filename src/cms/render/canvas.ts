@@ -156,7 +156,11 @@ export function renderCanvasItem(item: CanvasItem, doc: Doc): string {
   const tag = item.kind === 'shape' ? 'div' : 'figure';
   const caption =
     item.caption !== undefined && item.caption !== ''
-      ? `<figcaption class="doc-caption">${escapeText(item.caption)}</figcaption>`
+      ? `<figcaption class="doc-caption"${
+          item.captionAlign === undefined || item.captionAlign === 'left'
+            ? ''
+            : ` style="text-align:${item.captionAlign}"`
+        }>${escapeText(item.caption)}</figcaption>`
       : '';
 
   return (

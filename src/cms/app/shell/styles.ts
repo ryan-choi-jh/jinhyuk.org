@@ -575,6 +575,23 @@ export const SHELL_CSS = `
 /* ...except an overlay, which has no footprint of its own to outline. The
    frame below goes round its items instead. */
 .cms-band-box--overlay.cms-band-box--selected { outline: none; }
+/* The grab strip on a canvas band's bottom edge. Sits just inside the band so
+   it never overlaps whatever follows, and only shows when the band is
+   selected, because an invisible drag target across every canvas would catch
+   clicks meant for the page. */
+.cms-band-pad {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  z-index: 11;
+  cursor: ns-resize;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--cms-accent) 38%, transparent));
+}
+.cms-band-pad:hover {
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--cms-accent) 68%, transparent));
+}
 .cms-band-box__frame {
   position: absolute;
   z-index: 8;

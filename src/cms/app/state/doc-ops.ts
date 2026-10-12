@@ -259,6 +259,70 @@ export function canvasContentHeight(band: CanvasBand): number | null {
 }
 
 /**
+ * Which canvas band this one would fold into, or null when there is none.
+ *
+ * An OVERLAY folds into the band it overlays — the nearest plain band above
+ * it — because that is already its coordinate origin: an overlay is drawn
+ * from the top of its host, so its items keep their x and y exactly.
+ *
+ * A PLAIN canvas folds into a plain canvas directly above it, and its items
+ * move down by that band's height, which is where they already appear on the
+ * page. Anything else returns null rather than guessing: folding across a
+ * paragraph would move pictures above text they belong under.
+ */
+export function mergeTargetFor(doc: Doc, bandId: string): CanvasBand | null {
+  const index = bandIndexOf(doc, bandId);
+  if (index <= 0) return null;
+  const band = doc.bands[index];
+  if (band === undefined || band.type !== 'canvas') return null;
+
+  if (band.overlay === true) {
+    for (let i = index - 1; i >= 0; i--) {
+      const candidate = doc.bands[i];
+      if (candidate === undefined) return null;
+      if (candidate.type !== 'canvas') return null;
+      if (candidate.overlay !== true) return candidate;
+    }
+    return null;
+  }
+
+  const previous = doc.bands[index - 1];
+  if (previous === undefined || previous.type !== 'canvas' || previous.overlay === true) return null;
+  return previous;
+}
+
+/**
+ * Fold a canvas band's items into the one above and remove it.
+ *
+ * The reason this exists: three bands each holding one picture can look like
+ * a single row on the page, and the only way to get a picture out of one and
+ * into another used to be uploading it again. Nothing is re-uploaded here —
+ * the items move, `src` and all.
+ */
+export function mergeCanvasBandUp(doc: Doc, bandId: string): Doc {
+  const target = mergeTargetFor(doc, bandId);
+  if (target === null) return doc;
+  const index = bandIndexOf(doc, bandId);
+  const band = doc.bands[index] as CanvasBand;
+
+  // An overlay already shares its host's origin; a plain band sits below the
+  // one above it, so its items move down by that band's height to stay where
+  // they are on the page.
+  const shift = band.overlay === true ? 0 : target.height;
+  const moved = band.items.map((item) => (shift === 0 ? item : { ...item, y: item.y + shift }));
+
+  const bands = doc.bands
+    .map((candidate) =>
+      candidate.id === target.id
+        ? fitted({ ...target, items: [...target.items, ...moved] })
+        : candidate,
+    )
+    .filter((candidate) => candidate.id !== bandId);
+
+  return { ...doc, bands };
+}
+
+/**
  * Clear space under the lowest item. Zero removes the key rather than
  * writing 0, which keeps the JSON minimal, exactly as `overlay` does.
  */

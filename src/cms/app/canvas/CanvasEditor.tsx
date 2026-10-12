@@ -690,7 +690,12 @@ export function CanvasEditor({
                 <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: html }} />
               ) : null}
               {item.caption !== undefined && item.caption !== '' ? (
-                <div className="cv-caption">{item.caption}</div>
+                <div
+                  className="cv-caption"
+                  style={item.captionAlign === undefined ? undefined : { textAlign: item.captionAlign }}
+                >
+                  {item.caption}
+                </div>
               ) : null}
             </div>
           );

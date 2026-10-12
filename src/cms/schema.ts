@@ -340,6 +340,12 @@ const CanvasItemObject = z
     src: SrcSchema.optional(),
     alt: z.string().optional(),
     caption: z.string().optional(),
+    /**
+     * How the caption sits under the item. Absent is 'left', which is what
+     * every caption did before this existed and what a figcaption does by
+     * default, so nothing already written moves.
+     */
+    captionAlign: z.enum(['left', 'center', 'right']).optional(),
 
     // shape (kind: shape)
     shape: ShapeKindSchema.optional(),

@@ -13,7 +13,7 @@
 
 import { PROSE_BLOCK_KINDS, REFERENCE_WIDTH, SHAPE_KINDS } from '../../schema.ts';
 import type { Anchor, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
-import { blockPlainText } from '../state/doc-ops.ts';
+import { blockPlainText, mergeTargetFor } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
@@ -252,6 +252,28 @@ function BandPanel({
               re-measures the band. Typing a height still works and still
               matters on an empty canvas, which has nothing to measure.
               "Space below" is how you ask for room the fit will keep. */}
+          {(() => {
+            // Three bands each holding one picture can look like a single row
+            // on the page, and until this the only way to get a picture out of
+            // one and into another was to upload it again.
+            const target = mergeTargetFor(doc, band.id);
+            return (
+              <button
+                type="button"
+                className="cms-btn cms-btn--tiny"
+                data-testid="band-merge-up"
+                disabled={target === null}
+                title={
+                  target === null
+                    ? 'Nothing above this to merge into: the band above is not a canvas.'
+                    : `Move these ${band.items.length} item${band.items.length === 1 ? '' : 's'} into the canvas above and remove this band. They keep their positions.`
+                }
+                onClick={() => store.mergeCanvasBandUp(band.id)}
+              >
+                Merge into the canvas above
+              </button>
+            );
+          })()}
           <div className="cms-hint" data-testid="band-height-hint">
             {band.items.length === 0
               ? 'Nothing on this canvas yet, so the height is whatever you set here.'
@@ -485,6 +507,22 @@ function ItemPanel({
             value={item.caption ?? ''}
             onChange={(caption) => set({ caption })}
           />
+          {item.caption !== undefined && item.caption !== '' && (
+            <SelectField
+              label="Align"
+              value={item.captionAlign ?? 'left'}
+              options={[
+                { value: 'left' as const, label: 'Left' },
+                { value: 'center' as const, label: 'Centre' },
+                { value: 'right' as const, label: 'Right' },
+              ]}
+              // Left is the default, so it is stored as nothing rather than as
+              // the word "left": the same reason `overlay` is absent when off.
+              onChange={(captionAlign) =>
+                set({ captionAlign: captionAlign === 'left' ? undefined : captionAlign })
+              }
+            />
+          )}
         </Section>
       )}
 

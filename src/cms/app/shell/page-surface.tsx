@@ -483,6 +483,41 @@ function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }:
       data-testid={`surface-band-${band.id}`}
       onMouseDown={() => store.selectBand(band.id)}
     >
+      {selected && band.type === 'canvas' && band.overlay !== true && (
+        /* The band's bottom edge, draggable.
+           The height follows the contents, so the only spare room is what
+           `padBottom` asks for — and asking for it by typing a number is a
+           poor way to judge a gap you are looking at. Dragging the edge moves
+           the band's floor and NOTHING ELSE: the items keep the positions
+           they already have, which is the whole point, because they are
+           already where they belong. An overlay has no handle because it
+           reserves no vertical space for the gap to live in. */
+        <span
+          className="cms-band-pad"
+          data-testid={`band-pad-${band.id}`}
+          title="Drag to add space under this canvas"
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            const node = event.currentTarget;
+            node.setPointerCapture(event.pointerId);
+            const startY = event.clientY;
+            const startPad = band.padBottom ?? 0;
+            const move = (next: PointerEvent): void => {
+              const delta = (next.clientY - startY) / (scale || 1);
+              store.setBandPadBottom(band.id, Math.max(0, Math.round(startPad + delta)));
+            };
+            const up = (): void => {
+              node.removeEventListener('pointermove', move);
+              node.removeEventListener('pointerup', up);
+              node.removeEventListener('pointercancel', up);
+            };
+            node.addEventListener('pointermove', move);
+            node.addEventListener('pointerup', up);
+            node.addEventListener('pointercancel', up);
+          }}
+        />
+      )}
       {selected &&
         (overlayBounds === null ? (
           <span className="cms-band-box__label">

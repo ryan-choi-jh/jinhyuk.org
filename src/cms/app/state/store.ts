@@ -129,6 +129,7 @@ export type DocStore = {
   setBandHeight(bandId: string, height: number, options?: EditOptions): void;
   setBandOverlay(bandId: string, overlay: boolean): void;
   setBandPadBottom(bandId: string, padBottom: number, options?: EditOptions): void;
+  mergeCanvasBandUp(bandId: string): void;
 
   /* canvas items */
   setCanvasItems(bandId: string, items: CanvasItem[], options?: EditOptions): void;
@@ -499,6 +500,17 @@ export function createDocStore(options: DocStoreOptions): DocStore {
         label: 'space below',
         coalesceKey: `pad:${bandId}`,
         ...editOptions,
+      });
+    },
+
+    mergeCanvasBandUp(bandId) {
+      const target = ops.mergeTargetFor(state.doc, bandId);
+      if (target === null) return;
+      const count = (ops.findBand(state.doc, bandId) as { items?: unknown[] } | null)?.items?.length ?? 0;
+      update((doc) => ops.mergeCanvasBandUp(doc, bandId), {
+        label: 'merge canvas',
+        // The selection is pruned the same way deleting a band prunes it.
+        notice: `Moved ${count} item${count === 1 ? '' : 's'} into the canvas above.`,
       });
     },
 
