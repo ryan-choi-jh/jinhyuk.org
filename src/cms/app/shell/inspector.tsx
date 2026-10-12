@@ -13,7 +13,7 @@
 
 import { PROSE_BLOCK_KINDS, REFERENCE_WIDTH, SHAPE_KINDS } from '../../schema.ts';
 import type { Anchor, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
-import { blockPlainText } from '../state/doc-ops.ts';
+import { blockPlainText, canvasContentHeight } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
@@ -238,6 +238,33 @@ function BandPanel({
               if (height !== undefined) store.setBandHeight(band.id, height);
             }}
           />
+          {(() => {
+            // Resizing an item does not move the band's floor on its own, and
+            // `canvasContentHeight` says why. This is the one-click version,
+            // with the number on the button so it is never a surprise.
+            const fit = canvasContentHeight(band);
+            const already = fit === null || Math.abs(band.height - fit) < 0.5;
+            return (
+              <button
+                type="button"
+                className="cms-btn cms-btn--tiny"
+                data-testid="band-fit-height"
+                disabled={already}
+                title={
+                  fit === null
+                    ? 'Nothing on this canvas to fit to.'
+                    : already
+                      ? 'The band already ends at its lowest item.'
+                      : `Trim the band to end at its lowest item, ${fit}px instead of ${Math.round(band.height)}px.`
+                }
+                onClick={() => {
+                  if (fit !== null) store.setBandHeight(band.id, fit);
+                }}
+              >
+                {fit === null || already ? 'Fit to contents' : `Fit to contents (${fit}px)`}
+              </button>
+            );
+          })()}
           <CheckField
             label="Overlay the band above"
             checked={band.overlay === true}

@@ -40,6 +40,7 @@ export const SITE_CSS = `
   --cms-warn: #d6a327;
   --cms-nav-w: 188px;
   --cms-list-w: 276px;
+  --cms-rail-w: 40px;
 
   position: relative;
   display: flex;
@@ -107,6 +108,9 @@ export const SITE_CSS = `
   min-height: 0;
 }
 .cms-site__body--nolist { grid-template-columns: var(--cms-nav-w) minmax(0, 1fr); }
+/* Collapsed: one 40px strip in place of BOTH left columns, so the editor gets
+   424 of their 464 pixels back. */
+.cms-site__body--rail { grid-template-columns: var(--cms-rail-w) minmax(0, 1fr); }
 .cms-site__col { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .cms-site__col--nav { background: var(--cms-panel); border-right: 1px solid var(--cms-line); }
 .cms-site__col--list { background: var(--cms-panel); border-right: 1px solid var(--cms-line); }
@@ -127,6 +131,57 @@ export const SITE_CSS = `
 }
 .cms-site__head-count { margin-left: auto; font-weight: 400; letter-spacing: 0; }
 .cms-site__scroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
+
+/* ---------- the collapsed sidebar ---------- */
+
+.cms-site__col--rail { background: var(--cms-panel); border-right: 1px solid var(--cms-line); }
+/* Same 28px as every other column head, so the editor's top edge does not
+   move when the sidebar collapses. */
+.cms-site__head--rail { justify-content: center; padding: 0; }
+.cms-rail { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 0 16px; }
+.cms-rail__btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cms-muted);
+  cursor: pointer;
+}
+.cms-rail__btn:hover { background: var(--cms-panel-2); color: var(--cms-text); }
+.cms-rail__btn:focus-visible { outline: 2px solid var(--cms-accent); outline-offset: 1px; }
+.cms-rail__btn--current {
+  background: var(--cms-accent-dim);
+  border-color: var(--cms-accent);
+  color: var(--cms-text);
+}
+.cms-rail__btn--chevron { width: 24px; height: 22px; font-size: 12px; }
+.cms-rail__glyph { font-size: 13px; line-height: 1; }
+/* The label a sighted person reads off the tooltip. Clipped rather than
+   display:none so a screen reader still announces which section this is. */
+.cms-rail__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cms-rail__dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cms-warn);
+}
 
 /* ---------- section navigation ---------- */
 

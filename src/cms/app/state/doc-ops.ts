@@ -227,6 +227,27 @@ export function setBandHeight(doc: Doc, bandId: string, height: number): Doc {
 }
 
 /**
+ * How tall the band would be if it ended at its lowest item: the largest
+ * `y + h` across them, rounded up to a whole pixel. Null when there is nothing
+ * on it, because a canvas with no items has no content to fit and collapsing
+ * it to zero would make it unclickable.
+ *
+ * NOT applied automatically when an item is resized, though that is the first
+ * thing anyone expects. The space under the lowest item is often deliberate:
+ * this site's own hero band is 824px against content ending at 789, and
+ * global.css leans on exactly that 35px of bleed so the illustration's pencil
+ * is complete. Shrinking it silently on an unrelated edit would change the
+ * published page without anyone asking. So this is what the Fit button
+ * offers, and the number is shown before you press it.
+ */
+export function canvasContentHeight(band: CanvasBand): number | null {
+  if (band.items.length === 0) return null;
+  let bottom = 0;
+  for (const item of band.items) bottom = Math.max(bottom, item.y + item.h);
+  return bottom > 0 ? Math.ceil(bottom) : null;
+}
+
+/**
  * Set or clear `overlay`. Refused on band 0 (rule 10). Clearing removes the
  * key rather than writing `false`, which keeps the JSON minimal.
  */

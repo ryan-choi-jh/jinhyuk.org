@@ -39,9 +39,10 @@
  *    sizes itself to the viewport because it used to be the whole page.
  */
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { MOBILE_BREAKPOINT } from '../../schema.ts';
+import { clearFlag, readFlag, writeFlag } from '../guide/storage.ts';
 import { SECTIONS, isRecordSection } from '../../sections.ts';
 import type { RecordSectionDef, SectionDef } from '../../sections.ts';
 import type { EditorBinding, SiteStore, SiteStoreState } from '../state/site-store.ts';
@@ -52,6 +53,7 @@ import { EntryList } from './entry-list.tsx';
 import type { Zoom } from './page-surface.tsx';
 import { RecordView } from './record-view.tsx';
 import type { RecordPreviewContext } from './record-view.tsx';
+import { SectionRail } from './section-rail.tsx';
 import { SectionSidebar } from './section-sidebar.tsx';
 import type { SiteShellSlots } from './site-slots.ts';
 import { useSiteStyles } from './site-styles.ts';
@@ -76,6 +78,12 @@ export type SiteShellProps = SiteShellSlots & {
 };
 
 const identity = (src: string): string => src;
+
+/**
+ * Whether the sidebar is collapsed to a rail. Present means collapsed, so a
+ * browser that cannot read storage opens the way the tool always did.
+ */
+const SIDEBAR_COLLAPSED_KEY = 'jinhyuk-cms.sidebar-collapsed.v1';
 
 /**
  * `dirty`, from whichever store the open editor is bound to. The site store
@@ -127,11 +135,27 @@ export function SiteShell({
 
   const showList = section !== null && section.shape === 'collection';
 
+  const [railCollapsed, setRailCollapsed] = useState(
+    () => readFlag(SIDEBAR_COLLAPSED_KEY) === 'set',
+  );
+  const toggleRail = useCallback(() => {
+    setRailCollapsed((was) => {
+      const next = !was;
+      // Remembered, because this is a working preference and being asked to
+      // re-collapse it on every visit is the sort of thing that makes a tool
+      // tiring. A browser that cannot store it simply opens expanded.
+      if (next) writeFlag(SIDEBAR_COLLAPSED_KEY);
+      else clearFlag(SIDEBAR_COLLAPSED_KEY);
+      return next;
+    });
+  }, []);
+
   return (
     <SiteStoreProvider value={store}>
       <div
         className={className === undefined ? 'cms-site' : `cms-site ${className}`}
         data-testid="cms-site"
+        data-sidebar={railCollapsed ? 'collapsed' : 'expanded'}
         data-view={resolved.view}
         data-section={section === null ? '' : section.id}
         data-entry={resolved.entryKey ?? ''}
@@ -187,22 +211,48 @@ export function SiteShell({
           </span>
         </div>
 
-        <div className={`cms-site__body${showList ? '' : ' cms-site__body--nolist'}`}>
-          <section className="cms-site__col cms-site__col--nav" aria-label="Sections">
-            <header className="cms-site__head">
-              Site
-              <span className="cms-site__head-count">{SECTIONS.length}</span>
-            </header>
-            <div className="cms-site__scroll">
-              <SectionSidebar
-                store={store}
-                sections={state.sections}
-                current={section === null ? null : section.id}
-              />
-            </div>
-          </section>
+        <div
+          className={`cms-site__body${
+            railCollapsed ? ' cms-site__body--rail' : showList ? '' : ' cms-site__body--nolist'
+          }`}
+        >
+          {railCollapsed && (
+            <SectionRail
+              store={store}
+              sections={state.sections}
+              current={section === null ? null : section.id}
+              onExpand={toggleRail}
+            />
+          )}
 
-          {showList && section !== null && (
+          {!railCollapsed && (
+            <section className="cms-site__col cms-site__col--nav" aria-label="Sections">
+              <header className="cms-site__head">
+                Site
+                <span className="cms-site__head-count">{SECTIONS.length}</span>
+                <button
+                  type="button"
+                  className="cms-rail__btn cms-rail__btn--chevron"
+                  data-testid="rail-collapse"
+                  title="Hide the sidebar"
+                  aria-label="Hide the sidebar"
+                  aria-expanded={true}
+                  onClick={toggleRail}
+                >
+                  <span aria-hidden="true">«</span>
+                </button>
+              </header>
+              <div className="cms-site__scroll">
+                <SectionSidebar
+                  store={store}
+                  sections={state.sections}
+                  current={section === null ? null : section.id}
+                />
+              </div>
+            </section>
+          )}
+
+          {!railCollapsed && showList && section !== null && (
             <section className="cms-site__col cms-site__col--list" aria-label={`${section.label} entries`}>
               <header className="cms-site__head">
                 {section.label}

@@ -29,14 +29,17 @@ export type SectionSidebarProps = {
  * A one-character stand-in for an icon set this tool does not have. Keyed off
  * what the section *is*, never off its id: one entry, many documents, many
  * records.
+ *
+ * Exported because the collapsed rail (`./section-rail.tsx`) is the same
+ * navigation with the words taken away, so the glyph has to be the same glyph.
  */
-function glyphFor(section: SectionDef): string {
+export function glyphFor(section: SectionDef): string {
   if (section.shape === 'singleton') return '◆';
   return section.storage === 'records' ? '▦' : '¶';
 }
 
 /** 'One page', '3 projects', '4 films'. */
-function describe(section: SectionDef, summary: SectionSummary | undefined): string {
+export function describe(section: SectionDef, summary: SectionSummary | undefined): string {
   const noun = section.storage === 'records' && section.records !== null ? section.records.noun : section.noun;
   if (section.shape === 'singleton') return `one ${noun}`;
   const count = summary?.count ?? 0;
