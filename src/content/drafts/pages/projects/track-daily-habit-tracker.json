@@ -120,18 +120,38 @@
     {
       "id": "b4",
       "type": "canvas",
-      "height": 440,
+      "height": 659,
+      "overlay": true,
       "items": [
         {
           "id": "b4i1",
           "kind": "image",
-          "x": 862,
-          "y": -71,
+          "x": 857,
+          "y": 148,
           "w": 235,
           "h": 511,
           "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
           "alt": "",
           "caption": "The dashboard (every habit carries its own heatmap)"
+        }
+      ]
+    },
+    {
+      "id": "b6",
+      "type": "canvas",
+      "height": 598,
+      "overlay": true,
+      "items": [
+        {
+          "id": "b6i1",
+          "kind": "image",
+          "x": 1095,
+          "y": 148,
+          "w": 208,
+          "h": 450,
+          "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
+          "alt": "",
+          "caption": "One habit, a full year of it"
         }
       ]
     },
@@ -148,24 +168,6 @@
               "text": "Open a single habit and you get the full picture: current streak, longest streak, 30- and 90-day completion rates, a full 365-day heatmap, and a month calendar you can page through. This is where the heatmap earns its keep — a whole year of one habit in a single look."
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "b6",
-      "type": "canvas",
-      "height": 751,
-      "items": [
-        {
-          "id": "b6i1",
-          "kind": "image",
-          "x": 505.88,
-          "y": 0,
-          "w": 332.25,
-          "h": 720,
-          "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
-          "alt": "",
-          "caption": "One habit, a full year of it"
         }
       ]
     },
