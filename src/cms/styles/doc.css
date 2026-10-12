@@ -285,9 +285,15 @@
 
 .doc-connectors path {
   fill: none;
-  stroke: var(--accent, #ff5722);
+  /* The site's secondary grey, not the accent. A connector is an aside: it
+     should read as a pencil note beside the text, not compete with the dates
+     and links that own the orange. --muted follows the theme, so it lightens
+     in dark mode with everything else. An item can still override it with its
+     own colour, which arrives as an inline stroke. */
+  stroke: var(--muted, #6b6b6b);
   stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ---------------------------------------------------------------------------

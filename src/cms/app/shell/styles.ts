@@ -369,9 +369,10 @@ export const SHELL_CSS = `
 }
 .cms-surface .doc-connectors path {
   fill: none;
-  stroke: var(--accent, #ff5722);
+  stroke: var(--muted, #6b6b6b);
   stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 /* The nothing-here line on a page with no bands. Its 72px of side padding was
    left over from when band boxes carried that inset; with the gutter on

@@ -76,21 +76,73 @@ function handPath(
   const dy = y2 - y1;
   const reach = Math.max(60, Math.abs(dx) * 0.55) * direction;
 
-  const c1x = x1 + reach + wobble(seed, 2) * 12;
-  const c1y = y1 + dy * 0.08 + wobble(seed, 1) * 14;
-  const c2x = x2 - reach + wobble(seed, 3) * 12;
-  const c2y = y2 - dy * 0.12 + wobble(seed, 4) * 14;
-
   // A short tick out of the text before the curve proper: it is what makes the
   // line look drawn from the paragraph rather than passing near it.
   const tick = 6 * direction + wobble(seed, 5) * 2;
+  const sx = x1 + tick;
+  const sy = y1 + wobble(seed, 6) * 2;
+
+  // Where the knot sits, and which way the line is travelling through it.
+  // Roughly halfway, nudged by the seed so two connectors on one page do not
+  // knot at the same point.
+  const mx = sx + (x2 - sx) * (0.52 + wobble(seed, 7) * 0.07);
+  const my = sy + (y2 - sy) * (0.5 + wobble(seed, 8) * 0.09);
+  const len = Math.hypot(x2 - sx, y2 - sy) || 1;
+  const ux = (x2 - sx) / len;
+  const uy = (y2 - sy) / len;
+  // The loop hangs off one side of the line. Which side alternates with the
+  // seed, so a page of connectors does not look stamped.
+  const side = wobble(seed, 9) >= 0 ? 1 : -1;
+  const nx = -uy * side;
+  const ny = ux * side;
+
+  // Small enough to read as a flourish in the line rather than a circle with
+  // a line through it. Scaled down on a short run so it cannot swallow the
+  // whole connector.
+  const r = clamp(9 + wobble(seed, 10) * 2, 6, Math.max(6, len / 7));
+  // The exit sits a little past the entry along the travel direction, so the
+  // loop closes into a knot rather than a clean circle that happens to touch.
+  // Squashed and tilted, so it is a knot in a line and not a stamped circle.
+  const ry = r * (0.76 + Math.abs(wobble(seed, 13)) * 0.16);
+  const tilt = wobble(seed, 14) * 34;
+  const advance = r * 0.55;
+  const ex = mx + ux * advance;
+  const ey = my + uy * advance;
+  // The far side of the loop, diametrically opposite the entry.
+  const fx = mx + nx * r * 2;
+  const fy = my + ny * r * 2;
+
+  // The two runs either side of the knot bow in OPPOSITE directions, which is
+  // what makes the line read as drawn rather than as a curve with a circle
+  // stuck on it: each one is a shallow S instead of an arc.
+  const bowIn = (7 + Math.abs(wobble(seed, 11)) * 5) * side;
+  const bowOut = -(7 + Math.abs(wobble(seed, 12)) * 5) * side;
+
+  // Into the knot: leaves the paragraph sideways, arrives along the travel
+  // direction so the loop starts tangentially.
+  const i1x = sx + reach * 0.5 + wobble(seed, 2) * 10 + nx * bowIn;
+  const i1y = sy + dy * 0.06 + wobble(seed, 1) * 12 + ny * bowIn;
+  const i2x = mx - ux * 34 - nx * bowIn * 0.6;
+  const i2y = my - uy * 34 - ny * bowIn * 0.6;
+
+  // Out of the knot: leaves along the travel direction, arrives at the item
+  // sideways so the line meets its edge square on.
+  const o1x = ex + ux * 34 + nx * bowOut * 0.6;
+  const o1y = ey + uy * 34 + ny * bowOut * 0.6;
+  const o2x = x2 - reach * 0.5 + wobble(seed, 3) * 10 + nx * bowOut;
+  const o2y = y2 - dy * 0.1 + wobble(seed, 4) * 12 + ny * bowOut;
+
+  const n = (value: number): string => value.toFixed(1);
 
   return (
-    `M ${x1.toFixed(1)} ${y1.toFixed(1)}` +
-    ` L ${(x1 + tick).toFixed(1)} ${(y1 + wobble(seed, 6) * 2).toFixed(1)}` +
-    ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)},` +
-    ` ${c2x.toFixed(1)} ${c2y.toFixed(1)},` +
-    ` ${x2.toFixed(1)} ${y2.toFixed(1)}`
+    `M ${n(x1)} ${n(y1)}` +
+    ` L ${n(sx)} ${n(sy)}` +
+    ` C ${n(i1x)} ${n(i1y)}, ${n(i2x)} ${n(i2y)}, ${n(mx)} ${n(my)}` +
+    // Two half turns make the full loop. Same sweep both times, so it goes
+    // round once rather than doubling back into an S.
+    ` A ${n(r)} ${n(ry)} ${n(tilt)} 1 1 ${n(fx)} ${n(fy)}` +
+    ` A ${n(r)} ${n(ry)} ${n(tilt)} 1 1 ${n(ex)} ${n(ey)}` +
+    ` C ${n(o1x)} ${n(o1y)}, ${n(o2x)} ${n(o2y)}, ${n(x2)} ${n(y2)}`
   );
 }
 
