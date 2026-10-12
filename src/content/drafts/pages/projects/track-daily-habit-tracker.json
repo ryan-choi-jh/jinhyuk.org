@@ -192,7 +192,7 @@
           "content": [
             {
               "type": "text",
-              "text": "Every habit is editable: name, category, an emoji for the icon, and a color that flows through its heatmap. You can hide a habit from the daily prompt while keeping its history, or delete it and its history for good."
+              "text": "Every habit is editable: name, category, an emoji for the icon, and a color that flows through its heatmap. You can also hide a habit while keeping its history, or delete it and its history for good."
             }
           ]
         }
