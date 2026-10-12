@@ -234,7 +234,18 @@ export function drawDocConnectors(root: HTMLElement): void {
     const y2 = media.top + media.height / 2 - box.top;
     const x2 = (direction === 1 ? media.left - 10 : media.right + 10) - box.left;
     const x1 = (direction === 1 ? anchor.right + 8 : anchor.left - 8) - box.left;
-    const y1 = clamp(y2, anchor.top + 12 - box.top, anchor.bottom - 12 - box.top);
+    // `data-anchor-at` pins the departure point: a fraction down the block,
+    // for when the line should come off a particular line of text. Without
+    // one it goes wherever the line naturally meets the block, which keeps it
+    // short and level. Either way it stays 12px clear of the block's ends, so
+    // a pinned 0 or 1 is "as far as it goes" and not a line leaving from the
+    // corner.
+    const low = anchor.top + 12 - box.top;
+    const high = anchor.bottom - 12 - box.top;
+    const pinned = Number.parseFloat(item.getAttribute('data-anchor-at') ?? '');
+    const y1 = Number.isFinite(pinned)
+      ? clamp(anchor.top + anchor.height * pinned - box.top, low, high)
+      : clamp(y2, low, high);
 
     if (Math.abs(y2 - y1) > MAX_DROP) return;
 
@@ -245,6 +256,18 @@ export function drawDocConnectors(root: HTMLElement): void {
     // rule, so a chosen colour has to go on the element's own style.
     const color = item.getAttribute('data-connector-color');
     if (color !== null && color !== '') path.style.stroke = color;
+    // Where this connector leaves the block, and which item owns it. The
+    // editor reads these to put a drag handle on the departure point; the
+    // published page ignores them. Cheaper and far less brittle than the
+    // editor recomputing geometry this function has already worked out.
+    path.setAttribute('data-item', item.getAttribute('data-cv-item') ?? item.getAttribute('data-item-id') ?? '');
+    path.setAttribute('data-x1', String(Math.round(x1)));
+    path.setAttribute('data-y1', String(Math.round(y1)));
+    // The block's WHOLE box, not the clamped range: the editor turns a
+    // dragged position into `at`, which is a fraction of the block, and
+    // clamping is the renderer's business.
+    path.setAttribute('data-block-top', String(Math.round(anchor.top - box.top)));
+    path.setAttribute('data-block-height', String(Math.round(anchor.height)));
     svg.appendChild(path);
   });
 }

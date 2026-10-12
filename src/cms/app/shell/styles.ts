@@ -562,6 +562,23 @@ export const SHELL_CSS = `
   outline: 2px solid var(--cms-accent);
   pointer-events: none;
 }
+/* The handle on where a connector leaves the paragraph. Above the connector
+   overlay (50) so it can be grabbed, and centred on the point itself. */
+.cms-anchor-grip {
+  position: absolute;
+  z-index: 60;
+  width: 11px;
+  height: 11px;
+  margin: -6px 0 0 -6px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--cms-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  cursor: ns-resize;
+}
+.cms-anchor-grip:hover { transform: scale(1.18); }
+.cms-anchor-grip:focus-visible { outline: 2px solid var(--cms-accent); outline-offset: 2px; }
 .cms-band-box__label {
   position: absolute;
   top: -1px;

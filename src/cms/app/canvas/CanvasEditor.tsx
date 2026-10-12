@@ -652,6 +652,7 @@ export function CanvasEditor({
               style={itemStyle(item, order.get(item.id) ?? 1)}
               data-cv-item={item.id}
               data-anchor-block={item.anchor?.blockId}
+              data-anchor-at={item.anchor?.at}
               data-connector-seed={seedFromId(item.id)}
               data-connector-color={item.color}
               onPointerDown={(event) => onItemPointerDown(event, item.id)}

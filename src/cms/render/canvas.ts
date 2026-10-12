@@ -139,6 +139,7 @@ function anchorAttrs(item: CanvasItem, doc: Doc): string {
   return (
     attr('data-anchor-band', item.anchor.bandId) +
     attr('data-anchor-block', item.anchor.blockId) +
+    (item.anchor.at === undefined ? '' : attr('data-anchor-at', item.anchor.at)) +
     attr('data-connector-seed', seedFromId(item.id)) +
     (item.color !== undefined ? attr('data-connector-color', item.color) : '')
   );

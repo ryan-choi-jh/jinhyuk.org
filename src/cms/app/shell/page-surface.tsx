@@ -58,6 +58,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
   const measureRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
+  const [grips, setGrips] = useState<Grip[]>([]);
   const [available, setAvailable] = useState(PAGE_WIDTH);
   const [surfaceHeight, setSurfaceHeight] = useState(0);
 
@@ -111,7 +112,10 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
   useEffect(() => {
     const element = innerRef.current;
     if (element === null) return;
-    const frame = requestAnimationFrame(() => drawDocConnectors(element));
+    const frame = requestAnimationFrame(() => {
+      drawDocConnectors(element);
+      setGrips(readGrips(element));
+    });
     return () => cancelAnimationFrame(frame);
   });
 
@@ -168,6 +172,14 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
                 </p>
               )}
               <SiteChromeView where="bottom" />
+              <AnchorGrips
+                grips={grips}
+                doc={doc}
+                store={store}
+                selection={selection}
+                scale={scale}
+                rootRef={innerRef}
+              />
             </div>
           </div>
         </div>
@@ -250,6 +262,154 @@ function DocHead({ doc }: { doc: Doc }) {
       aria-hidden="true"
       dangerouslySetInnerHTML={{ __html: html }}
     />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Moving where a connector leaves the text                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One connector's departure point, read back off the path the shared script
+ * just drew. Everything is in the root's client pixels, which is the space
+ * `drawDocConnectors` measured in, so nothing here has to know about zoom.
+ */
+type Grip = {
+  itemId: string;
+  x: number;
+  y: number;
+  blockTop: number;
+  blockHeight: number;
+};
+
+function readGrips(root: HTMLElement): Grip[] {
+  const out: Grip[] = [];
+  root.querySelectorAll<SVGPathElement>('.doc-connectors path').forEach((path) => {
+    const itemId = path.getAttribute('data-item') ?? '';
+    const x = Number(path.getAttribute('data-x1'));
+    const y = Number(path.getAttribute('data-y1'));
+    const blockTop = Number(path.getAttribute('data-block-top'));
+    const blockHeight = Number(path.getAttribute('data-block-height'));
+    if (itemId === '' || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (!Number.isFinite(blockTop) || !Number.isFinite(blockHeight) || blockHeight <= 0) return;
+    out.push({ itemId, x, y, blockTop, blockHeight });
+  });
+  return out;
+}
+
+/** Cheap equality, so the draw effect can run every render without looping. */
+function sameGrips(a: Grip[], b: Grip[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((grip, index) => {
+    const other = b[index] as Grip;
+    return (
+      grip.itemId === other.itemId &&
+      grip.x === other.x &&
+      grip.y === other.y &&
+      grip.blockTop === other.blockTop &&
+      grip.blockHeight === other.blockHeight
+    );
+  });
+}
+
+/**
+ * A handle on the point where a connector leaves the paragraph, draggable up
+ * and down the block it points at.
+ *
+ * Only for the SELECTED item: a page with six connectors on it does not want
+ * six dots floating in the margin, and the one you are adjusting is the one
+ * you have in hand.
+ *
+ * Dragging writes `anchor.at`, a fraction of the block. It is clamped to the
+ * block because that is the constraint the owner asked for — the anchor may
+ * move, but not off the text it points at — and because an anchor outside its
+ * own block would draw a line to a paragraph it is not attached to.
+ *
+ * Double-click clears it, which hands the choice back to the renderer's own
+ * "nearest point" rule. Without that there would be no way back to the
+ * default once you had touched it.
+ */
+function AnchorGrips({
+  grips,
+  doc,
+  store,
+  selection,
+  scale,
+  rootRef,
+}: {
+  grips: Grip[];
+  doc: Doc;
+  store: DocStore;
+  selection: Selection;
+  scale: number;
+  rootRef: { current: HTMLElement | null };
+}) {
+  const bandOf = (itemId: string): CanvasBand | null => {
+    for (const band of doc.bands) {
+      if (band.type !== 'canvas') continue;
+      if (band.items.some((item) => item.id === itemId)) return band;
+    }
+    return null;
+  };
+
+  const shown = grips.filter((grip) => {
+    const band = bandOf(grip.itemId);
+    return band !== null && isItemSelected(selection, band.id, grip.itemId);
+  });
+  if (shown.length === 0) return null;
+
+  return (
+    <>
+      {shown.map((grip) => {
+        const band = bandOf(grip.itemId);
+        if (band === null) return null;
+        const item = band.items.find((candidate) => candidate.id === grip.itemId);
+        if (item === undefined || item.anchor === undefined) return null;
+        const anchor = item.anchor;
+
+        const write = (clientY: number): void => {
+          const root = rootRef.current;
+          if (root === null) return;
+          const top = root.getBoundingClientRect().top;
+          const at = (clientY - top - grip.blockTop) / grip.blockHeight;
+          store.updateCanvasItem(band.id, item.id, {
+            anchor: { ...anchor, at: Math.min(1, Math.max(0, at)) },
+          });
+        };
+
+        return (
+          <button
+            key={grip.itemId}
+            type="button"
+            className="cms-anchor-grip"
+            data-testid={`anchor-grip-${grip.itemId}`}
+            title="Drag to move where the line leaves this paragraph. Double-click to let it choose."
+            aria-label="Move the connector's start"
+            style={{ left: grip.x / scale, top: grip.y / scale }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              const node = event.currentTarget;
+              node.setPointerCapture(event.pointerId);
+              const move = (move_: PointerEvent): void => write(move_.clientY);
+              const up = (): void => {
+                node.removeEventListener('pointermove', move);
+                node.removeEventListener('pointerup', up);
+                node.removeEventListener('pointercancel', up);
+              };
+              node.addEventListener('pointermove', move);
+              node.addEventListener('pointerup', up);
+              node.addEventListener('pointercancel', up);
+            }}
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              const { at: _dropped, ...rest } = anchor;
+              store.updateCanvasItem(band.id, item.id, { anchor: rest });
+            }}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -606,6 +766,7 @@ function CanvasItemPlaceholder({
       style={style}
       data-item-id={item.id}
       data-anchor-block={item.anchor?.blockId}
+      data-anchor-at={item.anchor?.at}
       data-connector-seed={seedFromId(item.id)}
       data-connector-color={item.color}
       data-testid={`surface-item-${item.id}`}

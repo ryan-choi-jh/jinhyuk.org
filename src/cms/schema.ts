@@ -302,6 +302,19 @@ export const AnchorSchema = z
   .object({
     bandId: IdSchema,
     blockId: IdSchema,
+    /**
+     * Where on the block the connector leaves, as a fraction from its top
+     * (0) to its bottom (1).
+     *
+     * OPTIONAL, and absent is not the same as 0.5. With no value the line
+     * picks the point on the block's edge nearest the item, which keeps it
+     * short and level and is the right answer almost always. A number pins it
+     * instead, for when you want the line to come off a particular line of
+     * text. The renderer still keeps it 12px clear of the block's top and
+     * bottom edge, so 0 and 1 mean "as high as it goes" rather than a line
+     * leaving exactly at the corner.
+     */
+    at: z.number().min(0, 'at runs from 0 to 1').max(1, 'at runs from 0 to 1').optional(),
   })
   .strict();
 
