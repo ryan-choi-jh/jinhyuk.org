@@ -43,12 +43,12 @@
             },
             {
               "type": "text",
-              "text": "you build your own cover",
               "marks": [
                 {
                   "type": "bold"
                 }
-              ]
+              ],
+              "text": "you build your own cover"
             },
             {
               "type": "text",
@@ -111,7 +111,23 @@
           "content": [
             {
               "type": "text",
-              "text": "The home screen opens on today with each habit as its own card and its heatmap sitting right there on the card, so progress is never more than a glance away. Tap any row to drill in (there's also a light social touch up top if you want to track habits together with your friend)."
+              "text": "The home screen opens on today with each habit as its own card and its heatmap sitting right there on the card, so progress is never more than a glance away. Tap any row to drill in (there's also a light social touch up top if you want to "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "highlight",
+                  "attrs": {
+                    "ink": "yellow"
+                  }
+                }
+              ],
+              "text": "track habits together with your friend"
+            },
+            {
+              "type": "text",
+              "text": ")."
             }
           ]
         }
@@ -137,7 +153,7 @@
           "anchor": {
             "bandId": "b3",
             "blockId": "b3p2",
-            "at": 0.29987299149338376
+            "at": 0.3017781190926276
           }
         },
         {
