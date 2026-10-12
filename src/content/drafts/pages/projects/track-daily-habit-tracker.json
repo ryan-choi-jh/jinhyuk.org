@@ -215,24 +215,6 @@
       ]
     },
     {
-      "id": "b10",
-      "type": "canvas",
-      "height": 751,
-      "items": [
-        {
-          "id": "b10i1",
-          "kind": "image",
-          "x": 505.88,
-          "y": 0,
-          "w": 332.25,
-          "h": 720,
-          "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
-          "alt": "",
-          "caption": "List view of the week, compressed"
-        }
-      ]
-    },
-    {
       "id": "b11",
       "type": "prose",
       "blocks": [
@@ -249,20 +231,34 @@
       ]
     },
     {
-      "id": "b12",
+      "id": "b10",
       "type": "canvas",
-      "height": 751,
+      "height": 610,
+      "padBottom": 17,
       "items": [
+        {
+          "id": "b10i1",
+          "kind": "image",
+          "x": 0,
+          "y": 0,
+          "w": 258,
+          "h": 562,
+          "src": "/projects/track-daily-habit-tracker/blocks/12/value/src.png",
+          "alt": "",
+          "caption": "Weekly + biweekly view",
+          "captionAlign": "center"
+        },
         {
           "id": "b12i1",
           "kind": "image",
-          "x": 505.88,
+          "x": 274,
           "y": 0,
-          "w": 332.25,
-          "h": 720,
+          "w": 258,
+          "h": 562,
           "src": "/projects/track-daily-habit-tracker/blocks/14/value/src.png",
           "alt": "",
-          "caption": "The glanceable monthly overview"
+          "caption": "Monthly view",
+          "captionAlign": "center"
         }
       ]
     },
