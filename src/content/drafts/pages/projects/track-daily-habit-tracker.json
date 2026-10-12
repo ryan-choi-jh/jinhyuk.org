@@ -61,14 +61,14 @@
     {
       "id": "b2",
       "type": "canvas",
-      "height": 808,
+      "height": 776,
       "overlay": true,
       "items": [
         {
           "id": "b2i1",
           "kind": "image",
-          "x": 861,
-          "y": 322,
+          "x": 866,
+          "y": 290,
           "w": 224,
           "h": 486,
           "src": "/projects/track-daily-habit-tracker/blocks/2/value/src.png",
@@ -82,8 +82,8 @@
         {
           "id": "b2i2",
           "kind": "image",
-          "x": 1085,
-          "y": 322,
+          "x": 1090,
+          "y": 290,
           "w": 224,
           "h": 486,
           "src": "/projects/track-daily-habit-tracker/IMG_2065.png",
@@ -120,38 +120,60 @@
     {
       "id": "b4",
       "type": "canvas",
-      "height": 659,
-      "overlay": true,
+      "height": 596,
       "items": [
         {
           "id": "b4i1",
           "kind": "image",
-          "x": 857,
-          "y": 148,
-          "w": 235,
-          "h": 511,
+          "x": 0,
+          "y": 34,
+          "w": 258,
+          "h": 562,
           "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
           "alt": "",
-          "caption": "The dashboard (every habit carries its own heatmap)"
+          "caption": "The dashboard (every habit carries its own heatmap)",
+          "anchor": {
+            "bandId": "b3",
+            "blockId": "b3p2"
+          }
         }
       ]
     },
     {
       "id": "b6",
       "type": "canvas",
-      "height": 598,
+      "height": 596,
       "overlay": true,
       "items": [
         {
           "id": "b6i1",
           "kind": "image",
-          "x": 1095,
-          "y": 148,
-          "w": 208,
-          "h": 450,
+          "x": 265,
+          "y": 34,
+          "w": 258,
+          "h": 562,
           "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
           "alt": "",
           "caption": "One habit, a full year of it"
+        }
+      ]
+    },
+    {
+      "id": "b8",
+      "type": "canvas",
+      "height": 596,
+      "overlay": true,
+      "items": [
+        {
+          "id": "b8i1",
+          "kind": "image",
+          "x": 543,
+          "y": 34,
+          "w": 258,
+          "h": 562,
+          "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
+          "alt": "",
+          "caption": "Pick an emoji and a color; the heatmap takes that color"
         }
       ]
     },
@@ -184,24 +206,6 @@
               "text": "Every habit is editable: name, category, an emoji for the icon, and a color that flows through its heatmap. You can hide a habit from the daily prompt while keeping its history, or delete it and its history for good."
             }
           ]
-        }
-      ]
-    },
-    {
-      "id": "b8",
-      "type": "canvas",
-      "height": 751,
-      "items": [
-        {
-          "id": "b8i1",
-          "kind": "image",
-          "x": 505.88,
-          "y": 0,
-          "w": 332.25,
-          "h": 720,
-          "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
-          "alt": "",
-          "caption": "Pick an emoji and a color; the heatmap takes that color"
         }
       ]
     },
