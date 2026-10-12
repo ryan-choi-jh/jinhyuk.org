@@ -6,15 +6,18 @@
  * `src/lib/project-doc.ts`. The body is `renderDoc` now; the masthead above it
  * is still this page's own.
  *
- * The masthead stays here deliberately. `renderDocHead` exists and the essay
- * page uses it, but a project's "Visit" link is not the same object: live it is
- * `.project-link`, a 13px nav-face row on a hairline underline with an arrow
- * glyph, and `renderDocHead` emits `.doc-visit`, a 15px row with a bold label
- * and no arrow or rule. Swapping it would change how this page looks, and the
- * cutover is a change of data source only. `renderDocHead` is explicitly
- * optional and not part of the renderer contract (docs/cms-contracts.md 4), so
- * a page is allowed to build its own header — this one does, out of `doc.meta`
- * instead of out of Keystatic's entry.
+ * The masthead is still NOT `renderDocHead`, for the reason it never was: a
+ * project's "Visit" link is not an essay's. Live it is `.project-link`, a 13px
+ * nav-face row on a hairline underline with an arrow glyph, where
+ * `renderDocHead` emits `.doc-visit`, a 15px row with a bold label and no
+ * arrow or rule. Flattening the two would change how this page looks.
+ *
+ * It is no longer written out HERE, though. It moved to
+ * `src/cms/render/pages/project.ts`, element for element, because the editor
+ * could not draw a masthead that only existed inside an Astro template: a
+ * project opened in the CMS started at its first paragraph with the title,
+ * date, link and summary missing. Same markup, two callers, nothing published
+ * changed.
  *
  * The `.project-body` wrapper is gone: `.doc` is that box now, with the same
  * 8px of padding-top, and doc.css carries the measures and the link underlines
@@ -22,7 +25,7 @@
  */
 import Base from '../../layouts/Base.astro';
 import '../../cms/styles/doc.css';
-import { renderDoc } from '../../cms/render/index.ts';
+import { renderDoc, renderProjectHead } from '../../cms/render/index.ts';
 import { projectDocs } from '../../lib/site-content.ts';
 
 export async function getStaticPaths() {
@@ -31,44 +34,12 @@ export async function getStaticPaths() {
 
 const { doc } = Astro.props;
 const { meta } = doc;
+const head = renderProjectHead(doc);
 const body = renderDoc(doc);
-
-const fmt = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-
-const prettyUrl = (url: string) => {
-  try {
-    const u = new URL(url);
-    return (u.hostname.replace(/^www\./, '') + u.pathname).replace(/\/$/, '');
-  } catch {
-    return url;
-  }
-};
 ---
 
 <Base title={meta.title} description={meta.summary || meta.title}>
-  <article class="project">
-    <h1>{meta.title}</h1>
-    <p class="post-meta">{fmt(meta.date)}</p>
-
-    {meta.url && (
-      <a class="project-link" href={meta.url} target="_blank" rel="noopener noreferrer">
-        <span class="project-link-label">Visit</span>
-        <span class="project-link-url">{prettyUrl(meta.url)}</span>
-        <svg class="project-link-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path d="M4.5 11.5 11.5 4.5M11.5 4.5H6M11.5 4.5V10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-    )}
-
-    {meta.summary && <p class="lead project-lead">{meta.summary}</p>}
-  </article>
-
+  <Fragment set:html={head} />
   <Fragment set:html={body} />
 </Base>
 

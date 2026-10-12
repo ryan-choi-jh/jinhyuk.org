@@ -26,6 +26,7 @@ export {
   splitHome,
 } from './home.ts';
 export type { HomeParts } from './home.ts';
+export { formatProjectDate, prettyProjectUrl, renderProjectHead } from './project.ts';
 export { renderFilm, renderFilmList, renderFilmography } from './filmography.ts';
 export {
   albumHref,

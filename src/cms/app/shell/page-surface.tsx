@@ -30,6 +30,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { PAGE_WIDTH, REFERENCE_WIDTH } from '../../schema.ts';
+import { renderDocHead, renderProjectHead } from '../../render/index.ts';
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock } from '../../schema.ts';
 // The nav and the footer around the page are the real ones, from
 // src/content/data/site.json. See the note where they are rendered.
@@ -98,6 +99,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
           <div className="cms-surface" ref={surfaceRef} style={{ transform: `scale(${scale})` }}>
             <div className="cms-surface__inner">
               <SiteChromeView where="top" section={doc.meta.section} />
+              <DocHead doc={doc} />
               {groups.map((group) => (
                 <div className="cms-group" key={group.host.id}>
                   <BandBox
@@ -176,6 +178,44 @@ type BandBoxProps = {
   resolveMediaSrc: (src: string) => string;
 };
 
+/**
+ * The masthead: the title, the date, the Visit row and the standfirst.
+ *
+ * None of that is a band, so until now the surface began at the first
+ * paragraph and a project opened in the editor was missing the four things a
+ * reader sees first. It is drawn from the page renderers themselves —
+ * `renderProjectHead` for a project, `renderDocHead` for an essay — rather
+ * than rebuilt in JSX, because the whole point is that it is the same
+ * masthead, and a second implementation would start drifting on the first
+ * change to either.
+ *
+ * Inert, like the nav and the footer around it: these fields are edited in the
+ * inspector, and a live `target="_blank"` link inside an editing surface is a
+ * way to lose your place, not a feature.
+ *
+ * Home has no masthead here. Its title is the bold `.name` line INSIDE the
+ * intro, under the illustration rather than above it, so it is drawn by the
+ * intro band instead — see `isHomeIntro` below.
+ */
+function DocHead({ doc }: { doc: Doc }) {
+  const section = doc.meta.section;
+  const html =
+    section === 'projects'
+      ? renderProjectHead(doc)
+      : section === 'essays'
+        ? renderDocHead(doc)
+        : null;
+  if (html === null) return null;
+  return (
+    <div
+      className="cms-surface__head"
+      data-testid="surface-doc-head"
+      aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }: BandBoxProps) {
   const selected = isBandSelected(selection, band.id);
   const isOverlay = band.type === 'canvas' && band.overlay === true;
@@ -223,7 +263,14 @@ function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }:
         </span>
       )}
       {band.type === 'prose' ? (
-        <ProseBandBody store={store} band={band} bandIndex={index} selection={selection} slots={slots} />
+        <ProseBandBody
+          store={store}
+          band={band}
+          bandIndex={index}
+          selection={selection}
+          slots={slots}
+          introName={isHomeIntro ? doc.meta.title : null}
+        />
       ) : (
         <CanvasBandBody
           store={store}
@@ -249,15 +296,28 @@ function ProseBandBody({
   bandIndex,
   selection,
   slots,
+  introName,
 }: {
   store: DocStore;
   band: ProseBand;
   bandIndex: number;
   selection: Selection;
   slots: EditorShellSlots;
+  /**
+   * The homepage's bold name line, which lives INSIDE the intro rather than
+   * above the page (`.intro .name` in global.css, written by `renderIntro`).
+   * Null everywhere else. It is `meta.title`, not a block, so it is not
+   * editable here; the Title field in the inspector is where it changes.
+   */
+  introName: string | null;
 }) {
   return (
     <div className="cms-prose-col">
+      {introName !== null && (
+        <p className="cms-surface__name" aria-hidden="true" data-testid="surface-intro-name">
+          {introName}
+        </p>
+      )}
       {band.blocks.map((block, blockIndex) => {
         const selected = isBlockSelected(selection, band.id, block.id);
         const select = (): void => store.selectBlock(band.id, block.id);

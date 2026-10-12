@@ -573,6 +573,43 @@ async function run(page) {
     }))()`);
 
     check(`${id}/${key}: the DOM says which editor`, dom.editor === kind, dom.editor);
+
+    // The masthead is not a band, so the surface used to begin at the first
+    // paragraph and a document opened here was missing the four things a
+    // reader sees first. Drawn from the page renderers now, so this is the
+    // published markup rather than a second version of it.
+    if (kind === 'document') {
+      // Keyed off the DOCUMENT's own section, not the route's, because that is
+      // what decides which masthead a page gets — a project's Visit row is not
+      // an essay's. Every real document carries one; `dense.json` deliberately
+      // does not, and a document with no section correctly gets no masthead.
+      const docSection = await page.evaluate(
+        `window.__wsd.store.docStore('${id}')?.getState().doc.meta.section ?? null`,
+      );
+      const head = await page.evaluate(`(() => {
+        const h = document.querySelector('[data-testid="surface-doc-head"]');
+        if (h === null) return null;
+        const g = (sel) => h.querySelector(sel)?.textContent?.trim() ?? null;
+        const cs = (sel, prop) => { const e = h.querySelector(sel); return e === null ? null : getComputedStyle(e)[prop]; };
+        return {
+          title: g('h1') ?? g('.doc-title'),
+          date: g('.post-meta') ?? g('.doc-date'),
+          titleSize: cs('h1', 'fontSize') ?? cs('.doc-title', 'fontSize'),
+          pointer: getComputedStyle(h).pointerEvents,
+        };
+      })()`);
+      if (docSection === null) {
+        check(`${id}/${key}: no section, so no masthead`, head === null);
+      } else {
+        check(`${id}/${key}: the surface draws the masthead`, head !== null, String(docSection));
+      }
+      if (head !== null) {
+        check(`${id}/${key}: with the document's title`, head.title === dom.toolbarTitle, `${head.title} vs ${dom.toolbarTitle}`);
+        check(`${id}/${key}: and a date`, typeof head.date === 'string' && head.date.length > 0, String(head.date));
+        check(`${id}/${key}: at the site's 32px`, head.titleSize === '32px', String(head.titleSize));
+        check(`${id}/${key}: inert, like the nav around it`, head.pointer === 'none', String(head.pointer));
+      }
+    }
     check(`${id}/${key}: the row is marked current`, dom.currentRow === `entry-row-${key}`, dom.currentRow ?? 'none');
     check(`${id}/${key}: the breadcrumb names it`, typeof dom.crumb === 'string' && dom.crumb.length > 0, dom.crumb ?? 'none');
     check(`${id}/${key}: Save and Publish are there`, dom.save && dom.publish);

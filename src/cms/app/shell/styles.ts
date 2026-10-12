@@ -354,6 +354,61 @@ export const SHELL_CSS = `
    everything else. */
 .cms-surface__empty { padding: 40px 0; color: #999; }
 
+/* ---------- the masthead ----------
+   Title, date, Visit row and standfirst, drawn from the page renderers
+   themselves so the markup is the published markup. These rules are the
+   published rules copied across, the same way the prose scale below is:
+   article / article h1 / .post-meta / .project-link / .lead / .project-lead
+   from global.css, and .doc-head / .doc-title / .doc-date / .doc-visit /
+   .doc-summary from src/cms/styles/doc.css.
+
+   Inert, like the nav and footer: these fields are edited in the inspector,
+   and a live target="_blank" link in an editing surface loses your place. */
+.cms-surface__head { pointer-events: none; user-select: none; }
+.cms-surface__head .project,
+.cms-surface__head .doc-head {
+  max-width: 720px;
+  padding-top: 71px;
+}
+.cms-surface__head h1,
+.cms-surface__head .doc-title {
+  margin: 0;
+  font-size: 32px; line-height: 44px; letter-spacing: -0.02em; font-weight: 700;
+}
+.cms-surface__head .post-meta,
+.cms-surface__head .doc-date {
+  margin: 10px 0 40px;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-size: 13px; font-weight: 500; line-height: 16px; letter-spacing: 0.04em;
+  color: var(--accent, #ff5722);
+}
+/* A project's Visit row: 13px nav face on a hairline, with the arrow. */
+.cms-surface__head .project-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-bottom: 32px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule, #e4e4e4);
+  color: var(--ink, #111111); text-decoration: none;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-size: 13px; font-weight: 500; line-height: 16px; letter-spacing: 0.04em;
+}
+.cms-surface__head .project-link-label { color: var(--muted, #6b6b6b); }
+.cms-surface__head .project-link-arrow { flex-shrink: 0; }
+/* An essay's is a different object: 15px, bold label, no rule, no arrow. */
+.cms-surface__head .doc-visit {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-bottom: 32px; font-size: 15px; text-decoration: none;
+  color: var(--ink, #111111);
+}
+.cms-surface__head .doc-visit-label { font-weight: 600; }
+.cms-surface__head .doc-visit-url { color: var(--muted, #6b6b6b); }
+.cms-surface__head .lead,
+.cms-surface__head .doc-summary {
+  margin: 0 0 40px;
+  font-weight: 300; font-style: italic;
+}
+/* The homepage's name line, inside the intro rather than above the page. */
+.cms-surface__name { margin: 0 0 24px; font-weight: 700; }
+
 /* Prose, at the site's scale. global.css: p 17.5/35, h2 22/32 600, h3 18/28,
    blockquote 26/40 300 behind a 2px accent rule, 28px between paragraphs. */
 .cms-surface p { margin: 0 0 28px; }
