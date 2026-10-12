@@ -748,6 +748,43 @@ check('youtubeIdFromInput takes a /shorts/ URL', youtubeIdFromInput('https://you
 check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtube.com/watch?v=EudrajWcwwg') === 'EudrajWcwwg');
 
 /* -------------------------------------------------------------------------- */
+/* The editor stylesheets are template literals                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * No backticks inside the CSS.
+ *
+ * `SHELL_CSS` and `SITE_CSS` are template literals holding a few hundred
+ * lines of CSS, comments and all. A backtick in one of those comments — the
+ * obvious way to quote a class name or a property — silently ENDS the
+ * literal, and the rest of the stylesheet is parsed as TypeScript. The error
+ * that follows points at whatever happens to look like code further down, not
+ * at the comment, which is why it has been written three times in this
+ * project and diagnosed from scratch each time.
+ *
+ * Cheap to check, so it is checked here rather than remembered.
+ */
+{
+  const cssFiles: [string, number, number][] = [
+    ['../app/shell/styles.ts', 29, 769],
+    ['../app/shell/site-styles.ts', 27, 431],
+  ];
+  for (const [file] of cssFiles) {
+    const full = fileURLToPath(new URL(file, import.meta.url));
+    const text = readFileSync(full, 'utf8');
+    const open_ = text.indexOf('= `');
+    const close = text.lastIndexOf('\n`;');
+    const body = open_ < 0 || close < 0 ? '' : text.slice(open_ + 3, close);
+    const strays = body.split('\n').filter((line) => line.includes('`')).length;
+    check(
+      `${file.split('/').pop()}: no backticks inside the CSS literal`,
+      open_ >= 0 && close > open_ && strays === 0,
+      strays === 0 ? '' : `${strays} line(s) would end the template early`,
+    );
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* A canvas band follows its contents                                          */
 /* -------------------------------------------------------------------------- */
 

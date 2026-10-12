@@ -551,7 +551,26 @@ export const SHELL_CSS = `
   pointer-events: none;
 }
 .cms-band-box--overlay .cms-ph-item,
-.cms-band-box--overlay .cms-slot-host { pointer-events: auto; }
+/* The PROSE slot host only. A canvas host is positioned absolute with
+   inset 0, so switching it on made the whole band clickable; the canvas
+   rules below put the events back on the items where they belong. */
+.cms-band-box--overlay .cms-slot-host:not(.cms-slot-host--canvas) { pointer-events: auto; }
+/* AN OVERLAY IS A LAYER, NOT A SHEET OF PAPER.
+   The canvas editor is the same component wherever it is mounted, so it
+   cannot know this: its stage is opaque white, because on an ordinary canvas
+   band the stage IS the page there. Mounted as an overlay that white covered
+   the paragraph underneath, and the stage took every click across the whole
+   band — so the text you could still partly see was not clickable, and
+   neither was anything else except the items.
+   Transparent, and click-through except where there is actually something to
+   click. The items and their resize handles keep their own events. */
+.cms-band-box--overlay .cv-root,
+.cms-band-box--overlay .cv-stage {
+  background: transparent;
+  pointer-events: none;
+}
+.cms-band-box--overlay .cv-item,
+.cms-band-box--overlay .cv-handle { pointer-events: auto; }
 .cms-band-box--selected { outline: 2px solid var(--cms-accent); outline-offset: 0; }
 /* ...except an overlay, which has no footprint of its own to outline. The
    frame below goes round its items instead. */
