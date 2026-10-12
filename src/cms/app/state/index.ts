@@ -57,8 +57,10 @@ export {
   docsEqual,
   dropIndexToTargetIndex,
   findBand,
+  mergeProseBlockUp,
   normalizeDoc,
   sanitizeShapeKeys,
+  splitProseBlock,
 } from './doc-ops.ts';
 
 export { COALESCE_MS, HISTORY_LIMIT } from './history.ts';

@@ -37,16 +37,22 @@ import {
   collectProseColors,
   collectProseMarks,
   collectProseText,
+  contentForKind,
   convertBlockKind,
   docFromBlock,
   emptyContentFor,
+  inlineLength,
   isSafeHref,
+  joinInlineContent,
   normalizeMarks,
   normalizeProseContent,
+  paragraphGroups,
   sameProseContent,
+  splitInlineContent,
+  splitInlineRange,
   topNodeTypeOf,
 } from './block.ts';
-import { PROSE_KINDS, getProseSchema } from './extensions.ts';
+import { PROSE_KINDS, SINGLE_LINE_KINDS, getProseSchema } from './extensions.ts';
 import { PROSE_EDITOR_CSS } from './css.ts';
 import {
   COLOR_TOKEN_CSS,
@@ -118,7 +124,9 @@ check(
 section('schema per block kind');
 
 const FORBIDDEN_MARKS = ['underline', 'strike', 'code', 'highlight', 'superscript'];
-const FORBIDDEN_NODES = ['hardBreak', 'horizontalRule', 'codeBlock', 'image'];
+// hardBreak is NOT here: Shift-Enter's line break is in the schema on purpose,
+// WS-1 has rendered it as <br /> all along, and block.ts keeps it inline.
+const FORBIDDEN_NODES = ['horizontalRule', 'codeBlock', 'image'];
 
 for (const kind of PROSE_KINDS) {
   const schema = getProseSchema(kind);
@@ -528,6 +536,135 @@ if (sample === undefined) {
       convertBlockKind(flattened, 'ul').content.length === 1,
     );
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Enter cuts a block in two; Backspace puts it back                           */
+/* -------------------------------------------------------------------------- */
+
+section('splitting and joining an inline run');
+{
+  const text = (value: string, marks?: unknown[]): { type: 'text'; text: string } =>
+    (marks === undefined
+      ? { type: 'text', text: value }
+      : { type: 'text', marks, text: value }) as { type: 'text'; text: string };
+
+  const plain = [text("Showing up beats perfect. I'll get tomorrow's square")];
+  const at = plain[0].text.indexOf("I'll");
+
+  const [head, tail] = splitInlineContent(plain, at);
+  check('the head is the text before the caret', collectProseText(head) === 'Showing up beats perfect. ', JSON.stringify(collectProseText(head)));
+  check('the tail is the text after it', collectProseText(tail) === "I'll get tomorrow's square");
+  check('nothing is lost in the cut', inlineLength(head) + inlineLength(tail) === inlineLength(plain));
+
+  // The whole point of the feature: the two halves go back together exactly,
+  // with no space conjured at the seam.
+  check(
+    'joining them back is the original, character for character',
+    sameProseContent(joinInlineContent(head, tail), normalizeProseContent('p', plain)),
+    collectProseText(joinInlineContent(head, tail)),
+  );
+  check('the seam is where the caret goes', inlineLength(head) === at, `${inlineLength(head)} vs ${at}`);
+
+  // Both ends. A cut at 0 leaves an empty block above, a cut at the end leaves
+  // an empty one below, and neither may invent an empty text node, which
+  // ProseMirror refuses outright.
+  const [emptyHead, whole] = splitInlineContent(plain, 0);
+  check('a cut at the start gives an empty head', emptyHead.length === 0);
+  check('and the whole run as the tail', collectProseText(whole) === collectProseText(plain));
+  const [all, emptyTail] = splitInlineContent(plain, 9999);
+  check('a cut past the end gives an empty tail', emptyTail.length === 0);
+  check('and the whole run as the head', collectProseText(all) === collectProseText(plain));
+
+  // Marks survive the cut on both sides, including a cut INSIDE a marked run.
+  const marked = [text('plain and '), text('bold words', [{ type: 'bold' }])];
+  const [mHead, mTail] = splitInlineContent(marked, 'plain and bold'.length);
+  check(
+    'a cut inside a bold run leaves bold on both halves',
+    canonicalJson(mHead[1]?.marks) === canonicalJson([{ type: 'bold' }]) &&
+      canonicalJson(mTail[0]?.marks) === canonicalJson([{ type: 'bold' }]),
+    `${collectProseText(mHead)} | ${collectProseText(mTail)}`,
+  );
+  check(
+    'and the characters are still all there, in order',
+    collectProseText(mHead) + collectProseText(mTail) === collectProseText(marked),
+  );
+  check(
+    'a split half is legal 3.2 content, unchanged by normalisation',
+    sameProseContent(mTail, normalizeProseContent('p', mTail)),
+  );
+
+  // Enter on a selection replaces it, as it does in every text editor.
+  const [rHead, rTail] = splitInlineRange(plain, 'Showing'.length, 'Showing up beats'.length);
+  check(
+    'Enter on a selection drops what was selected',
+    collectProseText(rHead) + collectProseText(rTail) === "Showing perfect. I'll get tomorrow's square",
+    collectProseText(rHead) + collectProseText(rTail),
+  );
+  check(
+    'a backwards selection splits the same way',
+    sameProseContent(splitInlineRange(plain, 'Showing up beats'.length, 'Showing'.length)[0], rHead),
+  );
+
+  check(
+    'only p/h2/h3 route Enter through the split: the rest have somewhere to put it',
+    [...SINGLE_LINE_KINDS].sort().join(',') === 'h2,h3,p',
+    [...SINGLE_LINE_KINDS].join(','),
+  );
+}
+
+section("Shift-Enter's line break stays inside the paragraph");
+{
+  const br = { type: 'hardBreak' };
+  const broken = [
+    { type: 'text', text: 'Showing up beats perfect.' },
+    br,
+    { type: 'text', text: "I'll get tomorrow's square" },
+  ];
+
+  // The trap this guards: before block.ts knew about hardBreak, every non-text
+  // node ended the run, so normalising a line break turned it into a PARAGRAPH
+  // break and the author's one block quietly became two on the next save.
+  const normalized = normalizeProseContent('p', broken);
+  check(
+    'a line break survives normalisation as one inline run',
+    canonicalJson(normalized) === canonicalJson(broken),
+    canonicalJson(normalized),
+  );
+  check(
+    'and is not promoted to a paragraph split',
+    paragraphGroups(broken).length === 1,
+    String(paragraphGroups(broken).length),
+  );
+  check(
+    'normalising twice changes nothing (still a fixed point)',
+    canonicalJson(normalizeProseContent('p', normalized)) === canonicalJson(normalized),
+  );
+  check('it reads as a newline in plain text', collectProseText(broken).includes('\n'));
+
+  // One position wide, so a later Enter still cuts where the caret is.
+  check('a break counts as one character', inlineLength(broken) === 25 + 1 + 26, String(inlineLength(broken)));
+
+  // Splitting exactly at a break, on either side of it.
+  const [beforeBr, afterBr] = splitInlineContent(broken, 25);
+  check('cutting before the break leaves it on the tail', canonicalJson(afterBr[0]) === canonicalJson(br), canonicalJson(afterBr[0]));
+  check('and the head is the first sentence', collectProseText(beforeBr) === 'Showing up beats perfect.');
+  const [withBr, past] = splitInlineContent(broken, 26);
+  check('cutting after it leaves it on the head', canonicalJson(withBr[1]) === canonicalJson(br), canonicalJson(withBr[1]));
+  check('and the tail is the second sentence', collectProseText(past) === "I'll get tomorrow's square");
+  check('the break is atomic: it is never sliced in half', inlineLength(withBr) + inlineLength(past) === inlineLength(broken));
+
+  // A break is not a quote or list boundary either: flattening keeps it.
+  check(
+    'converting to a list keeps the break inside the one item',
+    contentForKind('ul', paragraphGroups(broken)).length === 1,
+    canonicalJson(contentForKind('ul', paragraphGroups(broken))),
+  );
+  check(
+    'and no space is invented next to it',
+    !collectProseText(normalized).includes(' \n') && !collectProseText(normalized).includes('\n '),
+    JSON.stringify(collectProseText(normalized)),
+  );
 }
 
 /* -------------------------------------------------------------------------- */

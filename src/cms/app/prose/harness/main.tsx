@@ -25,13 +25,18 @@ import fixture from '../../../fixtures/simple.json';
 import { PROSE_NODE_TYPE, isProseBand, validateDoc } from '../../../schema.ts';
 import type { ProseBlock } from '../../../schema.ts';
 import { ProseEditor } from '../ProseEditor.tsx';
+import type { CaretAt, CaretRequest } from '../ProseEditor.tsx';
 import {
   blockFromDoc,
   canonicalJson,
   collectProseColors,
   collectProseMarks,
   collectProseText,
+  inlineLength,
+  joinInlineContent,
 } from '../block.ts';
+import type { ProseNode } from '../block.ts';
+import { SINGLE_LINE_KINDS } from '../extensions.ts';
 import { COLOR_TOKEN_CSS, PROSE_PALETTE } from '../palette.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -119,6 +124,31 @@ type Bridge = {
 
 const bridge: Bridge = { get: () => [], set: () => undefined };
 
+/**
+ * Enter and Backspace cross a block boundary, so proving them needs a host
+ * holding a LIST of blocks, not one editor. This is the same wiring the real
+ * slot does in src/cms/app/index.tsx (cut the block in two, join it back, hand
+ * the caret to whichever block should now have it), with an array standing in
+ * for the document store.
+ */
+let splitCount = 0;
+/**
+ * How many times the editor asked the host to merge. Backspace is bound for
+ * every single-line block but must only reach the host at the very start of
+ * one; a counter is the only way to see the difference from outside, because a
+ * synthetic keydown cannot drive the browser's own character deletion and so
+ * mid-paragraph Backspace looks like "nothing happened" either way.
+ */
+let mergeCalls = 0;
+/* Per block, so a request for one block does not refire another block's. */
+const caretRequests = new Map<string, CaretRequest>();
+let caretNonce = 0;
+
+function requestCaret(blockId: string, at: CaretAt): void {
+  caretNonce += 1;
+  caretRequests.set(blockId, { at, nonce: caretNonce });
+}
+
 function blockById(id: string): ProseBlock {
   const found = bridge.get().find((block) => block.id === id);
   if (found === undefined) throw new Error(`no block ${id}`);
@@ -146,6 +176,36 @@ function App(): JSX.Element {
     );
   };
 
+  const handleSplit = (block: ProseBlock, head: ProseNode[], tail: ProseNode[]): void => {
+    splitCount += 1;
+    const kind = block.kind === 'p' || tail.length > 0 ? block.kind : 'p';
+    const made: ProseBlock = { id: `split_${splitCount}`, kind, content: tail };
+    requestCaret(made.id, 'start');
+    setBlocks((previous) =>
+      previous.flatMap((candidate) =>
+        candidate.id === block.id ? [{ ...candidate, content: head }, made] : [candidate],
+      ),
+    );
+  };
+
+  const handleMergeUp = (block: ProseBlock): boolean => {
+    mergeCalls += 1;
+    const current = latest.current;
+    const index = current.findIndex((candidate) => candidate.id === block.id);
+    const previous = index > 0 ? current[index - 1] : undefined;
+    if (previous === undefined) return false;
+    if (!SINGLE_LINE_KINDS.has(previous.kind) || !SINGLE_LINE_KINDS.has(block.kind)) return false;
+
+    requestCaret(previous.id, inlineLength(previous.content));
+    const merged = joinInlineContent(previous.content, block.content);
+    setBlocks((all) =>
+      all
+        .filter((candidate) => candidate.id !== block.id)
+        .map((candidate) => (candidate.id === previous.id ? { ...candidate, content: merged } : candidate)),
+    );
+    return true;
+  };
+
   return (
     <div className="hz-grid">
       {blocks.map((block) => (
@@ -155,6 +215,9 @@ function App(): JSX.Element {
             <ProseEditor
               block={block}
               onChange={handleChange}
+              onSplit={(head, tail) => handleSplit(block, head, tail)}
+              onMergeUp={() => handleMergeUp(block)}
+              caret={caretRequests.get(block.id) ?? null}
               onReady={(editor) => {
                 if (editor === null) editors.delete(block.id);
                 else editors.set(block.id, editor);
@@ -785,17 +848,158 @@ async function run(): Promise<void> {
   }
 
   /* -------------------------------------------------------------- keyboard */
-  section('keys that must not do anything');
+  section('Enter cuts a paragraph in two');
   {
     await reset();
-    const before = canonicalJson(blockById('p_open'));
-    editorFor('p_open').chain().focus().setTextSelection(6).run();
+    const whole = collectProseText(blockById('p_open').content);
+    const at = 6;
+    const countBefore = bridge.get().length;
+
+    editorFor('p_open').chain().focus().setTextSelection(at + 1).run();
     await press('p_open', 'Enter');
-    check('Enter cannot split a paragraph block in two', canonicalJson(blockById('p_open')) === before);
-    check('and the document still holds exactly one node', editorFor('p_open').state.doc.childCount === 1);
+    await waitFor(() => bridge.get().length === countBefore + 1);
+
+    check('the band gains a block', bridge.get().length === countBefore + 1, `${countBefore} -> ${bridge.get().length}`);
+    // Still one node per editor: the contract's whole point. The second
+    // paragraph is a second BLOCK, never a second node inside this one.
+    check('and the original editor still holds exactly one node', editorFor('p_open').state.doc.childCount === 1);
+    check(
+      'the original keeps its id, and the text before the caret',
+      collectProseText(blockById('p_open').content) === whole.slice(0, at),
+      JSON.stringify(collectProseText(blockById('p_open').content)),
+    );
+
+    const made = bridge.get()[bridge.get().indexOf(blockById('p_open')) + 1];
+    check('the new block holds the text after it', collectProseText(made.content) === whole.slice(at), JSON.stringify(collectProseText(made.content)));
+    check('the new block is a paragraph too', made.kind === 'p', made.kind);
+    check('no character was lost', collectProseText(blockById('p_open').content) + collectProseText(made.content) === whole);
+
+    // The caret has to follow the author into the new block, or the next thing
+    // they type goes somewhere they are not looking.
+    const landed = await waitFor(() => editors.get(made.id)?.isFocused === true);
+    check('the caret moves into the new block', landed, `focused=${editors.get(made.id)?.isFocused}`);
+    check(
+      'and sits at its start, before the moved text',
+      editors.get(made.id)?.state.selection.from === 1,
+      String(editors.get(made.id)?.state.selection.from),
+    );
+
+    // Backspace there puts it back exactly, with no space at the seam.
+    await press(made.id, 'Backspace');
+    await waitFor(() => bridge.get().length === countBefore);
+    check('Backspace at the start joins the block back onto the one above', bridge.get().length === countBefore, String(bridge.get().length));
+    check(
+      'and the sentence is character-for-character what it was',
+      collectProseText(blockById('p_open').content) === whole,
+      JSON.stringify(collectProseText(blockById('p_open').content)),
+    );
+    check(
+      'with the caret on the seam, where the join happened',
+      editorFor('p_open').state.selection.from === at + 1,
+      `${editorFor('p_open').state.selection.from} (want ${at + 1})`,
+    );
+
+    await reset();
+  }
+
+  section('Shift-Enter breaks the line without breaking the block');
+  {
+    await reset();
+    const countBefore = bridge.get().length;
+    const whole = collectProseText(blockById('p_open').content);
+    const at = 6;
+
+    editorFor('p_open').chain().focus().setTextSelection(at + 1).run();
     await press('p_open', 'Enter', { shift: true });
-    check('Shift-Enter inserts no hardBreak', !nodeTypesIn('p_open').includes('hardBreak'), nodeTypesIn('p_open').join(','));
-    check('nothing changed at all', canonicalJson(blockById('p_open')) === before);
+    await waitFor(() => nodeTypesIn('p_open').includes('hardBreak'));
+
+    // The difference from Enter, which is the whole reason both keys exist.
+    check('it does NOT add a block', bridge.get().length === countBefore, String(bridge.get().length));
+    check('it inserts a hardBreak', nodeTypesIn('p_open').includes('hardBreak'), nodeTypesIn('p_open').join(','));
+    check('the editor still holds exactly one top node', editorFor('p_open').state.doc.childCount === 1);
+    check(
+      'no character is lost: the break is the only thing added',
+      collectProseText(blockById('p_open').content).replace('\n', '') === whole,
+      JSON.stringify(collectProseText(blockById('p_open').content).slice(0, 24)),
+    );
+    check(
+      'and it lands where the caret was',
+      collectProseText(blockById('p_open').content).indexOf('\n') === at,
+      String(collectProseText(blockById('p_open').content).indexOf('\n')),
+    );
+
+    // The stored block has to round trip, or the break is lost on the next
+    // save and the author's line quietly re-joins.
+    check(
+      'the block round trips through the live editor unchanged',
+      canonicalJson(liveRoundTrip('p_open').content) === canonicalJson(blockById('p_open').content),
+      canonicalJson(liveRoundTrip('p_open').content).slice(0, 80),
+    );
+
+    // Enter after a Shift-Enter: the break is one position wide, so the split
+    // offsets have to account for it or the cut lands a character out.
+    const broken = collectProseText(blockById('p_open').content);
+    editorFor('p_open').chain().focus().setTextSelection(at + 6).run();
+    await press('p_open', 'Enter');
+    await waitFor(() => bridge.get().length === countBefore + 1);
+    const tail = bridge.get()[bridge.get().indexOf(blockById('p_open')) + 1];
+    check(
+      'Enter after a break still cuts exactly at the caret',
+      collectProseText(blockById('p_open').content) + collectProseText(tail.content) === broken,
+      `${JSON.stringify(collectProseText(blockById('p_open').content))} + ${JSON.stringify(collectProseText(tail.content).slice(0, 16))}`,
+    );
+
+    await reset();
+  }
+
+  section('Shift-Enter works in the other kinds too');
+  {
+    await reset();
+    await press('h2_heatmap', 'Enter', { shift: true });
+    check('a heading takes a line break', nodeTypesIn('h2_heatmap').includes('hardBreak'), nodeTypesIn('h2_heatmap').join(','));
+    const items = blockById('ul_habits').content.length;
+    editorFor('ul_habits').chain().focus().setTextSelection(3).run();
+    await press('ul_habits', 'Enter', { shift: true });
+    await waitFor(() => nodeTypesIn('ul_habits').includes('hardBreak'));
+    check('a list item takes one without becoming a new item', nodeTypesIn('ul_habits').includes('hardBreak') && blockById('ul_habits').content.length === items, `${items} items`);
+    await reset();
+  }
+
+  section('Backspace only merges where it should');
+  {
+    await reset();
+    const countBefore = bridge.get().length;
+
+    // Mid-paragraph, Backspace is ProseMirror's (really the browser's) own
+    // deletion and must never reach the host. Measured by whether the host was
+    // asked at all: a synthetic keydown cannot drive the browser's native
+    // character deletion, so the text alone would not tell the two apart.
+    const callsBefore = mergeCalls;
+    editorFor('p_open').chain().focus().setTextSelection(6).run();
+    await press('p_open', 'Backspace');
+    check('Backspace mid-paragraph never asks to merge', mergeCalls === callsBefore, `${callsBefore} -> ${mergeCalls}`);
+    check('and no block is removed', bridge.get().length === countBefore, String(bridge.get().length));
+
+    // At the very start it does ask. But this is the FIRST block, so there is
+    // nothing above to merge into and the host declines.
+    editorFor('p_open').chain().focus().setTextSelection(1).run();
+    await press('p_open', 'Backspace');
+    check('Backspace at the start does ask', mergeCalls === callsBefore + 1, `${callsBefore} -> ${mergeCalls}`);
+    check('but the first block has nothing above it, so nothing happens', bridge.get().length === countBefore, String(bridge.get().length));
+    check(
+      'and its text is untouched',
+      canonicalJson(blockById('p_open')) === canonicalJson(FIXTURE_BLOCKS[0]),
+      collectProseText(blockById('p_open').content).slice(0, 20),
+    );
+
+    // A list is a block container: Enter already works inside it, and merging
+    // a paragraph into it would have to guess which item the text joins.
+    const listCalls = mergeCalls;
+    editorFor('ul_habits').chain().focus().setTextSelection(1).run();
+    await press('ul_habits', 'Backspace');
+    check('Backspace in a list never asks to merge either', mergeCalls === listCalls, `${listCalls} -> ${mergeCalls}`);
+
+    await reset();
   }
 
   section('keys that must work');

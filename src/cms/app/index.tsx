@@ -80,7 +80,13 @@ import { CanvasEditor } from './canvas/index.ts';
 // The nav bar and the footer: one copy for the whole editor, edited under Home,
 // drawn around every page in the middle pane. See SEAM 9 below.
 import { SiteChromePanel, SiteChromeProvider } from './chrome/index.ts';
-import { ProseEditor } from './prose/index.ts';
+import {
+  ProseEditor,
+  SINGLE_LINE_KINDS,
+  inlineLength,
+  joinInlineContent,
+} from './prose/index.ts';
+import type { CaretAt, CaretRequest, ProseNode } from './prose/index.ts';
 import { EditorShell, SiteShell } from './shell/index.ts';
 import type {
   CanvasBandSlotProps,
@@ -94,10 +100,13 @@ import { recordEditorSlot } from './records/index.ts';
 import {
   createBrowserNavigator,
   createDocStore,
+  createProseBlock,
   createSiteStore,
   mediaSlugFor,
+  mergeProseBlockUp,
   selectBlock,
   selectItems,
+  splitProseBlock,
   useDocStoreSelector,
   useSiteStoreState,
 } from './state/index.ts';
@@ -308,9 +317,54 @@ export function CmsEditor(props: CmsEditorProps) {
 /* Slot: prose (WS-5 into WS-3)                                                */
 /* -------------------------------------------------------------------------- */
 
-const renderProseBlock = (props: ProseBlockSlotProps): ReactNode => (
+/** Exported so a harness can drive the REAL slot, not a copy of its wiring. */
+export const renderProseBlock = (props: ProseBlockSlotProps): ReactNode => (
   <ProseSlot key={props.block.id} {...props} />
 );
+
+/* -------------------------------------------------------------------------- */
+/* Caret handoff between blocks                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Enter and Backspace move the caret into a DIFFERENT block from the one the
+ * key was pressed in, and in the Enter case into one that does not exist yet.
+ * So the request is left here, addressed by block id, and collected by whichever
+ * slot that is: immediately, if it is already on screen, or on mount if the
+ * split has only just created it.
+ *
+ * A module-level map rather than store state because a caret position is not
+ * part of the document. Undo should not replay it, and it must not end up in
+ * what gets saved.
+ */
+const caretRequests = new Map<string, CaretAt>();
+const caretListeners = new Set<() => void>();
+
+function requestCaret(blockId: string, at: CaretAt): void {
+  caretRequests.set(blockId, at);
+  for (const listener of [...caretListeners]) listener();
+}
+
+/** The pending caret request for one block, as a prop for ProseEditor. */
+function useCaretRequest(blockId: string): CaretRequest | null {
+  const [caret, setCaret] = useState<CaretRequest | null>(null);
+  useEffect(() => {
+    const collect = (): void => {
+      const at = caretRequests.get(blockId);
+      if (at === undefined) return;
+      caretRequests.delete(blockId);
+      setCaret((previous) => ({ at, nonce: (previous?.nonce ?? 0) + 1 }));
+    };
+    caretListeners.add(collect);
+    // A split addresses the new block before it is mounted, so the request is
+    // already waiting by the time this runs.
+    collect();
+    return () => {
+      caretListeners.delete(collect);
+    };
+  }, [blockId]);
+  return caret;
+}
 
 function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
   const handleChange = useCallback(
@@ -335,10 +389,59 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
     [onSelect],
   );
 
+  /**
+   * Enter: the block becomes two. The original keeps the head and its id, so an
+   * anchored connector still has its paragraph; the tail is a new block, and
+   * the caret goes to the front of it, where the author left off.
+   *
+   * Splitting at the end of a heading starts a paragraph, which is what every
+   * editor does and almost always what is meant. Splitting one in the middle
+   * keeps both halves headings.
+   */
+  const handleSplit = useCallback(
+    (head: ProseNode[], tail: ProseNode[]) => {
+      const kind = block.kind === 'p' || tail.length > 0 ? block.kind : 'p';
+      const next = createProseBlock(kind, tail);
+      store.update((doc) => splitProseBlock(doc, band.id, block.id, head, next), {
+        label: 'split text block',
+        selection: selectBlock(band.id, next.id),
+      });
+      requestCaret(next.id, 'start');
+    },
+    [store, band.id, block.id, block.kind],
+  );
+
+  /**
+   * Backspace at the very start: this block joins the one above, caret on the
+   * seam. Only between two single-line kinds — Backspace into a list or a quote
+   * would have to decide which item or paragraph the text lands in, and
+   * guessing there is worse than doing nothing.
+   */
+  const handleMergeUp = useCallback((): boolean => {
+    const index = band.blocks.findIndex((candidate) => candidate.id === block.id);
+    const previous = index > 0 ? band.blocks[index - 1] : undefined;
+    if (previous === undefined) return false;
+    if (!SINGLE_LINE_KINDS.has(previous.kind) || !SINGLE_LINE_KINDS.has(block.kind)) return false;
+
+    const seam = inlineLength(previous.content);
+    const merged = joinInlineContent(previous.content, block.content);
+    store.update((doc) => mergeProseBlockUp(doc, band.id, block.id, merged), {
+      label: 'join text blocks',
+      selection: selectBlock(band.id, previous.id),
+    });
+    requestCaret(previous.id, seam);
+    return true;
+  }, [store, band.id, band.blocks, block.id, block.kind, block.content]);
+
+  const caret = useCaretRequest(block.id);
+
   return (
     <ProseEditor
       block={block}
       onChange={handleChange}
+      onSplit={handleSplit}
+      onMergeUp={handleMergeUp}
+      caret={caret}
       onFocusChange={handleFocus}
       // WS-5's toolbar owns kind, and `handleChange` writes kind and content
       // in one step, so the six kind buttons are kept. WS-3's outline and

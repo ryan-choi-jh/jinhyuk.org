@@ -284,6 +284,10 @@ function inlineText(content: unknown): string {
     if (record['type'] === 'text' && typeof record['text'] === 'string') {
       out.push(record['text']);
     }
+    // A line break is whitespace for slugging. Without this a heading broken
+    // with Shift-Enter would fuse the words either side of it and slug
+    // "Habit<br>tracker" as "habittracker" rather than "habit-tracker".
+    if (record['type'] === 'hardBreak') out.push(' ');
     Object.values(record).forEach(walk);
   };
   walk(content);

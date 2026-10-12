@@ -210,6 +210,25 @@ function mergeAdjacentText(nodes: ProseNode[]): ProseNode[] {
 const BLOCK_CONTAINERS = new Set(['blockquote', 'bulletList', 'orderedList', 'listItem']);
 
 /**
+ * The one inline node that is not text: Shift-Enter's line break. It stays
+ * INSIDE the run it was typed in, which is the whole difference between
+ * Shift-Enter and Enter. Treating it like any other non-text node (the
+ * original behaviour, from when it was not in the schema at all) would end the
+ * run and silently promote a line break into a paragraph break on the next
+ * normalisation.
+ *
+ * It is one ProseMirror position wide and carries no text, so it is also the
+ * only place a character offset can part company with a document position.
+ * nodeLength() is what keeps the two in step.
+ */
+const HARD_BREAK = 'hardBreak';
+
+/** Characters one inline node occupies. A break is one, the same as its size. */
+function nodeLength(node: ProseNode): number {
+  return node.type === HARD_BREAK ? 1 : (node.text ?? '').length;
+}
+
+/**
  * Any content array -> a list of inline runs, one per paragraph's worth of
  * text. Containers (quote, list, listItem) contribute their descendants'
  * runs in document order, which is what makes "list -> paragraph" and
@@ -239,7 +258,15 @@ export function paragraphGroups(content: unknown): ProseNode[][] {
       continue;
     }
 
-    // Anything that is not text closes the run being collected.
+    // A line break is inline, and keeps the run open. Stored bare: TipTap
+    // registers no attrs on it, so `{ type: 'hardBreak' }` is exactly what
+    // comes back out of the editor and normalisation stays a fixed point.
+    if (node.type === HARD_BREAK) {
+      pushInline({ type: HARD_BREAK });
+      continue;
+    }
+
+    // Anything else that is not text closes the run being collected.
     open = null;
 
     if (BLOCK_CONTAINERS.has(node.type)) {
@@ -262,8 +289,14 @@ function joinGroups(groups: ProseNode[][]): ProseNode[] {
   const out: ProseNode[] = [];
   for (const group of filled) {
     const previous = out[out.length - 1];
+    // No separator after a line break: it already broke the line, and a space
+    // at the head of the next one would be a visible indent.
     const needsSpace =
-      previous !== undefined && !/\s$/.test(previous.text ?? '') && !/^\s/.test(group[0].text ?? '');
+      previous !== undefined &&
+      previous.type !== HARD_BREAK &&
+      group[0].type !== HARD_BREAK &&
+      !/\s$/.test(previous.text ?? '') &&
+      !/^\s/.test(group[0].text ?? '');
     if (needsSpace) out.push({ type: 'text', text: ' ' });
     out.push(...group);
   }
@@ -341,12 +374,104 @@ export function emptyContentFor(kind: ProseBlockKind): ProseNode[] {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Splitting and joining an inline run                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cut one inline run in two at a character offset.
+ *
+ * This is what Enter does in a p/h2/h3 block. The contract pins each ProseBlock
+ * to ONE top-level node (docs/cms-contracts.md 2.3), so a second paragraph
+ * cannot live inside the editor; it has to become a second block. The editor
+ * knows where the caret is, this function knows what the content either side of
+ * it looks like, and doc-ops puts the two halves into the band.
+ *
+ * Offsets are plain character counts into the run's text, which is also what a
+ * ProseMirror position is here minus one: this schema has no inline node but
+ * text, so every inline node's size is its text length.
+ *
+ * Marks survive the cut. Splitting "a **bold** word" inside the bold run leaves
+ * bold on both halves, which is what every editor does and what the author
+ * means.
+ */
+export function splitInlineContent(content: unknown, offset: number): [ProseNode[], ProseNode[]] {
+  const nodes = joinGroups(paragraphGroups(content));
+  const before: ProseNode[] = [];
+  const after: ProseNode[] = [];
+  let seen = 0;
+
+  for (const node of nodes) {
+    const start = seen;
+    seen += nodeLength(node);
+
+    // Wholly before the cut, or wholly after it. The common case: a cut lands
+    // between two marked runs far more often than inside one. A line break is
+    // one character wide and atomic, so it always takes one of these two and
+    // never reaches the slice below.
+    if (seen <= offset) {
+      before.push(node);
+      continue;
+    }
+    if (start >= offset) {
+      after.push(node);
+      continue;
+    }
+
+    // Straddling. Both halves are non-empty, because the two tests above have
+    // already taken the boundary cases, so neither can be an empty text node.
+    const text = node.text ?? '';
+    const cut = offset - start;
+    before.push({ ...node, text: text.slice(0, cut) });
+    after.push({ ...node, text: text.slice(cut) });
+  }
+
+  return [mergeAdjacentText(before), mergeAdjacentText(after)];
+}
+
+/**
+ * Split with a selection: the head ends where the selection starts, the tail
+ * begins where it ends, and whatever was selected is dropped. Enter on a
+ * selection replaces it, in a text editor as everywhere else.
+ */
+export function splitInlineRange(
+  content: unknown,
+  from: number,
+  to: number,
+): [ProseNode[], ProseNode[]] {
+  const start = Math.min(from, to);
+  const end = Math.max(from, to);
+  return [splitInlineContent(content, start)[0], splitInlineContent(content, end)[1]];
+}
+
+/**
+ * The inverse: two inline runs into one, joined at the seam with nothing
+ * inserted between them. Backspace at the start of a block merges it into the
+ * block above, and the author expects the two halves of a sentence they split a
+ * moment ago to go back together exactly as they were, with no space appearing
+ * from nowhere.
+ *
+ * Deliberately NOT joinGroups, which inserts a separating space: that is right
+ * for flattening a list into a paragraph, and wrong here.
+ */
+export function joinInlineContent(head: unknown, tail: unknown): ProseNode[] {
+  return mergeAdjacentText([
+    ...joinGroups(paragraphGroups(head)),
+    ...joinGroups(paragraphGroups(tail)),
+  ]);
+}
+
+/** Characters in an inline run. The caret lands here after a merge. */
+export function inlineLength(content: unknown): number {
+  return joinGroups(paragraphGroups(content)).reduce((total, node) => total + nodeLength(node), 0);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Read-only inspection, for the toolbar and for tests                         */
 /* -------------------------------------------------------------------------- */
 
 export function collectProseText(content: unknown): string {
   return paragraphGroups(content)
-    .map((group) => group.map((node) => node.text ?? '').join(''))
+    .map((group) => group.map((node) => (node.type === HARD_BREAK ? '\n' : node.text ?? '')).join(''))
     .filter((line) => line !== '')
     .join('\n');
 }

@@ -462,6 +462,58 @@ export function insertProseBlock(
   });
 }
 
+/**
+ * Cut one block into two at the caret: the original keeps `head`, and `tail`
+ * (already built by the caller, so the caller knows its id and can put the
+ * caret in it) goes in directly after.
+ *
+ * The ORIGINAL block keeps its id and the head of the text. That is what makes
+ * a split safe for connectors: an anchor stores a blockId (AnchorSchema), so
+ * anything pointing at this paragraph still points at a paragraph that exists,
+ * rather than being left dangling by an edit the author would never connect to
+ * a vanished line.
+ */
+export function splitProseBlock(
+  doc: Doc,
+  bandId: string,
+  blockId: string,
+  head: unknown[],
+  tail: ProseBlock,
+): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const index = band.blocks.findIndex((block) => block.id === blockId);
+    if (index < 0) return band;
+    const current = band.blocks[index] as ProseBlock;
+    const blocks = [...band.blocks];
+    blocks.splice(index, 1, { ...current, content: head }, tail);
+    return { ...band, blocks };
+  });
+}
+
+/**
+ * The inverse: put `content` into the block before `blockId` and delete
+ * `blockId`. The caller joins the text (it also needs the join offset, to put
+ * the caret on the seam), so this only moves blocks around.
+ */
+export function mergeProseBlockUp(
+  doc: Doc,
+  bandId: string,
+  blockId: string,
+  content: unknown[],
+): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const index = band.blocks.findIndex((block) => block.id === blockId);
+    if (index < 1) return band;
+    const previous = band.blocks[index - 1] as ProseBlock;
+    const blocks = [...band.blocks];
+    blocks.splice(index, 1);
+    blocks[index - 1] = { ...previous, content };
+    return { ...band, blocks };
+  });
+}
+
 export function removeProseBlock(doc: Doc, bandId: string, blockId: string): Doc {
   return withBand(doc, bandId, (band) => {
     if (band.type !== 'prose') return band;

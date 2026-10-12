@@ -29,10 +29,6 @@
  *                                       content that the contract says cannot
  *                                       exist.
  *  horizontalRule                       a node 3.2 has no place for.
- *  hardBreak                            would put a `hardBreak` node inside
- *                                       stored content. 3.2's shapes are text
- *                                       nodes only, so WS-1 would meet a node
- *                                       it has never been told about.
  *  trailingNode                         appends an empty paragraph after the
  *                                       document's last node. In a one-block
  *                                       editor that is a second, phantom
@@ -46,6 +42,28 @@
  *
  * TextStyle and Color are added individually, never TextStyleKit, so the
  * stored textStyle mark carries `{ color }` and not five mostly-null keys.
+ *
+ * ---------------------------------------------------------------------------
+ * hardBreak IS IN THE SCHEMA, AND IS THE ONE NON-TEXT INLINE NODE
+ * ---------------------------------------------------------------------------
+ *
+ * Shift-Enter puts a `hardBreak` in the run: a line that starts lower down
+ * while staying the same paragraph, which is a different thing from Enter
+ * cutting the block in two and the reason both keys exist.
+ *
+ * It was switched off here originally, on the grounds that 3.2's inline shapes
+ * are text nodes only. That was over-cautious: WS-1's serialiser already
+ * renders `hardBreak` as `<br />` (render/prose.ts) and always has, with a
+ * case in render/selftest.ts covering it, and ProseBlock.content is
+ * `z.array(z.unknown())`, so nothing in the stored shape had to change. What
+ * DID have to change is block.ts, which treated every non-text node as the end
+ * of a paragraph and would have turned a line break into a block split on the
+ * next normalisation.
+ *
+ * Being the one inline node that is not text, it is also the one place where a
+ * character offset and a ProseMirror position can drift apart: it is one
+ * position wide and carries no text. splitInlineContent counts it as one, so
+ * Enter after a Shift-Enter still cuts where the caret is.
  */
 
 import { Extension, Node, getSchema } from '@tiptap/core';
@@ -118,19 +136,46 @@ const SWALLOWED_KEYS = [
   'Mod-Alt-C',
   'Mod-E',
   'Mod-U',
-  'Shift-Enter',
 ] as const;
 
-/** Kinds whose top node holds inline content only: Enter has nowhere to go. */
-const SINGLE_LINE_KINDS: ReadonlySet<ProseBlockKind> = new Set<ProseBlockKind>(['p', 'h2', 'h3']);
+/**
+ * Kinds whose top node holds inline content only, so there is no second
+ * paragraph for Enter to make INSIDE the editor. In these, Enter and Backspace
+ * work on the block boundary instead: see onSplit and onMergeUp below.
+ *
+ * quote, ul and ol are block containers, so Enter already has somewhere to go
+ * (a new paragraph in the quote, a new item in the list) and is left alone.
+ */
+export const SINGLE_LINE_KINDS: ReadonlySet<ProseBlockKind> = new Set<ProseBlockKind>([
+  'p',
+  'h2',
+  'h3',
+]);
 
 export type ProseExtensionOptions = {
   /** Mod-K. The floating toolbar's link field opens from here. */
   onRequestLink?: () => void;
+  /**
+   * Enter in a single-line kind. The host cuts the block in two at the caret.
+   * Return false to leave the key doing nothing, which is what happens when no
+   * host has wired it.
+   */
+  onSplit?: () => boolean;
+  /**
+   * Backspace with the caret at the very start of a single-line block, nothing
+   * selected: the host joins this block onto the one above. Return false and
+   * the key falls through to ProseMirror, which will find nothing to delete
+   * and leave the document alone.
+   */
+  onMergeUp?: () => boolean;
 };
 
 function ProseKeymap(kind: ProseBlockKind, options: ProseExtensionOptions): Extension {
   const onRequestLink = options.onRequestLink;
+  const onSplit = options.onSplit;
+  const onMergeUp = options.onMergeUp;
+  const singleLine = SINGLE_LINE_KINDS.has(kind);
+
   return Extension.create({
     name: 'proseBlockKeymap',
     // Above every StarterKit extension, so these bindings win.
@@ -139,7 +184,30 @@ function ProseKeymap(kind: ProseBlockKind, options: ProseExtensionOptions): Exte
       const swallow = (): boolean => true;
       const shortcuts: Record<string, () => boolean> = {};
       for (const key of SWALLOWED_KEYS) shortcuts[key] = swallow;
-      if (SINGLE_LINE_KINDS.has(kind)) shortcuts.Enter = swallow;
+
+      /* Shift-Enter is a line break inside the paragraph, in every kind.
+         StarterKit's own binding does this already; it is spelled out here
+         because this keymap runs at priority 1000 and would otherwise have to
+         leave a hole for it, and because the pairing with Enter is the point:
+         Enter starts a new block, Shift-Enter starts a new line in this one. */
+      shortcuts['Shift-Enter'] = () => this.editor.commands.setHardBreak();
+
+      if (singleLine) {
+        // Enter cuts the block in two, because the contract pins this editor
+        // to a single top-level node and a second paragraph has nowhere to go.
+        shortcuts.Enter = () => (onSplit === undefined ? true : onSplit());
+
+        shortcuts.Backspace = () => {
+          if (onMergeUp === undefined) return false;
+          const { selection } = this.editor.state;
+          // Only an empty caret sitting at the first position. Position 1 is
+          // the start of the single top node's content; anything else is a
+          // deletion ProseMirror should handle itself.
+          if (!selection.empty || selection.from !== 1) return false;
+          return onMergeUp();
+        };
+      }
+
       shortcuts['Mod-k'] = () => {
         if (onRequestLink === undefined) return false;
         onRequestLink();
@@ -253,7 +321,6 @@ export function proseExtensions(
       strike: false,
       underline: false,
       horizontalRule: false,
-      hardBreak: false,
       // A phantom second paragraph in a one-block editor.
       trailingNode: false,
       // Replaced below, with its content pinned to a single paragraph.

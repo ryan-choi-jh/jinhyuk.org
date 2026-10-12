@@ -46,7 +46,7 @@
  */
 
 export { ProseEditor } from './ProseEditor.tsx';
-export type { ProseEditorProps } from './ProseEditor.tsx';
+export type { CaretAt, CaretRequest, ProseEditorProps } from './ProseEditor.tsx';
 
 export { ProseToolbar, useEditorTick } from './Toolbar.tsx';
 export type { ProseToolbarProps } from './Toolbar.tsx';
@@ -58,6 +58,7 @@ export {
   PROSE_KINDS,
   PROSE_KIND_LABEL,
   PROSE_KIND_TITLE,
+  SINGLE_LINE_KINDS,
   getProseSchema,
   proseExtensions,
 } from './extensions.ts';
@@ -74,12 +75,16 @@ export {
   convertBlockKind,
   docFromBlock,
   emptyContentFor,
+  inlineLength,
   isSafeHref,
+  joinInlineContent,
   normalizeMarks,
   normalizeProseBlock,
   normalizeProseContent,
   paragraphGroups,
   sameProseContent,
+  splitInlineContent,
+  splitInlineRange,
   topNodeAttrsFor,
   topNodeTypeOf,
 } from './block.ts';
