@@ -278,6 +278,29 @@ function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }:
     .filter(Boolean)
     .join(' ');
 
+  /**
+   * The box the items actually occupy, in the band's own reference pixels,
+   * or null when there is nothing to hug — an empty overlay, or a band that
+   * is not an overlay at all and whose full box IS its footprint.
+   */
+  const overlayBounds: CSSProperties | null = (() => {
+    if (!isOverlay) return null;
+    const items = (band as CanvasBand).items;
+    if (items.length === 0) return null;
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+    for (const item of items) {
+      left = Math.min(left, item.x);
+      top = Math.min(top, item.y);
+      right = Math.max(right, item.x + item.w);
+      bottom = Math.max(bottom, item.y + item.h);
+    }
+    if (!Number.isFinite(left) || right <= left || bottom <= top) return null;
+    return { left, top, width: right - left, height: bottom - top };
+  })();
+
   const style: CSSProperties = isOverlay
     ? { height: (band as CanvasBand).height }
     : band.type === 'canvas'
@@ -293,12 +316,31 @@ function BandBox({ store, doc, band, selection, slots, scale, resolveMediaSrc }:
       data-testid={`surface-band-${band.id}`}
       onMouseDown={() => store.selectBand(band.id)}
     >
-      {selected && (
-        <span className="cms-band-box__label">
-          band {index + 1}
-          {isOverlay ? ' · overlay' : ''}
-        </span>
-      )}
+      {selected &&
+        (overlayBounds === null ? (
+          <span className="cms-band-box__label">
+            band {index + 1}
+            {isOverlay ? ' · overlay' : ''}
+          </span>
+        ) : (
+          /* An overlay band reserves NO space on the page: it is a layer over
+             the band above, and the only thing it actually occupies is its
+             items. Outlining the whole layer drew a box the size of the
+             paragraph it floats over, which says something untrue about the
+             band and is the first thing you notice when you select one. So
+             the frame goes round the items instead. The layer underneath is
+             still the full coordinate space — an item's x and y have to keep
+             meaning what they mean on the page — it just stops being drawn. */
+          <span
+            className="cms-band-box__frame"
+            data-testid={`surface-band-frame-${band.id}`}
+            style={overlayBounds}
+          >
+            <span className="cms-band-box__label">
+              band {index + 1} · overlay
+            </span>
+          </span>
+        ))}
       {band.type === 'prose' ? (
         <ProseBandBody
           store={store}

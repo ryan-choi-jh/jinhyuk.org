@@ -482,6 +482,102 @@ async function run(page) {
   console.log(`    shot  ${await page.shot('03-item-edited')}`);
 
   /* ---------------------------------------------------------------------- */
+  section('an overlay band is outlined round its items, not its layer');
+  {
+    const overlayId = await page.evaluate(`(() => {
+      const b = window.__ws3.store.getState().doc.bands.find((x) => x.type === 'canvas' && x.overlay === true);
+      return b ? b.id : null;
+    })()`);
+    check('the fixture has an overlay band', overlayId !== null, String(overlayId));
+
+    await page.click(`band-row-${overlayId}`);
+    await page.settle();
+
+    const m = await page.evaluate(`(() => {
+      const band = document.querySelector('.cms-band-box--overlay');
+      const frame = document.querySelector('.cms-band-box__frame');
+      const items = [...document.querySelectorAll('.cms-band-box--overlay [data-item-id]')]
+        .map((e) => e.getBoundingClientRect());
+      const hull = items.length === 0 ? null : {
+        left: Math.round(Math.min(...items.map((i) => i.left))),
+        top: Math.round(Math.min(...items.map((i) => i.top))),
+        right: Math.round(Math.max(...items.map((i) => i.right))),
+        bottom: Math.round(Math.max(...items.map((i) => i.bottom))),
+      };
+      const f = frame === null ? null : frame.getBoundingClientRect();
+      const layer = band === null ? null : band.getBoundingClientRect();
+      return {
+        layerOutline: band === null ? null : getComputedStyle(band).outlineStyle,
+        frame: f === null ? null : {
+          left: Math.round(f.left), top: Math.round(f.top),
+          right: Math.round(f.right), bottom: Math.round(f.bottom),
+        },
+        hull,
+        layerHeight: layer === null ? null : Math.round(layer.height),
+        label: document.querySelector('.cms-band-box__frame .cms-band-box__label')?.textContent?.trim() ?? null,
+      };
+    })()`);
+
+    check('the layer itself is not outlined', m.layerOutline === 'none', String(m.layerOutline));
+    check('a frame is drawn instead', m.frame !== null);
+    if (m.frame !== null && m.hull !== null) {
+      // Against the AUTHORED boxes, not the measured DOM. The placeholder
+      // items wear a little type tag that overhangs them by a few pixels,
+      // and that is editor chrome, not part of the item: the frame is
+      // supposed to hug what is on the page.
+      const want = await page.evaluate(`(() => {
+        const band = window.__ws3.store.getState().doc.bands.find((x) => x.id === '${overlayId}');
+        const xs = band.items.map((i) => i.x);
+        const ys = band.items.map((i) => i.y);
+        return {
+          left: Math.min(...xs),
+          top: Math.min(...ys),
+          width: Math.max(...band.items.map((i) => i.x + i.w)) - Math.min(...xs),
+          height: Math.max(...band.items.map((i) => i.y + i.h)) - Math.min(...ys),
+        };
+      })()`);
+      const got = await page.evaluate(`(() => {
+        const f = document.querySelector('.cms-band-box__frame');
+        return { left: f.offsetLeft, top: f.offsetTop, width: f.offsetWidth, height: f.offsetHeight };
+      })()`);
+      const near = (a, b) => Math.abs(a - b) <= 1;
+      check(
+        'and it is exactly the items’ authored bounding box',
+        near(got.left, want.left) && near(got.top, want.top) &&
+          near(got.width, want.width) && near(got.height, want.height),
+        `${JSON.stringify(got)} vs ${JSON.stringify(want)}`,
+      );
+      check(
+        'which is smaller than the layer it floats in',
+        m.frame.bottom - m.frame.top < m.layerHeight,
+        `${m.frame.bottom - m.frame.top}px of ${m.layerHeight}px`,
+      );
+    }
+    check('the band label rides on the frame', (m.label ?? '').includes('overlay'), String(m.label));
+
+    // A NON-overlay canvas band still outlines its whole box: there the box
+    // is the band's real footprint on the page.
+    const plainId = await page.evaluate(`(() => {
+      const b = window.__ws3.store.getState().doc.bands.find((x) => x.type === 'canvas' && x.overlay !== true);
+      return b ? b.id : null;
+    })()`);
+    await page.click(`band-row-${plainId}`);
+    await page.settle();
+    const plain = await page.evaluate(`(() => {
+      const el = document.querySelector('[data-band-id="${'$'}{plainId}"]');
+      return null;
+    })()`).catch(() => null);
+    const plainOutline = await page.evaluate(
+      `getComputedStyle(document.querySelector('[data-band-id="${'PLAIN'}"]') || document.body).outlineStyle`,
+    );
+    check('a plain canvas band keeps its full outline',
+      (await page.evaluate(`(() => {
+        const el = document.querySelector('.cms-band-box--selected:not(.cms-band-box--overlay)');
+        return el === null ? null : getComputedStyle(el).outlineStyle;
+      })()`)) === 'solid');
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('connectors are drawn over the editing surface');
   {
     // The fixture anchors i_dense_connector to a paragraph. Until this worked,

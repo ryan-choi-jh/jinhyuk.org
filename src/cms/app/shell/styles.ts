@@ -553,6 +553,15 @@ export const SHELL_CSS = `
 .cms-band-box--overlay .cms-ph-item,
 .cms-band-box--overlay .cms-slot-host { pointer-events: auto; }
 .cms-band-box--selected { outline: 2px solid var(--cms-accent); outline-offset: 0; }
+/* ...except an overlay, which has no footprint of its own to outline. The
+   frame below goes round its items instead. */
+.cms-band-box--overlay.cms-band-box--selected { outline: none; }
+.cms-band-box__frame {
+  position: absolute;
+  z-index: 8;
+  outline: 2px solid var(--cms-accent);
+  pointer-events: none;
+}
 .cms-band-box__label {
   position: absolute;
   top: -1px;
