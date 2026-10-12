@@ -120,7 +120,8 @@
     {
       "id": "b4",
       "type": "canvas",
-      "height": 596,
+      "height": 644,
+      "padBottom": 17,
       "items": [
         {
           "id": "b4i1",
@@ -132,19 +133,13 @@
           "src": "/projects/track-daily-habit-tracker/blocks/6/value/src.png",
           "alt": "",
           "caption": "Home dashboard",
+          "captionAlign": "center",
           "anchor": {
             "bandId": "b3",
-            "blockId": "b3p2"
+            "blockId": "b3p2",
+            "at": 0.29987299149338376
           }
-        }
-      ]
-    },
-    {
-      "id": "b6",
-      "type": "canvas",
-      "height": 596,
-      "overlay": true,
-      "items": [
+        },
         {
           "id": "b6i1",
           "kind": "image",
@@ -154,16 +149,9 @@
           "h": 562,
           "src": "/projects/track-daily-habit-tracker/blocks/8/value/src.png",
           "alt": "",
-          "caption": "Habit detail"
-        }
-      ]
-    },
-    {
-      "id": "b8",
-      "type": "canvas",
-      "height": 596,
-      "overlay": true,
-      "items": [
+          "caption": "Habit detail",
+          "captionAlign": "center"
+        },
         {
           "id": "b8i1",
           "kind": "image",
@@ -173,7 +161,8 @@
           "h": 562,
           "src": "/projects/track-daily-habit-tracker/blocks/10/value/src.png",
           "alt": "",
-          "caption": "Customize the look for each habit"
+          "caption": "Customize the look for each habit",
+          "captionAlign": "center"
         }
       ]
     },
