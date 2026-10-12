@@ -520,10 +520,19 @@ body.is-locked {
 /* ---------------------------------------------------------------------------
    Intro / running prose
    --------------------------------------------------------------------------- */
-/* The hero export carries 44px of bleed below the grid so the pencil is
-   complete, so the gap here is 72px minus that to keep the designed rhythm. */
+/* 72px below the grid is the designed rhythm. The grid ends 9px above the
+   bottom of the hero band — the lowest scene, "Today", hangs that far past it
+   — so this makes up the remaining 63.
+
+   It used to be 28, because the band was 824px against content ending at 789
+   and those 35 extra pixels of empty canvas were quietly doing a third of the
+   job. That was fine while the hero was one flat image and nobody could move
+   anything; it became a trap the moment a canvas band started following its
+   contents, because the first nudge of any scene would have reclaimed the 35
+   and pulled the intro up. Page spacing belongs in the stylesheet, not in
+   blank space at the bottom of a canvas. */
 .intro {
-  padding-top: 28px;
+  padding-top: 62.6px;
   /* Capped so the line length — and therefore where the first paragraph
      wraps — doesn't change with the window. At 17.5px this holds that
      paragraph to two lines on any window down to about 1300px. Letting it
@@ -1539,7 +1548,10 @@ article figcaption {
   }
 
   .intro {
-    padding-top: 16px;
+    /* 16 before the hero band stopped carrying 35px of empty canvas.
+       The band's tail scaled with the column, so on a phone it was only
+       worth about 9 rendered pixels, which is what this adds back. */
+    padding-top: 24px;
   }
 
   .masthead {

@@ -48,6 +48,7 @@ import {
   youtubeIdFromInput,
 } from '../schema.ts';
 import type { CanvasItem, Doc, SectionId } from '../schema.ts';
+import { canvasContentHeight } from '../app/state/doc-ops.ts';
 import {
   SECTIONS,
   cmsUrlFor,
@@ -745,6 +746,46 @@ check('youtubeIdFromInput rejects empty input', youtubeIdFromInput('   ') === nu
 check('youtubeIdFromInput rejects a watch URL with no v', youtubeIdFromInput('https://www.youtube.com/watch?t=3') === null);
 check('youtubeIdFromInput takes a /shorts/ URL', youtubeIdFromInput('https://youtube.com/shorts/EudrajWcwwg') === 'EudrajWcwwg');
 check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtube.com/watch?v=EudrajWcwwg') === 'EudrajWcwwg');
+
+/* -------------------------------------------------------------------------- */
+/* A canvas band follows its contents                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `canvasContentHeight` is what makes a canvas shrink when a picture does. The
+ * browser harness covers the behaviour; these cover the two answers that are
+ * easy to get wrong and invisible until they bite.
+ */
+{
+  const band = (items: Partial<CanvasItem>[], height = 500) => ({
+    id: 'b_fit',
+    type: 'canvas' as const,
+    height,
+    items: items.map((item, index) => ({
+      id: `i_${index}`,
+      kind: 'image' as const,
+      src: '/x.png',
+      x: 0,
+      y: 0,
+      w: 10,
+      h: 10,
+      ...item,
+    })),
+  });
+
+  check(
+    'the content height is the LOWEST item, not the last or the tallest',
+    canvasContentHeight(band([{ y: 400, h: 20 }, { y: 10, h: 300 }, { y: 100, h: 50 }])) === 420,
+  );
+  check(
+    'a fractional bottom rounds up, so nothing is ever clipped by a hair',
+    canvasContentHeight(band([{ y: 10.5, h: 20.2 }])) === 31,
+  );
+  check(
+    'an EMPTY canvas has no content height, so it keeps the height it was given',
+    canvasContentHeight(band([])) === null,
+  );
+}
 
 console.log('');
 if (failures === 0) {

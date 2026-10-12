@@ -262,19 +262,42 @@ export function setBandOverlay(doc: Doc, bandId: string, overlay: boolean): Doc 
   });
 }
 
+/**
+ * The band with its height following its contents.
+ *
+ * Applied after every change to a canvas band's items, so shrinking a picture
+ * takes the empty space with it instead of leaving a hole, which is what
+ * anyone moving things on a canvas expects and what the owner asked for.
+ *
+ * An EMPTY band is left alone. `canvasContentHeight` returns null there, and
+ * collapsing a canvas with nothing on it to zero would leave nothing to drop
+ * anything onto — so a band you have sized by hand before filling it keeps
+ * that size until it has something to measure.
+ *
+ * The one band on this site that carried deliberate empty space, the
+ * homepage hero, no longer does: its 35px tail was the flat export's bleed,
+ * and it moved to `.intro`'s padding in global.css where page spacing
+ * belongs. Nothing else relies on a canvas being taller than its contents.
+ */
+function fitted(band: CanvasBand): CanvasBand {
+  const height = canvasContentHeight(band);
+  if (height === null || height === band.height) return band;
+  return { ...band, height };
+}
+
 /** Wholesale replacement of a canvas band's items. This is what WS-4's `onChange` feeds. */
 export function setCanvasItems(doc: Doc, bandId: string, items: CanvasItem[]): Doc {
   return withBand(doc, bandId, (band) => {
     if (band.type !== 'canvas') return band;
     if (deepEqual(band.items, items)) return band;
-    return { ...band, items };
+    return fitted({ ...band, items });
   });
 }
 
 export function addCanvasItem(doc: Doc, bandId: string, item: CanvasItem): Doc {
   return withBand(doc, bandId, (band) => {
     if (band.type !== 'canvas') return band;
-    return { ...band, items: [...band.items, sanitizeShapeKeys(item)] };
+    return fitted({ ...band, items: [...band.items, sanitizeShapeKeys(item)] });
   });
 }
 
@@ -293,7 +316,7 @@ export function updateCanvasItem(
     if (deepEqual(current, merged)) return band;
     const items = [...band.items];
     items[index] = merged;
-    return { ...band, items };
+    return fitted({ ...band, items });
   });
 }
 
@@ -302,7 +325,7 @@ export function removeCanvasItem(doc: Doc, bandId: string, itemId: string): Doc 
     if (band.type !== 'canvas') return band;
     const items = band.items.filter((item) => item.id !== itemId);
     if (items.length === band.items.length) return band;
-    return { ...band, items };
+    return fitted({ ...band, items });
   });
 }
 

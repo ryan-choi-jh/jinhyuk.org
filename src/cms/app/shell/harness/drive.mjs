@@ -482,6 +482,73 @@ async function run(page) {
   console.log(`    shot  ${await page.shot('03-item-edited')}`);
 
   /* ---------------------------------------------------------------------- */
+  section('a canvas band follows its contents');
+  {
+    // Non-destructive on purpose: this runs in the middle of the harness, and
+    // a section that deletes the fixture's items leaves every later check
+    // testing a different document. Two edits, two undos, back where it was.
+    const read = () => page.evaluate(`(() => {
+      const band = window.__ws3.store.getState().doc.bands.find((b) => b.type === 'canvas');
+      const bottom = Math.max(...band.items.map((i) => i.y + i.h));
+      return { id: band.id, height: band.height, bottom: Math.ceil(bottom), items: band.items.length };
+    })()`);
+    const lowest = () => page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas');
+      let low = band.items[0];
+      for (const i of band.items) if (i.y + i.h > low.y + low.h) low = i;
+      return low.id;
+    })()`);
+
+    // Past COALESCE_MS, so these edits are their own history steps rather
+    // than folding into the inspector edit the section above just made.
+    await sleep(700);
+    const start = await read();
+    const lowId = await lowest();
+    const lowH = await page.evaluate(
+      `window.__ws3.store.getState().doc.bands.find((b) => b.type === 'canvas').items.find((i) => i.id === '${await lowest()}').h`,
+    );
+
+    await page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas');
+      const i = band.items.find((x) => x.id === '${lowId}');
+      s.updateCanvasItem(band.id, i.id, { h: i.h / 2 });
+    })()`);
+    await page.settle();
+    const shrunk = await read();
+    check('shrinking the lowest item shrinks the band', shrunk.height < start.height,
+      `${start.height} -> ${shrunk.height}`);
+    check('and the band ends exactly on it', shrunk.height === shrunk.bottom,
+      `${shrunk.height} vs ${shrunk.bottom}`);
+
+    await page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas');
+      const i = band.items.find((x) => x.id === '${lowId}');
+      s.updateCanvasItem(band.id, i.id, { h: i.h * 4 });
+    })()`);
+    await page.settle();
+    const grown = await read();
+    check('growing it grows the band to match', grown.height === grown.bottom && grown.height > start.height,
+      `${grown.height} vs ${grown.bottom}`);
+
+    // Put it back with a forward edit rather than undo. Undo here would walk
+    // into the previous section's edit — history folds same-band changes —
+    // and later checks read that edit back out of the saved draft.
+    await page.evaluate(`(() => {
+      const s = window.__ws3.store;
+      const band = s.getState().doc.bands.find((b) => b.type === 'canvas');
+      s.updateCanvasItem(band.id, '${lowId}', { h: ${lowH} });
+    })()`);
+    await page.settle();
+    const restored = await read();
+    check('and restoring the item restores the band',
+      restored.height === start.height && restored.items === start.items,
+      `${restored.height}/${restored.items} vs ${start.height}/${start.items}`);
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('band outline: reorder by drag');
   const before = (await page.probe()).bandIds;
   const lastRow = await page.rect('band-row-b_dense_prose_3');
