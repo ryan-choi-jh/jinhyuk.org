@@ -370,7 +370,7 @@ export const SHELL_CSS = `
 .cms-surface .doc-connectors path {
   fill: none;
   stroke: var(--muted, #6b6b6b);
-  stroke-width: 1.6;
+  stroke-width: 1.25;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

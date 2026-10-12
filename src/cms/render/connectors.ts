@@ -56,13 +56,25 @@ function clamp(value: number, low: number, high: number): number {
 /* -------------------------------------------------------------------------- */
 
 /**
- * An S-curve from the text out to the item, with a little slack in it. It
- * leaves the paragraph going sideways and arrives at the item going sideways,
- * so the line bows instead of cutting a straight diagonal, and every control
- * point is nudged by the seed so it does not look drafted.
+ * One continuous stroke from the text out to the item, with a cursive loop
+ * where it crosses itself in the middle.
  *
- * `direction` is +1 when the item is to the right of the text, -1 when it is to
- * the left, so the bow always leans away from the text rather than through it.
+ * THE LOOP IS MADE BY THE LINE, not stuck on it. The first attempt drew a
+ * circle at the midpoint and ran the line into it, which reads as a bubble
+ * sitting on a wire: there is a kink going in, a kink coming out, and the
+ * circle is obviously a separate object. Here the stroke simply rises, curls
+ * over, comes back down across its own path and carries on, the way a loop
+ * happens in handwriting. Nothing is drawn twice and there are no corners.
+ *
+ * The loop always opens UPWARD on screen, whichever way the line is
+ * travelling, because a loop hanging below the line reads as a mistake rather
+ * than a flourish.
+ *
+ * Every number is nudged by the item's seed, so a given connector draws the
+ * same way on every render and looks identical in the editor and on the page.
+ *
+ * `direction` is +1 when the item is to the right of the text, -1 when it is
+ * to the left, so the stroke leaves the paragraph on the correct side.
  */
 function handPath(
   x1: number,
@@ -72,77 +84,81 @@ function handPath(
   seed: number,
   direction: number,
 ): string {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const reach = Math.max(60, Math.abs(dx) * 0.55) * direction;
-
-  // A short tick out of the text before the curve proper: it is what makes the
-  // line look drawn from the paragraph rather than passing near it.
+  // A short tick out of the text before the stroke proper: it is what makes
+  // the line look drawn from the paragraph rather than passing near it.
   const tick = 6 * direction + wobble(seed, 5) * 2;
   const sx = x1 + tick;
   const sy = y1 + wobble(seed, 6) * 2;
 
-  // Where the knot sits, and which way the line is travelling through it.
-  // Roughly halfway, nudged by the seed so two connectors on one page do not
-  // knot at the same point.
-  const mx = sx + (x2 - sx) * (0.52 + wobble(seed, 7) * 0.07);
-  const my = sy + (y2 - sy) * (0.5 + wobble(seed, 8) * 0.09);
-  const len = Math.hypot(x2 - sx, y2 - sy) || 1;
-  const ux = (x2 - sx) / len;
-  const uy = (y2 - sy) / len;
-  // The loop hangs off one side of the line. Which side alternates with the
-  // seed, so a page of connectors does not look stamped.
-  const side = wobble(seed, 9) >= 0 ? 1 : -1;
-  const nx = -uy * side;
-  const ny = ux * side;
+  const dx = x2 - sx;
+  const dy = y2 - sy;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
 
-  // Small enough to read as a flourish in the line rather than a circle with
-  // a line through it. Scaled down on a short run so it cannot swallow the
-  // whole connector.
-  const r = clamp(9 + wobble(seed, 10) * 2, 6, Math.max(6, len / 7));
-  // The exit sits a little past the entry along the travel direction, so the
-  // loop closes into a knot rather than a clean circle that happens to touch.
-  // Squashed and tilted, so it is a knot in a line and not a stamped circle.
-  const ry = r * (0.76 + Math.abs(wobble(seed, 13)) * 0.16);
-  const tilt = wobble(seed, 14) * 34;
-  const advance = r * 0.55;
-  const ex = mx + ux * advance;
-  const ey = my + uy * advance;
-  // The far side of the loop, diametrically opposite the entry.
-  const fx = mx + nx * r * 2;
-  const fy = my + ny * r * 2;
+  // The upward normal. Flipped if it points down the screen, so the loop
+  // opens the same way no matter which way the line runs.
+  let nx = -uy;
+  let ny = ux;
+  if (ny > 0) {
+    nx = -nx;
+    ny = -ny;
+  }
 
-  // The two runs either side of the knot bow in OPPOSITE directions, which is
-  // what makes the line read as drawn rather than as a curve with a circle
-  // stuck on it: each one is a shallow S instead of an arc.
-  const bowIn = (7 + Math.abs(wobble(seed, 11)) * 5) * side;
-  const bowOut = -(7 + Math.abs(wobble(seed, 12)) * 5) * side;
+  // Where the stroke crosses itself.
+  const t = 0.5 + wobble(seed, 7) * 0.05;
+  const cx = sx + dx * t;
+  const cy = sy + dy * t;
 
-  // Into the knot: leaves the paragraph sideways, arrives along the travel
-  // direction so the loop starts tangentially.
-  const i1x = sx + reach * 0.5 + wobble(seed, 2) * 10 + nx * bowIn;
-  const i1y = sy + dy * 0.06 + wobble(seed, 1) * 12 + ny * bowIn;
-  const i2x = mx - ux * 34 - nx * bowIn * 0.6;
-  const i2y = my - uy * 34 - ny * bowIn * 0.6;
+  // Tall and narrow, like the loop in a written letter. Capped against the
+  // run so a short connector cannot be all loop.
+  const h = clamp(30 + wobble(seed, 10) * 5, 15, len / 4.2);
+  const w = h * (0.52 + Math.abs(wobble(seed, 13)) * 0.12);
 
-  // Out of the knot: leaves along the travel direction, arrives at the item
-  // sideways so the line meets its edge square on.
-  const o1x = ex + ux * 34 + nx * bowOut * 0.6;
-  const o1y = ey + uy * 34 + ny * bowOut * 0.6;
-  const o2x = x2 - reach * 0.5 + wobble(seed, 3) * 10 + nx * bowOut;
-  const o2y = y2 - dy * 0.1 + wobble(seed, 4) * 12 + ny * bowOut;
+  // The long shallow sag either side. It is what stops the two halves
+  // looking like two straight lines meeting at a flourish.
+  const sag = 9 + Math.abs(wobble(seed, 11)) * 6;
+
+  /** A point in the stroke's own frame: along the run, and up from it. */
+  const at = (along: number, up: number): [number, number] => [
+    cx + ux * along + nx * up,
+    cy + uy * along + ny * up,
+  ];
+
+  // THE LOOP LEANS INTO THE TRAVEL and its tail comes down on the FAR SIDE of
+  // where it went up, so the two strands genuinely cross. An earlier version
+  // brought them back to the same point: that is a cusp, not a crossing, and
+  // it reads as a teardrop balanced on the line rather than as handwriting.
+  const [apx, apy] = at(w * 0.55, h); // apex, up and ahead
+  const [tailx, taily] = at(-w * 0.38, h * 0.12); // tail, behind and just above
+
+  // Into the crossing: level out of the paragraph, sag, then rise into the
+  // loop so the curl starts tangentially.
+  const [a1x, a1y] = [sx + dx * 0.26 - nx * sag, sy + dy * 0.26 - ny * sag];
+  const [a2x, a2y] = at(-len * 0.1, -sag * 0.2);
+
+  // Up the near side and over: it arrives at the apex travelling backwards,
+  // which is what turns it over instead of hooking it.
+  const [u1x, u1y] = at(w * 0.5, h * 0.42);
+  const [u2x, u2y] = at(w * 1.02, h * 0.88);
+
+  // Down the far side to the tail, then away.
+  const [d1x, d1y] = at(w * 0.1, h * 1.12);
+  const [d2x, d2y] = at(-w * 0.62, h * 0.74);
+
+  // Out of the tail: back down across the rising strand and on to the item.
+  const [b1x, b1y] = at(w * 0.55, -h * 0.1);
+  const [b2x, b2y] = [sx + dx * 0.76 - nx * sag, sy + dy * 0.76 - ny * sag];
 
   const n = (value: number): string => value.toFixed(1);
 
   return (
     `M ${n(x1)} ${n(y1)}` +
     ` L ${n(sx)} ${n(sy)}` +
-    ` C ${n(i1x)} ${n(i1y)}, ${n(i2x)} ${n(i2y)}, ${n(mx)} ${n(my)}` +
-    // Two half turns make the full loop. Same sweep both times, so it goes
-    // round once rather than doubling back into an S.
-    ` A ${n(r)} ${n(ry)} ${n(tilt)} 1 1 ${n(fx)} ${n(fy)}` +
-    ` A ${n(r)} ${n(ry)} ${n(tilt)} 1 1 ${n(ex)} ${n(ey)}` +
-    ` C ${n(o1x)} ${n(o1y)}, ${n(o2x)} ${n(o2y)}, ${n(x2)} ${n(y2)}`
+    ` C ${n(a1x)} ${n(a1y)}, ${n(a2x)} ${n(a2y)}, ${n(cx)} ${n(cy)}` +
+    ` C ${n(u1x)} ${n(u1y)}, ${n(u2x)} ${n(u2y)}, ${n(apx)} ${n(apy)}` +
+    ` C ${n(d1x)} ${n(d1y)}, ${n(d2x)} ${n(d2y)}, ${n(tailx)} ${n(taily)}` +
+    ` C ${n(b1x)} ${n(b1y)}, ${n(b2x)} ${n(b2y)}, ${n(x2)} ${n(y2)}`
   );
 }
 
