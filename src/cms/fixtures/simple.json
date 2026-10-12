@@ -71,7 +71,9 @@
               "marks": [{ "type": "textStyle", "attrs": { "color": "#ff5722" } }],
               "text": "you build your own cover"
             },
-            { "type": "text", "text": ". You choose whatever images get you fired up, and you see them every time you open the app." }
+            { "type": "text", "text": ". You choose whatever images get you " },
+            { "type": "text", "marks": [{ "type": "highlight", "attrs": { "ink": "yellow" } }], "text": "fired up" },
+            { "type": "text", "text": ", and you see them every time you open the app." }
           ]
         },
         {

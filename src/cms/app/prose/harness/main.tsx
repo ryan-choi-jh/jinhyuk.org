@@ -22,7 +22,7 @@ import { createRoot } from 'react-dom/client';
 import type { Editor } from '@tiptap/core';
 
 import fixture from '../../../fixtures/simple.json';
-import { PROSE_NODE_TYPE, isProseBand, validateDoc } from '../../../schema.ts';
+import { HIGHLIGHT_INKS, PROSE_NODE_TYPE, isProseBand, validateDoc } from '../../../schema.ts';
 import type { ProseBlock } from '../../../schema.ts';
 import { ProseEditor } from '../ProseEditor.tsx';
 import type { CaretAt, CaretRequest } from '../ProseEditor.tsx';
@@ -382,7 +382,7 @@ async function clickToolbar(what: string, find: () => HTMLButtonElement | null):
  * for a script: a section that assumes a closed popover will close an open one
  * instead, and then hunt for a swatch that is no longer rendered.
  */
-async function openPanel(what: 'Text colour' | 'Link', marker: string): Promise<void> {
+async function openPanel(what: 'Text colour' | 'Link' | 'Highlight', marker: string): Promise<void> {
   if (has(marker)) return;
   await clickToolbar(what, () => byTitle(what));
   const open = await waitFor(() => has(marker));
@@ -391,6 +391,7 @@ async function openPanel(what: 'Text colour' | 'Link', marker: string): Promise<
 
 const openColour = (): Promise<void> => openPanel('Text colour', '.pe-swatches');
 const openLink = (): Promise<void> => openPanel('Link', '.pe-input--href');
+const openInks = (): Promise<void> => openPanel('Highlight', '.pe-inks');
 
 /** Type into a controlled input the way a person does: value, then events. */
 async function typeInto(selector: string, text: string): Promise<void> {
@@ -949,6 +950,64 @@ async function run(): Promise<void> {
       `${JSON.stringify(collectProseText(blockById('p_open').content))} + ${JSON.stringify(collectProseText(tail.content).slice(0, 16))}`,
     );
 
+    await reset();
+  }
+
+  section('the highlighter');
+  {
+    await reset();
+    await focusBlock('p_close');
+    await openInks();
+
+    check('the highlighter popover opens', has('.pe-inks'));
+    check(
+      'it offers one button per pen and no colour picker',
+      toolbar()?.querySelectorAll('.pe-ink').length === HIGHLIGHT_INKS.length &&
+        !has('input[type="color"]'),
+      String(toolbar()?.querySelectorAll('.pe-ink').length),
+    );
+
+    const inks = () => [...(toolbar()?.querySelectorAll<HTMLButtonElement>('.pe-ink') ?? [])];
+    inks()[1]?.click();
+    await waitFor(() => collectProseMarks(blockById('p_close').content).some((m) => m.type === 'highlight'));
+
+    const stored = collectProseMarks(blockById('p_close').content).find((m) => m.type === 'highlight');
+    check('clicking a pen stores a highlight mark', stored !== undefined, canonicalJson(stored));
+    check(
+      'carrying an ink NAME, not a colour: the stroke is a class in the stylesheet',
+      canonicalJson(stored?.attrs) === canonicalJson({ ink: HIGHLIGHT_INKS[1] }),
+      canonicalJson(stored?.attrs),
+    );
+    check(
+      'and the editor draws the same classes the published page will',
+      editorFor('p_close').view.dom.querySelector(`mark.doc-hl.doc-hl--${HIGHLIGHT_INKS[1]}`) !== null,
+      editorFor('p_close').view.dom.innerHTML.slice(0, 90),
+    );
+    // The brush is a background image, so the text itself is untouched: that
+    // is the whole reason it is drawn behind the words rather than over them.
+    const markEl = editorFor('p_close').view.dom.querySelector('mark.doc-hl');
+    const painted = markEl === null ? '' : getComputedStyle(markEl).backgroundImage;
+    check('the pen paints a brush stroke, not a flat colour', painted.startsWith('url('), painted.slice(0, 40));
+    check(
+      'and it is a background, so the glyphs keep their own colour',
+      markEl !== null && getComputedStyle(markEl).backgroundColor === 'rgba(0, 0, 0, 0)',
+      markEl === null ? 'no mark' : getComputedStyle(markEl).backgroundColor,
+    );
+
+    check(
+      'the block still round trips through the live editor',
+      canonicalJson(liveRoundTrip('p_close').content) === canonicalJson(blockById('p_close').content),
+    );
+
+    // Same pen again turns it off; that is what makes the button a toggle.
+    await openInks();
+    inks()[1]?.click();
+    await waitFor(() => !collectProseMarks(blockById('p_close').content).some((m) => m.type === 'highlight'));
+    check(
+      'clicking the same pen again removes it',
+      !collectProseMarks(blockById('p_close').content).some((m) => m.type === 'highlight'),
+      canonicalJson(collectProseMarks(blockById('p_close').content)),
+    );
     await reset();
   }
 

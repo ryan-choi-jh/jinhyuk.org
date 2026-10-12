@@ -54,6 +54,7 @@ import {
 import type { ProseNode } from './block.ts';
 import { PROSE_KIND_TITLE, SINGLE_LINE_KINDS, proseExtensions } from './extensions.ts';
 import { injectProseEditorStyles } from './css.ts';
+import { injectHighlightStyles } from '../../styles/highlight.ts';
 import { ProseToolbar } from './Toolbar.tsx';
 
 /** Where to put the caret: an end of the block, or a character offset into it. */
@@ -206,6 +207,9 @@ function ProseEditorInstance({
 
   useEffect(() => {
     injectProseEditorStyles();
+    // The highlighter's own rules. Separate stylesheet, shared with the
+    // published page; see styles/highlight.ts.
+    injectHighlightStyles();
   }, []);
 
   const editor = useEditor(

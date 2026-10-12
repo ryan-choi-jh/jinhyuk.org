@@ -18,7 +18,7 @@
  * No DOM, no React, no Astro.
  */
 
-import { HexColorSchema, PROSE_MARKS } from '../schema.ts';
+import { DEFAULT_HIGHLIGHT_INK, HexColorSchema, PROSE_MARKS, isHighlightInk } from '../schema.ts';
 import type { ProseBand, ProseBlock, ProseBlockKind, ProseMarkType } from '../schema.ts';
 import { attr, escapeText, joinParts, safeUrl } from './escape.ts';
 
@@ -58,7 +58,15 @@ function attrsOf(node: Node | { attrs?: unknown }): Record<string, unknown> {
  * the colour wins over the link colour, which is what someone colouring a word
  * meant.
  */
-const MARK_ORDER: readonly ProseMarkType[] = ['link', 'textStyle', 'bold', 'italic'];
+const MARK_ORDER: readonly ProseMarkType[] = [
+  'link',
+  'textStyle',
+  'bold',
+  'italic',
+  // Innermost, so the stroke hugs the words. prose/verify.ts asserts this
+  // list matches block.ts's MARK_ORDER and the real ProseMirror schema rank.
+  'highlight',
+];
 
 const ALLOWED_MARKS = new Set<string>(PROSE_MARKS);
 
@@ -88,6 +96,15 @@ function markTags(mark: Mark): { open: string; close: string } | null {
 
     case 'italic':
       return { open: '<em>', close: '</em>' };
+
+    case 'highlight': {
+      // The ink is a class, not an inline style. The brush stroke is a
+      // background image whose colour is baked into the SVG, so there is
+      // nothing an inline style could usefully set, and one class per pen
+      // keeps the four strokes in the stylesheet where they cache.
+      const ink = isHighlightInk(mark.attrs.ink) ? mark.attrs.ink : DEFAULT_HIGHLIGHT_INK;
+      return { open: `<mark class="doc-hl doc-hl--${ink}">`, close: '</mark>' };
+    }
 
     case 'link': {
       const href = safeUrl(mark.attrs.href);

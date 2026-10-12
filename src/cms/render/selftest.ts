@@ -191,12 +191,39 @@ function render(bands: Band[]): string {
         ],
       },
       { id: 'br', kind: 'p', content: [{ type: 'text', text: 'a' }, { type: 'hardBreak' }, { type: 'text', text: 'b' }] },
+      {
+        id: 'hl',
+        kind: 'p',
+        content: [
+          { type: 'text', text: 'plain ' },
+          { type: 'text', marks: [{ type: 'highlight', attrs: { ink: 'blue' } }], text: 'inked' },
+          { type: 'text', marks: [{ type: 'highlight', attrs: { ink: 'nonsense' } }], text: ' fallback' },
+          {
+            type: 'text',
+            marks: [{ type: 'bold' }, { type: 'highlight', attrs: { ink: 'yellow' } }],
+            text: ' bold too',
+          },
+        ],
+      },
     ]),
   ]);
 
   contains('block: h2', html, '<h2 class="doc-h2" data-block-id="h2">Two</h2>');
   contains('block: h3', html, '<h3 class="doc-h3" data-block-id="h3">Three</h3>');
   contains('block: an empty paragraph still renders', html, '<p class="doc-p" data-block-id="empty"></p>');
+  // The ink is a class, so the four pens live in the stylesheet and nothing
+  // author-supplied reaches a style attribute.
+  contains('highlight: the ink is a class', html, '<mark class="doc-hl doc-hl--blue">inked</mark>');
+  contains(
+    'highlight: an unknown ink falls back rather than dropping the mark',
+    html,
+    '<mark class="doc-hl doc-hl--yellow"> fallback</mark>',
+  );
+  contains(
+    'highlight: it nests inside bold, so the stroke hugs the words',
+    html,
+    '<strong><mark class="doc-hl doc-hl--yellow"> bold too</mark></strong>',
+  );
   contains('block: a quote keeps its paragraphs', html, '<blockquote class="doc-quote" data-block-id="q"><p>one</p><p>two</p></blockquote>');
   contains('block: a single-paragraph list item has no inner p', html, '<li>outer<ul>');
   contains('block: a nested list survives', html, '<ul><li>inner</li></ul></li>');

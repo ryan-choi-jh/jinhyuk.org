@@ -164,6 +164,31 @@ export const PROSE_EDITOR_CSS = `
   outline-offset: 2px;
 }
 
+/* The four highlighter pens. Wider than a colour swatch and squat, because
+   they are strokes rather than colours and should read as the thing they
+   draw. */
+.pe-inks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pe-ink {
+  width: 34px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.pe-ink[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--pe-bg, #fff), 0 0 0 4px var(--pe-focus, #2563a8);
+}
+.pe-ink:focus-visible {
+  outline: 2px solid var(--pe-focus, #2563a8);
+  outline-offset: 2px;
+}
+
 .pe-field {
   display: flex;
   align-items: center;

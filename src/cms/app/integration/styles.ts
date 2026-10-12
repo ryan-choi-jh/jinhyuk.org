@@ -166,6 +166,7 @@ export const INTEGRATION_CSS = `
 .ws8-who[data-signed-in='unknown'] .ws8-who__dot { background: #5a5a5a; }
 .ws8-who a { color: var(--cms-accent, #ff5722); }
 .ws8-pages { max-width: 190px; }
+
 `;
 
 /**

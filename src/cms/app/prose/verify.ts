@@ -123,7 +123,9 @@ check(
 
 section('schema per block kind');
 
-const FORBIDDEN_MARKS = ['underline', 'strike', 'code', 'highlight', 'superscript'];
+// highlight is NOT here any more: it is the highlighter pen, one of
+// PROSE_MARKS, and styles/highlight.ts draws it.
+const FORBIDDEN_MARKS = ['underline', 'strike', 'code', 'superscript'];
 // hardBreak is NOT here: Shift-Enter's line break is in the schema on purpose,
 // WS-1 has rendered it as <br /> all along, and block.ts keeps it inline.
 const FORBIDDEN_NODES = ['horizontalRule', 'codeBlock', 'image'];

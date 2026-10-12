@@ -189,6 +189,59 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Highlighter
+   A brush stroke BEHIND the words, so the ink can be saturated and the text
+   keeps all of its contrast. The block between the markers is generated from
+   src/cms/styles/highlight.ts and copied here because a stylesheet cannot
+   import it; prose/verify.ts asserts the two are byte-identical, so editing
+   this copy by hand will fail the build rather than drift.
+   --------------------------------------------------------------------------- */
+
+/* HIGHLIGHT:START */
+.doc-hl {
+  /* A <mark> comes with the browser's own flat yellow. The brush stroke has
+     wavy edges, so that yellow would show through along the top and bottom
+     of every pen and fringe the blue, green and pink ones. */
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0.06em 0.18em;
+  margin: 0 -0.1em;
+  /* The ink is the same in both themes, so the text on it has to be too:
+     in dark mode --ink is near-white and would all but vanish. */
+  color: #16160f;
+  border-radius: 1px;
+}
+
+.doc-hl--yellow {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 26' preserveAspectRatio='none'%3E%3Cpath d='M0 5.00C4.4 7.05,8.1 7.00,12.5 6.45C16.9 5.62,20.6 5.79,25.0 6.00C29.4 6.82,33.1 6.62,37.5 6.27C41.9 3.46,45.6 4.83,50.0 2.07C54.4 1.83,58.1 1.59,62.5 2.45C66.9 2.57,70.6 2.78,75.0 1.88C79.4 1.42,83.1 1.32,87.5 2.44C91.9 5.38,95.6 4.12,100.0 6.37L100 21.20C95.6 23.60,91.9 23.05,87.5 24.38C83.1 24.27,79.4 24.66,75.0 23.10C70.6 20.88,66.9 21.70,62.5 20.49C58.1 20.94,54.4 20.70,50.0 20.89C45.6 19.55,41.9 20.26,37.5 18.87C33.1 19.63,29.4 18.96,25.0 20.96C20.6 22.69,16.9 22.17,12.5 22.73C8.1 22.39,4.4 22.45,0.0 22.84Z' fill='%23ffe14d'/%3E%3C/svg%3E");
+}
+
+.doc-hl--blue {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 26' preserveAspectRatio='none'%3E%3Cpath d='M0 5.00C4.4 7.05,8.1 7.00,12.5 6.45C16.9 5.62,20.6 5.79,25.0 6.00C29.4 6.82,33.1 6.62,37.5 6.27C41.9 3.46,45.6 4.83,50.0 2.07C54.4 1.83,58.1 1.59,62.5 2.45C66.9 2.57,70.6 2.78,75.0 1.88C79.4 1.42,83.1 1.32,87.5 2.44C91.9 5.38,95.6 4.12,100.0 6.37L100 21.20C95.6 23.60,91.9 23.05,87.5 24.38C83.1 24.27,79.4 24.66,75.0 23.10C70.6 20.88,66.9 21.70,62.5 20.49C58.1 20.94,54.4 20.70,50.0 20.89C45.6 19.55,41.9 20.26,37.5 18.87C33.1 19.63,29.4 18.96,25.0 20.96C20.6 22.69,16.9 22.17,12.5 22.73C8.1 22.39,4.4 22.45,0.0 22.84Z' fill='%239fdcff'/%3E%3C/svg%3E");
+}
+
+.doc-hl--green {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 26' preserveAspectRatio='none'%3E%3Cpath d='M0 5.00C4.4 7.05,8.1 7.00,12.5 6.45C16.9 5.62,20.6 5.79,25.0 6.00C29.4 6.82,33.1 6.62,37.5 6.27C41.9 3.46,45.6 4.83,50.0 2.07C54.4 1.83,58.1 1.59,62.5 2.45C66.9 2.57,70.6 2.78,75.0 1.88C79.4 1.42,83.1 1.32,87.5 2.44C91.9 5.38,95.6 4.12,100.0 6.37L100 21.20C95.6 23.60,91.9 23.05,87.5 24.38C83.1 24.27,79.4 24.66,75.0 23.10C70.6 20.88,66.9 21.70,62.5 20.49C58.1 20.94,54.4 20.70,50.0 20.89C45.6 19.55,41.9 20.26,37.5 18.87C33.1 19.63,29.4 18.96,25.0 20.96C20.6 22.69,16.9 22.17,12.5 22.73C8.1 22.39,4.4 22.45,0.0 22.84Z' fill='%23b6f0a8'/%3E%3C/svg%3E");
+}
+
+.doc-hl--pink {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 26' preserveAspectRatio='none'%3E%3Cpath d='M0 5.00C4.4 7.05,8.1 7.00,12.5 6.45C16.9 5.62,20.6 5.79,25.0 6.00C29.4 6.82,33.1 6.62,37.5 6.27C41.9 3.46,45.6 4.83,50.0 2.07C54.4 1.83,58.1 1.59,62.5 2.45C66.9 2.57,70.6 2.78,75.0 1.88C79.4 1.42,83.1 1.32,87.5 2.44C91.9 5.38,95.6 4.12,100.0 6.37L100 21.20C95.6 23.60,91.9 23.05,87.5 24.38C83.1 24.27,79.4 24.66,75.0 23.10C70.6 20.88,66.9 21.70,62.5 20.49C58.1 20.94,54.4 20.70,50.0 20.89C45.6 19.55,41.9 20.26,37.5 18.87C33.1 19.63,29.4 18.96,25.0 20.96C20.6 22.69,16.9 22.17,12.5 22.73C8.1 22.39,4.4 22.45,0.0 22.84Z' fill='%23ffbcd4'/%3E%3C/svg%3E");
+}
+
+@media print {
+  /* Background images are dropped by default when printing, which would
+     leave the highlight invisible. */
+  .doc-hl {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+/* HIGHLIGHT:END */
+
+/* ---------------------------------------------------------------------------
    Canvas
    A free area. Items carry left and width as percentages of this box and top
    in cqw, so the arrangement scales with the page instead of being pinned to

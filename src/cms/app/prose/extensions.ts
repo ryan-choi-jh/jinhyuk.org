@@ -66,7 +66,7 @@
  * Enter after a Shift-Enter still cuts where the caret is.
  */
 
-import { Extension, Node, getSchema } from '@tiptap/core';
+import { Extension, Mark, Node, getSchema, mergeAttributes } from '@tiptap/core';
 import type { Extensions } from '@tiptap/core';
 import type { Schema } from '@tiptap/pm/model';
 import { Color } from '@tiptap/extension-color';
@@ -74,8 +74,8 @@ import { ListItem } from '@tiptap/extension-list';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { StarterKit } from '@tiptap/starter-kit';
 
-import { PROSE_NODE_TYPE } from '../../schema.ts';
-import type { ProseBlockKind } from '../../schema.ts';
+import { DEFAULT_HIGHLIGHT_INK, PROSE_NODE_TYPE, isHighlightInk } from '../../schema.ts';
+import type { HighlightInk, ProseBlockKind } from '../../schema.ts';
 
 /* -------------------------------------------------------------------------- */
 /* The pinned top node                                                         */
@@ -103,6 +103,97 @@ function ProseBlockDocument(kind: ProseBlockKind): Node {
  * content WS-1 cannot render, and leaves Tab free to move focus.
  */
 const ProseListItem = ListItem.extend({ content: 'paragraph' });
+
+/* -------------------------------------------------------------------------- */
+/* Highlight                                                                   */
+/* -------------------------------------------------------------------------- */
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    proseHighlight: {
+      setHighlight: (ink: HighlightInk) => ReturnType;
+      toggleHighlight: (ink: HighlightInk) => ReturnType;
+      unsetHighlight: () => ReturnType;
+    };
+  }
+}
+
+/**
+ * The highlighter: a brush stroke behind the words, carrying one of four inks
+ * (HIGHLIGHT_INKS).
+ *
+ * Written here rather than pulled from @tiptap/extension-highlight, which is
+ * not a dependency and whose stored shape is a free `color` attribute. A
+ * closed set of inks is the point: the stroke is a background image on the
+ * `<mark>`, so its colour has to be baked into the SVG and lives as a class in
+ * doc.css, and an arbitrary colour would have nothing to resolve to.
+ *
+ * `priority` is explicit so the mark's rank in the ProseMirror schema is
+ * fixed, which is what keeps MARK_ORDER in block.ts true. prose/verify.ts
+ * asserts the two agree, so a reshuffle fails loudly rather than quietly
+ * reordering the marks in every stored document.
+ */
+const ProseHighlight = Mark.create({
+  name: 'highlight',
+  priority: 99,
+
+  addAttributes() {
+    return {
+      ink: {
+        default: DEFAULT_HIGHLIGHT_INK,
+        parseHTML: (element: HTMLElement) => {
+          const value = element.getAttribute('data-ink');
+          if (isHighlightInk(value)) return value;
+          // Pasted from the published page, which carries the ink as a class
+          // and no data attribute. Without this every paste would come back
+          // yellow.
+          const fromClass = [...element.classList]
+            .map((name) => name.replace(/^doc-hl--/, ''))
+            .find((name) => isHighlightInk(name));
+          return isHighlightInk(fromClass) ? fromClass : DEFAULT_HIGHLIGHT_INK;
+        },
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          'data-ink': isHighlightInk(attributes.ink) ? attributes.ink : DEFAULT_HIGHLIGHT_INK,
+        }),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'mark' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    // The SAME classes WS-1 puts on the published page, so one rule set
+    // (styles/highlight.ts) draws both and the editor cannot look different
+    // from the page it is editing.
+    const ink = isHighlightInk(HTMLAttributes['data-ink'])
+      ? HTMLAttributes['data-ink']
+      : DEFAULT_HIGHLIGHT_INK;
+    return ['mark', mergeAttributes(HTMLAttributes, { class: `doc-hl doc-hl--${ink}` }), 0];
+  },
+
+  addCommands() {
+    return {
+      setHighlight:
+        (ink: HighlightInk) =>
+        ({ commands }) =>
+          commands.setMark(this.name, { ink }),
+      toggleHighlight:
+        (ink: HighlightInk) =>
+        ({ commands, editor }) =>
+          // Same pen again turns it off; a different pen recolours in place
+          // rather than making the author unhighlight first.
+          editor.isActive(this.name, { ink })
+            ? commands.unsetMark(this.name)
+            : commands.setMark(this.name, { ink }),
+      unsetHighlight:
+        () =>
+        ({ commands }) =>
+          commands.unsetMark(this.name),
+    };
+  },
+});
 
 /* -------------------------------------------------------------------------- */
 /* Keyboard                                                                    */
@@ -335,6 +426,7 @@ export function proseExtensions(
     }),
     TextStyle,
     Color,
+    ProseHighlight,
     ProseKeymap(kind, options),
   ];
   if (flags.lists) extensions.push(ProseListItem);

@@ -19,6 +19,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import {
+  HIGHLIGHT_INKS,
   DocMetaSchema,
   MOBILE_BREAKPOINT,
   REFERENCE_WIDTH,
@@ -49,6 +50,7 @@ import {
 } from '../schema.ts';
 import type { CanvasItem, Doc, SectionId } from '../schema.ts';
 import { canvasContentHeight } from '../app/state/doc-ops.ts';
+import { HIGHLIGHT_CSS, brushUrl } from '../styles/highlight.ts';
 import {
   SECTIONS,
   cmsUrlFor,
@@ -768,6 +770,9 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
   const cssFiles: [string, number, number][] = [
     ['../app/shell/styles.ts', 29, 769],
     ['../app/shell/site-styles.ts', 27, 431],
+    // Added after the trap was sprung a fourth time, in a fresh file, by a
+    // comment quoting a class name.
+    ['../app/integration/styles.ts', 21, 180],
   ];
   for (const [file] of cssFiles) {
     const full = fileURLToPath(new URL(file, import.meta.url));
@@ -780,6 +785,43 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
       `${file.split('/').pop()}: no backticks inside the CSS literal`,
       open_ >= 0 && close > open_ && strays === 0,
       strays === 0 ? '' : `${strays} line(s) would end the template early`,
+    );
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* The highlighter's stylesheet copy has not drifted                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The highlighter's rules live in src/cms/styles/highlight.ts, because the
+ * editor injects them and a plain stylesheet cannot be imported into a style
+ * tag. doc.css needs the same rules for the published page and cannot import
+ * TypeScript, so it carries a copy between two markers.
+ *
+ * Byte-identical or the pages disagree with the editor, which for a feature
+ * whose entire job is "what I see is what gets published" is the one failure
+ * that matters. Checked rather than trusted.
+ */
+{
+  const cssPath = fileURLToPath(new URL('../styles/doc.css', import.meta.url));
+  const css = readFileSync(cssPath, 'utf8');
+  const start = css.indexOf('/* HIGHLIGHT:START */\n');
+  const end = css.indexOf('\n/* HIGHLIGHT:END */');
+  const copied = start < 0 || end < 0 ? null : css.slice(start + '/* HIGHLIGHT:START */\n'.length, end);
+
+  check('doc.css carries the highlighter block between its markers', copied !== null);
+  check(
+    'and it is byte-identical to styles/highlight.ts',
+    copied === HIGHLIGHT_CSS,
+    copied === HIGHLIGHT_CSS ? '' : `${copied?.length ?? 0} chars vs ${HIGHLIGHT_CSS.length}`,
+  );
+
+  // The ink is the thing a careless edit would change, so name it explicitly.
+  for (const ink of HIGHLIGHT_INKS) {
+    check(
+      `doc.css has the ${ink} pen`,
+      copied !== null && copied.includes(`.doc-hl--${ink} {`) && copied.includes(brushUrl(ink)),
     );
   }
 }

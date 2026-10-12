@@ -32,7 +32,13 @@
  *    marks are sorted into MARK_ORDER.
  */
 
-import { PROSE_HEADING_LEVEL, PROSE_MARKS, PROSE_NODE_TYPE } from '../../schema.ts';
+import {
+  DEFAULT_HIGHLIGHT_INK,
+  PROSE_HEADING_LEVEL,
+  PROSE_MARKS,
+  PROSE_NODE_TYPE,
+  isHighlightInk,
+} from '../../schema.ts';
 import type { ProseBlock, ProseBlockKind } from '../../schema.ts';
 import { canonicalColorValue } from './palette.ts';
 
@@ -62,7 +68,16 @@ export type ProseEditorDoc = { type: 'doc'; content: ProseNode[] };
  * block kind, so a TipTap upgrade that reshuffles priorities fails loudly
  * instead of quietly reordering every mark in every document.
  */
-export const MARK_ORDER: readonly string[] = ['link', 'textStyle', 'bold', 'italic'];
+export const MARK_ORDER: readonly string[] = [
+  'link',
+  'textStyle',
+  'bold',
+  'italic',
+  // Innermost, so the brush stroke hugs the words rather than the whole
+  // styled run. ProseHighlight is registered at priority 99, just under
+  // Bold and Italic, which is what puts it here.
+  'highlight',
+];
 
 /* -------------------------------------------------------------------------- */
 /* Tiny helpers                                                                */
@@ -139,6 +154,14 @@ function normalizeMark(raw: unknown): ProseMark | null {
   const attrs = asRecord(record.attrs) ?? {};
 
   if (type === 'bold' || type === 'italic') return { type };
+
+  // One of four pens, never a free colour: see HIGHLIGHT_INKS. An unknown ink
+  // (a hand-edited document, an older draft) falls back to the default rather
+  // than dropping the mark, because losing a highlight silently is worse than
+  // showing it in the wrong one.
+  if (type === 'highlight') {
+    return { type, attrs: { ink: isHighlightInk(attrs.ink) ? attrs.ink : DEFAULT_HIGHLIGHT_INK } };
+  }
 
   if (type === 'link') {
     const href = typeof attrs.href === 'string' ? attrs.href.trim() : '';

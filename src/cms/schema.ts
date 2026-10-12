@@ -251,8 +251,34 @@ export const PROSE_HEADING_LEVEL: Readonly<Record<'h2' | 'h3', number>> = { h2: 
  * @tiptap/extension-color actually emits. There is no mark literally named
  * "color". See docs/cms-contracts.md.
  */
-export const PROSE_MARKS = ['bold', 'italic', 'link', 'textStyle'] as const;
+export const PROSE_MARKS = ['bold', 'italic', 'link', 'textStyle', 'highlight'] as const;
 export type ProseMarkType = (typeof PROSE_MARKS)[number];
+
+/**
+ * Highlighter inks.
+ *
+ * A CLOSED set, unlike text colour, which takes any hex. The highlight is
+ * drawn as a brush stroke behind the words, and the stroke is a background
+ * image whose colour has to be baked into the SVG, so each ink is a class in
+ * the stylesheet rather than an inline style. Four pens is also simply what a
+ * highlighter is; a colour picker here would invite a shade that buries the
+ * text, which is the one thing this must never do.
+ *
+ * The values are the ink as it is painted BEHIND the glyphs, so they can be
+ * this saturated and still leave full-contrast text on top. Laid over the
+ * words instead, at any opacity that still reads as colour, the same yellow
+ * turns black text olive.
+ */
+export const HIGHLIGHT_INKS = ['yellow', 'blue', 'green', 'pink'] as const;
+export type HighlightInk = (typeof HIGHLIGHT_INKS)[number];
+export const HighlightInkSchema = z.enum(HIGHLIGHT_INKS);
+
+/** The default pen, for a highlight stored with no ink or an unknown one. */
+export const DEFAULT_HIGHLIGHT_INK: HighlightInk = 'yellow';
+
+export function isHighlightInk(value: unknown): value is HighlightInk {
+  return typeof value === 'string' && (HIGHLIGHT_INKS as readonly string[]).includes(value);
+}
 
 export const ProseBlockSchema = z
   .object({

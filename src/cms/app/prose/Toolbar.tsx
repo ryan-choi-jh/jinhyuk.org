@@ -27,7 +27,13 @@ import { posToDOMRect } from '@tiptap/core';
 import type { Editor } from '@tiptap/core';
 
 import { PROSE_KINDS, PROSE_KIND_LABEL, PROSE_KIND_TITLE } from './extensions.ts';
-import type { ProseBlockKind } from '../../schema.ts';
+import {
+  DEFAULT_HIGHLIGHT_INK,
+  HIGHLIGHT_INKS,
+  isHighlightInk,
+} from '../../schema.ts';
+import type { HighlightInk, ProseBlockKind } from '../../schema.ts';
+import { HIGHLIGHT_INK_HEX } from '../../styles/highlight.ts';
 import { ColorControl, useColorTheme } from './ColorControl.tsx';
 import { LinkControl } from './LinkControl.tsx';
 import { colorLabel, resolveColorToHex } from './palette.ts';
@@ -61,7 +67,7 @@ export function useEditorTick(editor: Editor | null): void {
   }, [editor]);
 }
 
-type Panel = 'none' | 'link' | 'color';
+type Panel = 'none' | 'link' | 'color' | 'highlight';
 
 export type ProseToolbarProps = {
   editor: Editor;
@@ -158,6 +164,9 @@ export function ProseToolbar({
   if (target === null) return null;
 
   const color = (editor.getAttributes('textStyle').color as string | undefined) ?? null;
+  const highlighted = editor.isActive('highlight');
+  const inkAttr = editor.getAttributes('highlight').ink as unknown;
+  const ink: HighlightInk = isHighlightInk(inkAttr) ? inkAttr : DEFAULT_HIGHLIGHT_INK;
   const href = (editor.getAttributes('link').href as string | undefined) ?? null;
 
   const toolbar = (
@@ -251,12 +260,52 @@ export function ProseToolbar({
           />
           Colour
         </button>
+
+        <button
+          type="button"
+          className="pe-btn"
+          aria-pressed={highlighted}
+          title={highlighted ? `Highlighted ${ink}` : 'Highlight'}
+          onMouseDown={HOLD_FOCUS}
+          onClick={() => setPanel(panel === 'highlight' ? 'none' : 'highlight')}
+        >
+          <span
+            className="pe-dot"
+            style={{ background: highlighted ? HIGHLIGHT_INK_HEX[ink] : 'transparent' }}
+          />
+          Mark
+        </button>
       </div>
 
       {panel === 'link' ? (
         <LinkControl editor={editor} current={href} onClose={() => setPanel('none')} />
       ) : null}
       {panel === 'color' ? <ColorControl editor={editor} current={color} /> : null}
+      {panel === 'highlight' ? (
+        <div className="pe-panel pe-inks" role="group" aria-label="Highlighter">
+          {HIGHLIGHT_INKS.map((candidate) => (
+            <button
+              key={candidate}
+              type="button"
+              className="pe-ink"
+              aria-pressed={highlighted && ink === candidate}
+              title={candidate}
+              style={{ background: HIGHLIGHT_INK_HEX[candidate] }}
+              onMouseDown={HOLD_FOCUS}
+              onClick={() => editor.chain().focus().toggleHighlight(candidate).run()}
+            />
+          ))}
+          <button
+            type="button"
+            className="pe-btn"
+            title="Remove the highlight"
+            onMouseDown={HOLD_FOCUS}
+            onClick={() => editor.chain().focus().unsetHighlight().run()}
+          >
+            None
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 
