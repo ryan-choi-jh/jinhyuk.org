@@ -82,13 +82,16 @@ function handPath(
   x2: number,
   y2: number,
   seed: number,
-  direction: number,
+  tickX: number,
+  tickY: number,
 ): string {
   // A short tick out of the text before the stroke proper: it is what makes
-  // the line look drawn from the paragraph rather than passing near it.
-  const tick = 6 * direction + wobble(seed, 5) * 2;
-  const sx = x1 + tick;
-  const sy = y1 + wobble(seed, 6) * 2;
+  // the line look drawn from the paragraph rather than passing near it. It
+  // points away from the block's edge, which is sideways for an item beside
+  // the text and downwards for one under it.
+  const nudge = 6 + wobble(seed, 5) * 2;
+  const sx = x1 + tickX * nudge + (tickX === 0 ? wobble(seed, 6) * 2 : 0);
+  const sy = y1 + tickY * nudge + (tickY === 0 ? wobble(seed, 6) * 2 : 0);
 
   const dx = x2 - sx;
   const dy = y2 - sy;
@@ -220,38 +223,74 @@ export function drawDocConnectors(root: HTMLElement): void {
     const media = itemBox(item);
     if (media.width === 0 || media.height === 0) return;
 
-    // Which side of the text column the item is on. When it overlaps the text
-    // horizontally there is no sideways journey to draw, so skip it: a line
-    // doubling back over the paragraph it points at looks like a mistake.
-    let direction = 0;
-    if (media.left - anchor.right >= MIN_REACH) direction = 1;
-    else if (anchor.left - media.right >= MIN_REACH) direction = -1;
-    if (direction === 0) return;
+    // WHICH EDGE OF THE BLOCK THE LINE LEAVES FROM.
+    //
+    // Sideways first, because an item in the margin is the common case and a
+    // horizontal line is the one that reads best. But an item can also sit
+    // ABOVE or BELOW the paragraph it belongs to — a full-width screenshot
+    // under its own description, say — and for a long time that drew nothing
+    // at all, because the only test was horizontal clearance and a full-width
+    // item never has any. It just looked as though the anchor had not taken.
+    //
+    // Whichever edge is chosen, the item has to clear the block by MIN_REACH
+    // on that side, or there is no journey to draw and a line doubling back
+    // over its own paragraph looks like a mistake.
+    const side =
+      media.left - anchor.right >= MIN_REACH
+        ? 'right'
+        : anchor.left - media.right >= MIN_REACH
+          ? 'left'
+          : media.top - anchor.bottom >= MIN_REACH
+            ? 'below'
+            : anchor.top - media.bottom >= MIN_REACH
+              ? 'above'
+              : null;
+    if (side === null) return;
+    const sideways = side === 'left' || side === 'right';
 
     // Arrive at the middle of the facing edge, and leave from the point on the
-    // paragraph's edge nearest to it, so the line stays short and level
+    // block's facing edge nearest to it, so the line stays short and level
     // instead of always starting at the last line of text.
-    const y2 = media.top + media.height / 2 - box.top;
-    const x2 = (direction === 1 ? media.left - 10 : media.right + 10) - box.left;
-    const x1 = (direction === 1 ? anchor.right + 8 : anchor.left - 8) - box.left;
+    const x2 =
+      (side === 'right' ? media.left - 10 : side === 'left' ? media.right + 10 : media.left + media.width / 2) -
+      box.left;
+    const y2 =
+      (side === 'below' ? media.top - 10 : side === 'above' ? media.bottom + 10 : media.top + media.height / 2) -
+      box.top;
+    const x1 =
+      (side === 'right' ? anchor.right + 8 : side === 'left' ? anchor.left - 8 : 0) - box.left;
     // `data-anchor-at` pins the departure point: a fraction down the block,
     // for when the line should come off a particular line of text. Without
     // one it goes wherever the line naturally meets the block, which keeps it
     // short and level. Either way it stays 12px clear of the block's ends, so
     // a pinned 0 or 1 is "as far as it goes" and not a line leaving from the
     // corner.
-    const low = anchor.top + 12 - box.top;
-    const high = anchor.bottom - 12 - box.top;
+    //
+    // `at` is a fraction along the edge the line leaves from, so it slides up
+    // and down for an item beside the text and left to right for one above or
+    // below it. One field, one meaning: "how far along this edge".
+    const start = (sideways ? anchor.top - box.top : anchor.left - box.left) + 12;
+    const span = (sideways ? anchor.height : anchor.width) - 24;
+    const low = start;
+    const high = start + Math.max(0, span);
+    const natural = sideways ? y2 : x2;
     const pinned = Number.parseFloat(item.getAttribute('data-anchor-at') ?? '');
-    const y1 = Number.isFinite(pinned)
-      ? clamp(anchor.top + anchor.height * pinned - box.top, low, high)
-      : clamp(y2, low, high);
+    const along = Number.isFinite(pinned)
+      ? clamp(start - 12 + (sideways ? anchor.height : anchor.width) * pinned, low, high)
+      : clamp(natural, low, high);
+    const y1 = sideways ? along : (side === 'below' ? anchor.bottom + 8 : anchor.top - 8) - box.top;
+    const x1Final = sideways ? x1 : along;
 
-    if (Math.abs(y2 - y1) > MAX_DROP) return;
+    if (Math.hypot(x2 - x1Final, y2 - y1) > MAX_DROP) return;
 
     const seed = Number.parseInt(item.getAttribute('data-connector-seed') ?? '', 10);
     const path = document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('d', handPath(x1, y1, x2, y2, Number.isFinite(seed) ? seed : 1, direction));
+    const tickX = side === 'right' ? 1 : side === 'left' ? -1 : 0;
+    const tickY = side === 'below' ? 1 : side === 'above' ? -1 : 0;
+    path.setAttribute(
+      'd',
+      handPath(x1Final, y1, x2, y2, Number.isFinite(seed) ? seed : 1, tickX, tickY),
+    );
     // A presentation attribute loses to the stylesheet's `.doc-connectors path`
     // rule, so a chosen colour has to go on the element's own style.
     const color = item.getAttribute('data-connector-color');
@@ -261,13 +300,18 @@ export function drawDocConnectors(root: HTMLElement): void {
     // published page ignores them. Cheaper and far less brittle than the
     // editor recomputing geometry this function has already worked out.
     path.setAttribute('data-item', item.getAttribute('data-cv-item') ?? item.getAttribute('data-item-id') ?? '');
-    path.setAttribute('data-x1', String(Math.round(x1)));
+    path.setAttribute('data-x1', String(Math.round(x1Final)));
     path.setAttribute('data-y1', String(Math.round(y1)));
+    // Which way the grip slides: down the block's side, or across its top.
+    path.setAttribute('data-anchor-axis', sideways ? 'y' : 'x');
     // The block's WHOLE box, not the clamped range: the editor turns a
     // dragged position into `at`, which is a fraction of the block, and
     // clamping is the renderer's business.
-    path.setAttribute('data-block-top', String(Math.round(anchor.top - box.top)));
-    path.setAttribute('data-block-height', String(Math.round(anchor.height)));
+    path.setAttribute(
+      'data-block-start',
+      String(Math.round(sideways ? anchor.top - box.top : anchor.left - box.left)),
+    );
+    path.setAttribute('data-block-span', String(Math.round(sideways ? anchor.height : anchor.width)));
     svg.appendChild(path);
   });
 }

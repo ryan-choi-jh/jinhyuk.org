@@ -226,6 +226,9 @@ export function setBandHeight(doc: Doc, bandId: string, height: number): Doc {
   });
 }
 
+/** A caption's own height below the item: doc.css's 10px margin + 21px line. */
+export const CAPTION_SPACE = 31;
+
 /**
  * How tall the band would be if it ended at its lowest item: the largest
  * `y + h` across them, rounded up to a whole pixel. Null when there is nothing
@@ -243,8 +246,29 @@ export function setBandHeight(doc: Doc, bandId: string, height: number): Doc {
 export function canvasContentHeight(band: CanvasBand): number | null {
   if (band.items.length === 0) return null;
   let bottom = 0;
-  for (const item of band.items) bottom = Math.max(bottom, item.y + item.h);
-  return bottom > 0 ? Math.ceil(bottom) : null;
+  for (const item of band.items) {
+    // A caption hangs BELOW the item's box — 10px of margin and a 21px line
+    // in doc.css — so an item that has one needs that much more room or the
+    // words land on whatever follows the band. One line's worth; a longer
+    // caption is what `padBottom` is for.
+    const caption = item.caption !== undefined && item.caption !== '' ? CAPTION_SPACE : 0;
+    bottom = Math.max(bottom, item.y + item.h + caption);
+  }
+  if (bottom <= 0) return null;
+  return Math.ceil(bottom + (band.padBottom ?? 0));
+}
+
+/**
+ * Clear space under the lowest item. Zero removes the key rather than
+ * writing 0, which keeps the JSON minimal, exactly as `overlay` does.
+ */
+export function setBandPadBottom(doc: Doc, bandId: string, padBottom: number): Doc {
+  if (!Number.isFinite(padBottom) || padBottom < 0) return doc;
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'canvas') return band;
+    const next = padBottom === 0 ? omit(band, 'padBottom') : { ...band, padBottom };
+    return fitted(next as CanvasBand);
+  });
 }
 
 /**

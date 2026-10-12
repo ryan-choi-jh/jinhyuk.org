@@ -413,6 +413,17 @@ export const CanvasBandSchema = z
     height: z.number().finite().positive('height must be greater than 0'),
     /** Sit over the previous band instead of below it. Never legal on band 0. */
     overlay: z.boolean().optional(),
+    /**
+     * Clear space kept under the lowest item, in reference px.
+     *
+     * The band's height follows its contents, which is what stops a shrunk
+     * picture leaving a hole. The cost of that is there was no way to ask for
+     * room at the BOTTOM any more: anything you added came straight back off
+     * on the next edit. This is that room, stated rather than implied, so the
+     * fit keeps it. It is also how a captioned item stops colliding with the
+     * paragraph underneath, since a caption hangs below the item's own box.
+     */
+    padBottom: z.number().finite().nonnegative('padBottom must not be negative').optional(),
     items: z.array(CanvasItemSchema),
   })
   .strict();

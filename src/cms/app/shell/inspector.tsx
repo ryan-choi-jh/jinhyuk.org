@@ -238,10 +238,20 @@ function BandPanel({
               if (height !== undefined) store.setBandHeight(band.id, height);
             }}
           />
+          <NumberField
+            label="Space below"
+            testId="band-pad-bottom"
+            value={band.padBottom ?? 0}
+            step={8}
+            onChange={(padBottom) => {
+              if (padBottom !== undefined) store.setBandPadBottom(band.id, Math.max(0, padBottom));
+            }}
+          />
           {/* The height follows the contents now (`fitted` in doc-ops), so
               there is no Fit button to press: moving or resizing anything
               re-measures the band. Typing a height still works and still
-              matters on an empty canvas, which has nothing to measure. */}
+              matters on an empty canvas, which has nothing to measure.
+              "Space below" is how you ask for room the fit will keep. */}
           <div className="cms-hint" data-testid="band-height-hint">
             {band.items.length === 0
               ? 'Nothing on this canvas yet, so the height is whatever you set here.'

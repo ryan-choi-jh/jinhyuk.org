@@ -632,10 +632,20 @@ async function run(page) {
     // Non-destructive on purpose: this runs in the middle of the harness, and
     // a section that deletes the fixture's items leaves every later check
     // testing a different document. Two edits, two undos, back where it was.
+    // `bottom` has to agree with `canvasContentHeight`: a caption hangs below
+    // its item's box and the fit reserves room for it, so a captioned item
+    // pushes the floor 31px further down than its geometry alone would.
     const read = () => page.evaluate(`(() => {
       const band = window.__ws3.store.getState().doc.bands.find((b) => b.type === 'canvas');
-      const bottom = Math.max(...band.items.map((i) => i.y + i.h));
-      return { id: band.id, height: band.height, bottom: Math.ceil(bottom), items: band.items.length };
+      const bottom = Math.max(
+        ...band.items.map((i) => i.y + i.h + (i.caption !== undefined && i.caption !== '' ? 31 : 0)),
+      );
+      return {
+        id: band.id,
+        height: band.height,
+        bottom: Math.ceil(bottom + (band.padBottom ?? 0)),
+        items: band.items.length,
+      };
     })()`);
     const lowest = () => page.evaluate(`(() => {
       const s = window.__ws3.store;

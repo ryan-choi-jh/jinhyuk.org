@@ -128,6 +128,7 @@ export type DocStore = {
   moveBand(bandId: string, toIndex: number): void;
   setBandHeight(bandId: string, height: number, options?: EditOptions): void;
   setBandOverlay(bandId: string, overlay: boolean): void;
+  setBandPadBottom(bandId: string, padBottom: number, options?: EditOptions): void;
 
   /* canvas items */
   setCanvasItems(bandId: string, items: CanvasItem[], options?: EditOptions): void;
@@ -490,6 +491,14 @@ export function createDocStore(options: DocStoreOptions): DocStore {
     setBandOverlay(bandId, overlay) {
       update((doc) => ops.setBandOverlay(doc, bandId, overlay), {
         label: overlay ? 'set overlay' : 'clear overlay',
+      });
+    },
+
+    setBandPadBottom(bandId, padBottom, editOptions) {
+      update((doc) => ops.setBandPadBottom(doc, bandId, padBottom), {
+        label: 'space below',
+        coalesceKey: `pad:${bandId}`,
+        ...editOptions,
       });
     },
 

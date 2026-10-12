@@ -278,8 +278,10 @@ type Grip = {
   itemId: string;
   x: number;
   y: number;
-  blockTop: number;
-  blockHeight: number;
+  /** Which way it slides: down the block's side, or across its top. */
+  axis: 'x' | 'y';
+  blockStart: number;
+  blockSpan: number;
 };
 
 function readGrips(root: HTMLElement): Grip[] {
@@ -288,11 +290,12 @@ function readGrips(root: HTMLElement): Grip[] {
     const itemId = path.getAttribute('data-item') ?? '';
     const x = Number(path.getAttribute('data-x1'));
     const y = Number(path.getAttribute('data-y1'));
-    const blockTop = Number(path.getAttribute('data-block-top'));
-    const blockHeight = Number(path.getAttribute('data-block-height'));
+    const axis = path.getAttribute('data-anchor-axis') === 'x' ? 'x' : 'y';
+    const blockStart = Number(path.getAttribute('data-block-start'));
+    const blockSpan = Number(path.getAttribute('data-block-span'));
     if (itemId === '' || !Number.isFinite(x) || !Number.isFinite(y)) return;
-    if (!Number.isFinite(blockTop) || !Number.isFinite(blockHeight) || blockHeight <= 0) return;
-    out.push({ itemId, x, y, blockTop, blockHeight });
+    if (!Number.isFinite(blockStart) || !Number.isFinite(blockSpan) || blockSpan <= 0) return;
+    out.push({ itemId, x, y, axis, blockStart, blockSpan });
   });
   return out;
 }
@@ -306,8 +309,9 @@ function sameGrips(a: Grip[], b: Grip[]): boolean {
       grip.itemId === other.itemId &&
       grip.x === other.x &&
       grip.y === other.y &&
-      grip.blockTop === other.blockTop &&
-      grip.blockHeight === other.blockHeight
+      grip.axis === other.axis &&
+      grip.blockStart === other.blockStart &&
+      grip.blockSpan === other.blockSpan
     );
   });
 }
@@ -367,11 +371,14 @@ function AnchorGrips({
         if (item === undefined || item.anchor === undefined) return null;
         const anchor = item.anchor;
 
-        const write = (clientY: number): void => {
+        const write = (clientX: number, clientY: number): void => {
           const root = rootRef.current;
           if (root === null) return;
-          const top = root.getBoundingClientRect().top;
-          const at = (clientY - top - grip.blockTop) / grip.blockHeight;
+          const rect = root.getBoundingClientRect();
+          // Along whichever edge the line leaves from: down the side for an
+          // item beside the text, across the top for one above or below it.
+          const pointer = grip.axis === 'y' ? clientY - rect.top : clientX - rect.left;
+          const at = (pointer - grip.blockStart) / grip.blockSpan;
           store.updateCanvasItem(band.id, item.id, {
             anchor: { ...anchor, at: Math.min(1, Math.max(0, at)) },
           });
@@ -385,13 +392,13 @@ function AnchorGrips({
             data-testid={`anchor-grip-${grip.itemId}`}
             title="Drag to move where the line leaves this paragraph. Double-click to let it choose."
             aria-label="Move the connector's start"
-            style={{ left: grip.x / scale, top: grip.y / scale }}
+            style={{ left: grip.x / scale, top: grip.y / scale, cursor: grip.axis === 'y' ? 'ns-resize' : 'ew-resize' }}
             onPointerDown={(event) => {
               event.stopPropagation();
               event.preventDefault();
               const node = event.currentTarget;
               node.setPointerCapture(event.pointerId);
-              const move = (move_: PointerEvent): void => write(move_.clientY);
+              const move = (move_: PointerEvent): void => write(move_.clientX, move_.clientY);
               const up = (): void => {
                 node.removeEventListener('pointermove', move);
                 node.removeEventListener('pointerup', up);
