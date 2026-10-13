@@ -947,7 +947,9 @@ async function run(page) {
   const dirtyIndicator = await page.evaluate(
     `document.querySelector('[data-testid="dirty"]').textContent.trim()`,
   );
-  check('the toolbar says so', dirtyIndicator === 'Unsaved changes', dirtyIndicator);
+  // "Unsaved", not "Unsaved changes": the words in this bar were shortened
+  // because at a real pane width they were being clipped mid-word.
+  check('the toolbar says so', dirtyIndicator === 'Unsaved', dirtyIndicator);
 
   const linkGuard = await page.evaluate(`(() => {
     const anchor = document.createElement('a');
@@ -1025,6 +1027,81 @@ async function run(page) {
   );
   check('prose reads at the site’s 720px measure', measure === 720, `${measure}px`);
   console.log(`    shot  ${await page.shot('08-zoom-100')}`);
+
+  /* ---------------------------------------------------------------------- */
+  section('the toolbar fits, at every width it is shown at');
+  {
+    /*
+     * It did not. Every control had the default flex-shrink of 1, so the
+     * browser took space from whatever would give it up: the page title
+     * collapsed to nothing, the guide button to 8px, and the deploy chip
+     * and Reload to 11px between them, while the theme select kept 202px
+     * because its longest option — "Theme: system" — would not fit in less.
+     * Reload rendered as "Re" behind the Preview button.
+     *
+     * The important part of that: the content never exceeded the bar.
+     * Flex SHRANK things to fit, so scrollWidth equalled clientWidth the
+     * whole time and nothing stuck out. The visible damage was controls
+     * OVERLAPPING each other inside it, and a control crushed to a sliver.
+     * So those are what this measures, and an overflow check alone would
+     * have passed on the broken bar.
+     *
+     * Measured on the real toolbar rather than a copy of its markup,
+     * because the thing that broke it was the text in an option.
+     */
+    const widths = [920, 1000, 1120, 1280, 1440, 1600];
+    for (const width of widths) {
+      await page.setViewport({ width, height: 900 });
+      await sleep(90);
+      const bar = await page.evaluate(`(() => {
+        const bar = document.querySelector('[data-testid="toolbar"]');
+        if (bar === null) return null;
+        const box = bar.getBoundingClientRect();
+        const controls = [...bar.querySelectorAll('button, select, .cms-toolbar__name, .cms-dirty')]
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              what: (el.textContent || el.tagName).trim().slice(0, 16) || el.tagName,
+              left: r.left, right: r.right, top: r.top, bottom: r.bottom,
+              w: Math.round(r.width),
+            };
+          })
+          .filter((el) => el.w > 0);
+        const overlaps = [];
+        for (let i = 0; i < controls.length; i += 1) {
+          for (let j = i + 1; j < controls.length; j += 1) {
+            const a = controls[i];
+            const b = controls[j];
+            // Only siblings on the same row can overlap meaningfully; a
+            // tolerance of 1px absorbs subpixel rounding.
+            const across = a.left < b.right - 1 && b.left < a.right - 1;
+            const down = a.top < b.bottom - 1 && b.top < a.bottom - 1;
+            if (across && down) overlaps.push(a.what + ' / ' + b.what);
+          }
+        }
+        return {
+          overflow: bar.scrollWidth - bar.clientWidth,
+          height: Math.round(box.height),
+          overlaps,
+          slivers: controls.filter((el) => el.w < 20).map((el) => el.what + '@' + el.w),
+          shown: controls.length,
+        };
+      })()`);
+      if (bar === null) {
+        check(`${width}px: the toolbar is on screen`, false, 'not rendered');
+        continue;
+      }
+      check(
+        `${width}px: nothing overlaps (${bar.shown} controls)`,
+        bar.overlaps.length === 0,
+        bar.overlaps.join(', '),
+      );
+      check(`${width}px: nothing is crushed to a sliver`, bar.slivers.length === 0, bar.slivers.join(', '));
+      check(`${width}px: the content fits`, bar.overflow <= 0, `${bar.overflow}px over`);
+      check(`${width}px: one or two rows`, bar.height <= 80, `${bar.height}px`);
+    }
+    await page.setViewport(WIDE);
+  }
 
   await page.setViewport(NARROW);
   const narrow = await page.evaluate(`({

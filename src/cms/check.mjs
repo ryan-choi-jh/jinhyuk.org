@@ -40,6 +40,7 @@ const OFFLINE = [
   ['preview', 'src/cms/preview/selftest.ts'],
   ['pre-publish checklist', 'src/cms/verify-preflight.ts'],
   ['hidden pages', 'src/cms/verify-hidden.ts'],
+  ['css strings', 'src/cms/styles/verify-css-strings.ts'],
   ['server', 'src/cms/server/verify.ts', ['--offline']],
 ];
 

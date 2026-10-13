@@ -54,6 +54,13 @@ export const SHELL_CSS = `
   font: 12px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+
+  /* The toolbar's rules below ask how wide the editor is. On the editor
+     rather than on the toolbar, because a container query styles things
+     INSIDE the container and the toolbar has to restyle itself when there
+     is no longer room for one row. A viewport query would be a guess: this
+     is the editor's width, which is the window less whatever rail is open. */
+  container: cms / inline-size;
 }
 .cms-root *, .cms-root *::before, .cms-root *::after { box-sizing: border-box; }
 .cms-root button, .cms-root input, .cms-root select, .cms-root textarea {
@@ -116,7 +123,21 @@ export const SHELL_CSS = `
   border-bottom: 1px solid var(--cms-line);
   background: var(--cms-panel);
 }
-.cms-toolbar__title { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+
+/* WHAT SHRINKS, AND WHAT MUST NOT.
+   Everything in this bar had the default flex-shrink of 1, so at any real
+   width the browser took space from whatever would give it up: the title
+   collapsed to nothing, the guide button to 8px, and the deploy chip and
+   Reload to 11px between them, while the theme select kept 202px because
+   its longest option would not fit in less. The result overlapped.
+   So the controls are fixed and the text shrinks. */
+.cms-toolbar__title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
 .cms-toolbar__name {
   font-weight: 600;
   font-size: 13px;
@@ -124,11 +145,46 @@ export const SHELL_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 280px;
+  /* Shown or not shown; never a two-character stub. */
+  min-width: 90px;
 }
-.cms-toolbar__slug { color: var(--cms-muted); font-size: 11px; }
-.cms-toolbar__spacer { flex: 1 1 auto; }
-.cms-toolbar__group { display: flex; align-items: center; gap: 4px; }
-.cms-toolbar__sep { width: 1px; height: 20px; background: var(--cms-line); }
+.cms-toolbar__spacer { flex: 1 1 auto; min-width: 0; }
+.cms-toolbar__group { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.cms-toolbar__sep { width: 1px; height: 20px; background: var(--cms-line); flex: 0 0 auto; }
+
+/* Tight. Drop the words that repeat something already visible, in the order
+   they can best be spared, rather than letting the browser clip them
+   mid-word: "No unsaved changes" became "No unsaved char" at a perfectly
+   ordinary pane width. */
+@container cms (max-width: 900px) {
+  .cms-dirty__text { display: none; }
+}
+@container cms (max-width: 820px) {
+  .cms-zoom__label { display: none; }
+}
+@container cms (min-width: 651px) and (max-width: 780px) {
+  /* A RANGE, not a ceiling. In this band the bar is still one row and
+     there is no room for the title beside the controls, so it goes rather
+     than collapsing to a two-character stub; the shell's breadcrumbs
+     directly above already say which page this is. Below 650 the bar wraps
+     and row one has room for it again, which is why this stops there. */
+  .cms-toolbar__title { display: none; }
+}
+@container cms (max-width: 650px) {
+  /* Past here the controls alone are wider than the bar. It wraps onto a
+     second row rather than overlapping or scrolling.
+     NOT overflow-x auto: that establishes a clipping context on both
+     axes, and the pre-publish checklist hangs out of the bottom of this
+     bar, so it would be cut off. */
+  .cms-toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 40px;
+    padding-block: 5px;
+    row-gap: 5px;
+  }
+  .cms-toolbar__spacer { display: none; }
+}
 
 .cms-dirty {
   display: inline-flex;
@@ -137,6 +193,7 @@ export const SHELL_CSS = `
   color: var(--cms-muted);
   font-size: 11px;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 .cms-dirty__dot {
   width: 7px;
@@ -147,7 +204,7 @@ export const SHELL_CSS = `
 .cms-dirty--dirty .cms-dirty__dot { background: var(--cms-warn); }
 .cms-dirty--dirty { color: var(--cms-warn); }
 
-.cms-zoom { display: flex; align-items: center; gap: 4px; color: var(--cms-muted); font-size: 11px; }
+.cms-zoom { display: flex; align-items: center; gap: 4px; color: var(--cms-muted); font-size: 11px; flex: 0 0 auto; white-space: nowrap; }
 .cms-zoom .cms-select { width: 74px; }
 
 /* ---------- three panes ---------- */

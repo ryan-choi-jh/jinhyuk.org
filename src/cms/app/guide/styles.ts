@@ -214,7 +214,7 @@ export const GUIDE_CSS = `
 .cms-guide-btn:hover { background: #2a2f36; }
 .cms-guide-btn:active { background: #31373f; }
 .cms-guide-btn:focus-visible { outline: 2px solid var(--cms-accent, #4c8dff); outline-offset: 1px; }
-.cms-guide-btn--icon { width: 24px; padding: 0; font-size: 13px; }
+.cms-guide-btn--icon { width: 24px; padding: 0; font-size: 13px; flex: 0 0 auto; }
 .cms-guide-btn--on {
   border-color: var(--cms-accent, #4c8dff);
   background: var(--cms-accent-dim, #1f3a66);

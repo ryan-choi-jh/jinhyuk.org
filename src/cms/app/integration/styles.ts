@@ -143,7 +143,17 @@ export const INTEGRATION_CSS = `
 /* ---------------------------------------------------------------------------
    SEAM 5: the toolbar extras — who is signed in, which page, reload.
 --------------------------------------------------------------------------- */
-.ws8-toolbar { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.ws8-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  /* Never shrink. These are controls, and the toolbar took space from them
+     first: measured at 11px for the deploy chip, the auth chip and Reload
+     together, which hid the chip and clipped Reload to "Re" behind the
+     next button. The title is what gives way now. */
+  flex: 0 0 auto;
+}
 .ws8-who {
   display: inline-flex;
   align-items: center;

@@ -40,16 +40,27 @@ export function Toolbar({ store, state, zoom, onZoomChange, onPreview, slots }: 
 
   return (
     <div className="cms-toolbar" data-testid="toolbar">
-      <span className="cms-toolbar__title">
+      {/* The title only. The slug used to sit beside it and was the thing
+          that broke this bar: it has no sensible shrink point, so at any
+          real width it wrapped to three lines and pushed the title out of
+          view entirely. It is also redundant — the shell's breadcrumbs
+          above say `/ Essays / Chasing the Workaround`, and the inspector
+          has the slug itself with a Rename beside it. */}
+      <span className="cms-toolbar__title" title={`/${state.slug}`}>
         <span className="cms-toolbar__name" data-testid="toolbar-title">
           {state.doc.meta.title}
         </span>
-        <span className="cms-toolbar__slug">/{state.slug}</span>
       </span>
 
-      <span className={state.dirty ? 'cms-dirty cms-dirty--dirty' : 'cms-dirty'} data-testid="dirty">
+      <span
+        className={state.dirty ? 'cms-dirty cms-dirty--dirty' : 'cms-dirty'}
+        data-testid="dirty"
+        title={savedTitle(state)}
+      >
         <span className="cms-dirty__dot" />
-        {state.dirty ? 'Unsaved changes' : savedLabel(state)}
+        {/* The words go first when the bar is tight; the dot and the
+            tooltip carry the state on their own. */}
+        <span className="cms-dirty__text">{state.dirty ? 'Unsaved' : savedLabel(state)}</span>
       </span>
 
       <span className="cms-toolbar__spacer" />
@@ -82,7 +93,7 @@ export function Toolbar({ store, state, zoom, onZoomChange, onPreview, slots }: 
       <span className="cms-toolbar__sep" />
 
       <label className="cms-zoom">
-        Zoom
+        <span className="cms-zoom__label">Zoom</span>
         <select
           className="cms-select"
           value={zoomValue(zoom)}
@@ -203,20 +214,26 @@ function ThemeControl() {
     }
   }, [theme]);
 
+  // Shaped like the Zoom control beside it: a small label and a narrow
+  // select. The options used to read "Theme: system", which made the select
+  // 202px wide — the widest thing in the bar — and squeezed the buttons
+  // either side of it until they overlapped.
   return (
-    <select
-      className="cms-select"
-      data-testid="surface-theme"
-      value={theme}
-      title="Draw the page in light or dark. The site's own tokens, so this is what a reader sees."
-      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-        setTheme(event.target.value as SurfaceTheme)
-      }
-    >
-      <option value="system">Theme: system</option>
-      <option value="light">Theme: light</option>
-      <option value="dark">Theme: dark</option>
-    </select>
+    <label className="cms-zoom" title="Draw the page in light or dark. The site's own tokens, so this is what a reader sees.">
+      <span className="cms-zoom__label">Theme</span>
+      <select
+        className="cms-select"
+        data-testid="surface-theme"
+        value={theme}
+        onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+          setTheme(event.target.value as SurfaceTheme)
+        }
+      >
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
   );
 }
 
@@ -302,10 +319,24 @@ function zoomValue(zoom: Zoom): string {
   return zoom === 'fit' ? 'fit' : String(zoom);
 }
 
+/**
+ * Short, because this sits between the title and the controls and is the
+ * least important thing in the bar. It was "No unsaved changes" and "Draft
+ * saved 3m ago", which at a real pane width got clipped to "No unsaved
+ * char" — worse than saying less. The dot beside it already carries the
+ * state; the words only date it. The full phrasing is the `title`.
+ */
 function savedLabel(state: DocStoreState): string {
-  if (state.lastSavedAt === null) return 'No unsaved changes';
+  if (state.lastSavedAt === null) return 'Saved';
   const seconds = Math.max(0, Math.round((Date.now() - state.lastSavedAt) / 1000));
-  if (seconds < 5) return 'Draft saved just now';
-  if (seconds < 90) return `Draft saved ${seconds}s ago`;
-  return `Draft saved ${Math.round(seconds / 60)}m ago`;
+  if (seconds < 5) return 'Saved just now';
+  if (seconds < 90) return `Saved ${seconds}s ago`;
+  return `Saved ${Math.round(seconds / 60)}m ago`;
+}
+
+/** The same thing at length, for the tooltip. */
+function savedTitle(state: DocStoreState): string {
+  if (state.dirty) return 'This page has changes that are not saved yet. ⌘S saves a draft.';
+  if (state.lastSavedAt === null) return 'Nothing to save: no changes since this page was opened.';
+  return 'The draft is saved. It is not on the live site until you publish.';
 }
