@@ -163,6 +163,21 @@ async function fileOnBranch(path, branch) {
   return { sha: body.sha, text: Buffer.from(body.content, 'base64').toString('utf8') };
 }
 
+/**
+ * True when a path is NOT on the branch.
+ *
+ * Retried, because GitHub's contents read lags its writes: a file deleted a
+ * moment ago can still be reported as present for a second or so, which is
+ * the same staleness `commitFiles` already retries around.
+ */
+async function goneFromBranch(path, branch, tries = 5) {
+  for (let attempt = 0; attempt < tries; attempt += 1) {
+    if ((await fileOnBranch(path, branch)) === null) return true;
+    await sleep(500);
+  }
+  return false;
+}
+
 /* -------------------------------------------------------------------------- */
 /* A real PNG, so WS-2 parses real intrinsic dimensions                        */
 /* -------------------------------------------------------------------------- */
@@ -739,6 +754,62 @@ try {
     index.url(),
   );
   await index.close();
+
+  step('13b. rename and delete, which move published files');
+  {
+    /* Both are one commit each, and both are things the CMS could not do
+       until now: the slug was read-only and the delete button disabled,
+       each with an honest reason written on it. See server/moves.ts. */
+    const RENAMED = `${SLUG}-renamed`;
+    const renameResponse = await fetch(`${ORIGIN}/api/cms/rename/projects/${SLUG}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ to: RENAMED }),
+    });
+    const renameBody = await renameResponse.json();
+    eq('rename answers ok', renameResponse.ok && renameBody.ok === true, true);
+    eq('…with the new name', renameBody.to, RENAMED);
+
+    const movedTo = await fileOnBranch(contentPathFor(SECTION, RENAMED), branch);
+    check('the page is at the new path', movedTo !== null, contentPathFor(SECTION, RENAMED));
+    if (movedTo !== null) {
+      check(
+        'and its meta.slug moved with it, or the server would refuse the next save',
+        JSON.parse(movedTo.text).meta.slug === RENAMED,
+        JSON.parse(movedTo.text).meta.slug,
+      );
+    }
+    check('the old path is gone', await goneFromBranch(PAGE_PATH, branch));
+
+    const redirects = await fileOnBranch('src/content/data/redirects.json', branch);
+    const list = redirects === null ? [] : JSON.parse(redirects.text).redirects;
+    check(
+      'the old address redirects to the new one',
+      list.some((r) => r.from === `/projects/${SLUG}/` && r.to === `/projects/${RENAMED}/`),
+      JSON.stringify(list),
+    );
+
+    // Renaming onto a name that exists must refuse rather than overwrite.
+    const clash = await fetch(`${ORIGIN}/api/cms/rename/projects/${RENAMED}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ to: RENAMED }),
+    });
+    eq('renaming to its own name is refused', clash.ok, false);
+
+    const bad = await fetch(`${ORIGIN}/api/cms/rename/projects/${RENAMED}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ to: 'Not A Slug' }),
+    });
+    eq('a name that is not a slug is refused', bad.ok, false);
+
+    const deleteResponse = await fetch(`${ORIGIN}/api/cms/entry/projects/${RENAMED}`, {
+      method: 'DELETE',
+    });
+    eq('delete answers ok', deleteResponse.ok, true);
+    check('and the page is gone', await goneFromBranch(contentPathFor(SECTION, RENAMED), branch));
+  }
 
   step('14. the console');
   const noisy = consoleErrors.filter(

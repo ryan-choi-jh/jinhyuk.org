@@ -269,6 +269,20 @@ export type CmsClient = {
     key?: string | null,
     expect?: ShaExpectation,
   ): Promise<WriteAck & { title?: string }>;
+  /**
+   * Move a page to a new slug: the published file, its draft, and a
+   * redirect from the old address, in one commit. See server/moves.ts.
+   */
+  renameEntry(
+    section: SectionId,
+    from: string,
+    to: string,
+  ): Promise<{ commit: string; from: string; to: string; redirectFrom: string | null; siteUrl: string; cmsUrl: string }>;
+  /** Remove a page: the published file and its draft, in one commit. */
+  deleteEntryPage(
+    section: SectionId,
+    slug: string,
+  ): Promise<{ commit: string; slug: string; hadDraft: boolean; url: string | null }>;
 
   /* Record collections. One file, so no per-entry calls. */
   readRecords(section: SectionId): Promise<RecordsSnapshot>;
@@ -474,6 +488,18 @@ export function createCmsClient(options: CmsClientOptions = {}): CmsClient {
         method: 'DELETE',
         headers: concurrencyHeaders(expect),
       });
+    },
+
+    async renameEntry(section, from, to) {
+      return request(at('rename', section, from), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ to }),
+      });
+    },
+
+    async deleteEntryPage(section, slug) {
+      return request(at('entry', section, slug), { method: 'DELETE' });
     },
 
     async publishEntry(section, key, expect) {

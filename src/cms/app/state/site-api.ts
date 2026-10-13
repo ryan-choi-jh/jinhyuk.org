@@ -129,11 +129,34 @@ export interface SiteApi {
    * a reason when it does not. Reported in contractDeviations.
    */
   deleteEntry?(section: SectionId, slug: string): Promise<OkResult>;
+  /**
+   * Move a published page to a new slug, leaving a redirect at the old
+   * address. Optional for the same reason `deleteEntry` is: an API that
+   * cannot do it says so by not having it, and the UI asks rather than
+   * branching on a section name.
+   */
+  renameEntry?(section: SectionId, from: string, to: string): Promise<RenameAck>;
 }
+
+/** What a rename answers with. */
+export type RenameAck = {
+  commit: string;
+  from: string;
+  to: string;
+  /** The old public address, now redirecting. Null when there was no published page. */
+  redirectFrom: string | null;
+  siteUrl: string;
+  cmsUrl: string;
+};
 
 /** True when this API can delete a published document entry, not only a draft. */
 export function canDeleteEntry(api: SiteApi): boolean {
   return typeof api.deleteEntry === 'function';
+}
+
+/** True when this API can move a published document entry to a new slug. */
+export function canRenameEntry(api: SiteApi): boolean {
+  return typeof api.renameEntry === 'function';
 }
 
 /* -------------------------------------------------------------------------- */

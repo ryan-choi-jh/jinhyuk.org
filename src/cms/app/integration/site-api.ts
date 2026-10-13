@@ -52,7 +52,7 @@ import type {
   OkResult,
   PageDocs,
 } from '../state/api.ts';
-import type { EntrySummary, RecordDocs, SectionSummary, SiteApi } from '../state/site-api.ts';
+import type { EntrySummary, RecordDocs, RenameAck, SectionSummary, SiteApi } from '../state/site-api.ts';
 import type { Doc, RecordFile, SectionId } from '../../schema.ts';
 import { getSection, requireSection } from '../../sections.ts';
 import { createCmsClient, CmsApiError as WireError } from '../../server/client.ts';
@@ -180,6 +180,18 @@ export function createSiteApi(options: SiteApiAdapterOptions = {}): SiteApiAdapt
       draftSha: patch.draftSha === undefined ? current.draftSha : patch.draftSha,
       publishedSha: patch.publishedSha === undefined ? current.publishedSha : patch.publishedSha,
     });
+  }
+
+  /**
+   * Drop what we know about a path's blob shas.
+   *
+   * After a rename or a delete, both ends are wrong: the old file is gone
+   * and the new one is a file this session has never read. Quoting a
+   * remembered sha at either would be quoting a file that is not there, and
+   * the next write would look like somebody else's concurrent change.
+   */
+  function forget(section: SectionId, key: string | null): void {
+    shas.delete(shaKey(section, key));
   }
 
   function expectDraft(section: SectionId, key: string | null): ShaExpectation {
@@ -472,6 +484,35 @@ export function createSiteApi(options: SiteApiAdapterOptions = {}): SiteApiAdapt
         const ack = await client.publishEntry(section, slug, expectPublished(section, slug));
         note(section, slug, { publishedSha: ack.sha, draftSha: null });
         return { ok: true, commit: ack.commit };
+      });
+    },
+
+    /**
+     * Remove a published page and its draft, in one commit.
+     *
+     * Its presence is what turns the delete button on: WS-D's
+     * `canDeleteEntry` tests for this method rather than for a section name,
+     * which is why the button has been disabled with an honest reason on it
+     * rather than missing, and why it needs no change to light up.
+     */
+    deleteEntry(section: SectionId, slug: string): Promise<OkResult> {
+      return guarded(async () => {
+        const ack = await client.deleteEntryPage(section, slug);
+        // The sha bookkeeping is for a file that no longer exists.
+        forget(section, slug);
+        return { ok: true, commit: ack.commit };
+      });
+    },
+
+    /** Move a page to a new slug, leaving a redirect behind. */
+    renameEntry(section: SectionId, from: string, to: string): Promise<RenameAck> {
+      return guarded(async () => {
+        const ack = await client.renameEntry(section, from, to);
+        // Both ends: the old slug is gone, and nothing is yet known about
+        // the new one, so the next read quotes what the repository has.
+        forget(section, from);
+        forget(section, to);
+        return ack;
       });
     },
 

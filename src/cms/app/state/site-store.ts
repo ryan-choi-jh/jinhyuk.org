@@ -46,7 +46,7 @@ import { createRecordStore, recordEntryKey } from './record-store.ts';
 import type { RecordStore } from './record-store.ts';
 import { OVERVIEW, entryRoute, resolveRoute, sameRoute } from './route.ts';
 import type { CmsRoute, Navigator, ResolvedRoute } from './route.ts';
-import { canDeleteEntry, documentApiFor } from './site-api.ts';
+import { canDeleteEntry, canRenameEntry, documentApiFor } from './site-api.ts';
 import type { EntrySummary, SectionSummary, SiteApi } from './site-api.ts';
 import { createDocStore } from './store.ts';
 import type { DocStore, Notice } from './store.ts';
@@ -141,6 +141,12 @@ export type SiteStore = {
   createEntry(id: SectionId): Promise<string | null>;
   duplicateEntry(id: SectionId, key: string): Promise<string | null>;
   deleteEntry(id: SectionId, key: string): Promise<boolean>;
+  /**
+   * Move a document entry to a new slug. The old address keeps working.
+   * False when this section or this API cannot, with the reason on the
+   * status line.
+   */
+  renameEntry(id: SectionId, from: string, to: string): Promise<boolean>;
   /** Move an entry by `delta` places. Ordered (record) sections only. */
   moveEntry(id: SectionId, key: string, delta: number): boolean;
   /** Whether this section supports each operation, so a button can be disabled with a reason. */
@@ -157,6 +163,8 @@ export type SiteStore = {
 export type EntryCapabilities = {
   create: boolean;
   duplicate: boolean;
+  /** Can a published entry here be moved to a new slug? */
+  rename: boolean;
   delete: boolean;
   /** Only a section whose file order is the site order can be reordered. */
   reorder: boolean;
@@ -504,18 +512,31 @@ export function createSiteStore(options: SiteStoreOptions): SiteStore {
       return {
         create: false,
         duplicate: false,
+        // A singleton's address is its section. There is nothing to rename
+        // it to and nothing would point at the old one.
+        rename: false,
         delete: false,
         reorder: false,
         deleteReason: `${section.label} is the one ${section.noun} of its kind; it cannot be deleted.`,
       };
     }
     if (isRecordSection(section)) {
-      return { create: true, duplicate: true, delete: true, reorder: true, deleteReason: '' };
+      // A record has no page of its own to move, and its key is a field on
+      // the record the editor already edits.
+      return {
+        create: true,
+        duplicate: true,
+        rename: false,
+        delete: true,
+        reorder: true,
+        deleteReason: '',
+      };
     }
     const deletable = canDeleteEntry(api);
     return {
       create: true,
       duplicate: true,
+      rename: canRenameEntry(api),
       delete: deletable,
       // A document collection's order on the site comes from the date, not
       // from a list the author permutes.
@@ -642,6 +663,42 @@ export function createSiteStore(options: SiteStoreOptions): SiteStore {
     }
   }
 
+  /**
+   * Rename a page. The server does the whole move in one commit, including
+   * the redirect; this only has to forget what it knew and go to the new
+   * address, because the old one no longer resolves to anything.
+   */
+  async function renameEntry(id: SectionId, from: string, to: string): Promise<boolean> {
+    const section = section_(id);
+    if (isRecordSection(section)) return false;
+    const rename = api.renameEntry;
+    if (rename === undefined) return false;
+    if (from === to) return false;
+
+    set({ phase: 'working' });
+    try {
+      const ack = await rename.call(api, id, from, to);
+      // The open store is keyed to a slug that is now gone; keeping it would
+      // save the document straight back to the old path.
+      docStores.delete(id);
+      set({ phase: 'idle' });
+      await refreshEntries(id);
+      navigate({ kind: 'entry', section: id, key: to }, { force: true });
+      set({
+        notice: makeNotice(
+          'success',
+          ack.redirectFrom === null
+            ? `Renamed to “${to}”.`
+            : `Renamed to “${to}”. ${ack.redirectFrom} now redirects to the new address.`,
+        ),
+      });
+      return true;
+    } catch (error) {
+      fail(error, `Could not rename that ${section.noun}`);
+      return false;
+    }
+  }
+
   function moveEntry(id: SectionId, key: string, delta: number): boolean {
     const section = section_(id);
     if (!can(id).reorder || !isRecordSection(section)) return false;
@@ -704,6 +761,7 @@ export function createSiteStore(options: SiteStoreOptions): SiteStore {
     createEntry,
     duplicateEntry,
     deleteEntry,
+    renameEntry,
     moveEntry,
     can,
 

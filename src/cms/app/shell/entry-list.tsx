@@ -2,8 +2,8 @@
  * src/cms/app/shell/entry-list.tsx
  *
  * WS-D. One section's entries: title, date, draft badge, and a thumbnail for
- * the sections that have one. Create, duplicate, delete, and reorder where the
- * section is ordered.
+ * the sections that have one. Create, duplicate, rename, delete, and reorder
+ * where the section is ordered.
  *
  * Which of those four a section gets is `store.can(section)`, not a comparison
  * against a section name:
@@ -14,9 +14,10 @@
  *    its one JSON file *is* the order on the site, and delete there is a local,
  *    undoable edit;
  *  - a document collection cannot be reordered, because the site orders those
- *    by date, and delete there needs an endpoint the API table does not have
- *    (docs/cms-contracts.md 11) — so the button is disabled and says why
- *    rather than silently missing.
+ *    by date. Delete and rename there needed endpoints the API table did not
+ *    have; they exist now (src/cms/server/moves.ts), and because `can()` asks
+ *    the API whether it has the method rather than branching on a section
+ *    name, both buttons lit up on their own when it gained them.
  */
 
 import { isRecordSection } from '../../sections.ts';
@@ -46,6 +47,15 @@ function wantsThumb(section: SectionDef): boolean {
 function ask(message: string): boolean {
   if (typeof window === 'undefined' || typeof window.confirm !== 'function') return true;
   return window.confirm(message);
+}
+
+/** A one-line answer, trimmed, or null when there isn't one. */
+function askFor(message: string, current: string): string | null {
+  if (typeof window === 'undefined' || typeof window.prompt !== 'function') return null;
+  const answer = window.prompt(message, current);
+  if (answer === null) return null;
+  const trimmed = answer.trim();
+  return trimmed === '' ? null : trimmed;
 }
 
 export function EntryList({
@@ -174,6 +184,27 @@ export function EntryList({
                   onClick={() => void store.duplicateEntry(section.id, entry.key)}
                 >
                   ⧉
+                </button>
+              )}
+              {can.rename && (
+                <button
+                  type="button"
+                  className="cms-btn cms-btn--quiet cms-btn--micro"
+                  data-testid={`entry-rename-${entry.key}`}
+                  aria-label={`Rename “${entry.title}”`}
+                  title={`Rename this ${noun}. The old address keeps working.`}
+                  onClick={() => {
+                    const to = askFor(
+                      `New name for “${entry.title}”.\n\n` +
+                        'Lowercase words joined by hyphens. It becomes the last part of the ' +
+                        `address, and ${entry.key} will redirect to it.`,
+                      entry.key,
+                    );
+                    if (to === null || to === entry.key) return;
+                    void store.renameEntry(section.id, entry.key, to);
+                  }}
+                >
+                  ✎
                 </button>
               )}
               <button

@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import redirectsFile from './src/content/data/redirects.json' with { type: 'json' };
 import react from '@astrojs/react';
 import vercel from '@astrojs/vercel';
 
@@ -34,6 +35,19 @@ const EDITOR_ORIGIN = 'https://jinhyuk-editor.vercel.app';
 // https://astro.build/config
 export default defineConfig({
   site: isEditor ? EDITOR_ORIGIN : 'https://jinhyuk.org',
+  /* Old addresses, kept alive.
+   *
+   * Renaming a page in the CMS appends to src/content/data/redirects.json
+   * (src/cms/server/moves.ts) in the same commit that moves the file, and
+   * Astro turns each entry into a real redirect at the old URL. The URL is
+   * the one part of a page other people hold a copy of; renaming without
+   * this turns every link anyone has shared into a silent 404.
+   *
+   * Shaped `{ "/old/": "/new/" }` for Astro out of the list the CMS writes,
+   * which is a list so its order is stable in a diff. */
+  redirects: Object.fromEntries(
+    (redirectsFile.redirects ?? []).map((entry) => [entry.from, entry.to]),
+  ),
   output: isEditor ? 'server' : 'static',
   ...(isEditor ? { adapter: vercel() } : {}),
   integrations: [
@@ -99,6 +113,10 @@ export default defineConfig({
                 injectRoute({
                   pattern: '/api/cms/entry/[section]',
                   entrypoint: './src/cms/server/routes/entry.ts',
+                });
+                injectRoute({
+                  pattern: '/api/cms/rename/[section]/[slug]',
+                  entrypoint: './src/cms/server/routes/rename.ts',
                 });
                 injectRoute({
                   pattern: '/api/cms/entry/[section]/[slug]',

@@ -36,6 +36,7 @@ import {
   readRecords,
   writeRecordsDraft,
 } from './records.ts';
+import { deleteEntry, renameEntry } from './moves.ts';
 import {
   discardSiteChromeDraft,
   publishSiteChrome,
@@ -239,6 +240,60 @@ export async function postPublish(
     title: result.doc.meta.title,
     siteUrl: siteUrlFor(section, key) ?? section.indexUrl,
   });
+}
+
+/**
+ * POST /api/cms/rename/:section/:slug   body: { to }
+ *
+ * The published page and its draft move together, and the old public
+ * address starts redirecting, all in one commit. See `moves.ts` for why
+ * that is one commit and why media stays where it is.
+ */
+export async function postRename(
+  cookies: CookieJar,
+  request: Request,
+  params: RouteParams,
+): Promise<Response> {
+  const section = asDocumentSection(requireSectionParam(params.section));
+  const from = requireDocumentKey(section, params.slug);
+  if (from === null) {
+    throw badRequest(`"${section.id}" is one page and has no slug to change.`, 'wrong_storage');
+  }
+  const body = await jsonBody(request);
+  const to = (body as { to?: unknown }).to;
+  if (typeof to !== 'string' || to === '') {
+    throw badRequest('Send the new name as { "to": "a-new-name" }.', 'bad_slug');
+  }
+  const result = await renameEntry(await ctxFrom(cookies), section, from, to.trim());
+  return ok({
+    section: section.id,
+    ...result,
+    siteUrl: siteUrlFor(section, result.to) ?? section.indexUrl,
+    cmsUrl: `${section.cmsUrl}/${result.to}`,
+  });
+}
+
+/**
+ * DELETE /api/cms/entry/:section/:slug
+ *
+ * The published page and its draft, gone, in one commit. No redirect: there
+ * is nowhere to send anyone, and a redirect to the index would be a lie
+ * about what happened.
+ */
+export async function deleteEntryPage(
+  cookies: CookieJar,
+  params: RouteParams,
+): Promise<Response> {
+  const section = asDocumentSection(requireSectionParam(params.section));
+  const slug = requireDocumentKey(section, params.slug);
+  if (slug === null) {
+    throw badRequest(
+      `"${section.id}" is the one page of its section and cannot be deleted.`,
+      'wrong_storage',
+    );
+  }
+  const result = await deleteEntry(await ctxFrom(cookies), section, slug);
+  return ok({ section: section.id, ...result });
 }
 
 /* -------------------------------------------------------------------------- */

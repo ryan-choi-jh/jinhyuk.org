@@ -152,8 +152,10 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
           <input className="cms-input" value={meta.slug} readOnly data-testid="meta-slug" />
         </Field>
         <div className="cms-hint">
-          The slug is the file name under <code>src/content/</code>. Renaming a page is a move, not an
-          edit, so it is not done here.
+          The slug is the file name under <code>src/content/</code>, and the last part of the
+          address. Renaming is a move rather than an edit, so it happens in the entry list on the
+          left (the ✎ beside this page) and takes effect in one commit, leaving the old address
+          redirecting.
         </div>
         <DateField label="Date" testId="meta-date" value={meta.date} onChange={(date) => store.updateMeta({ date })} />
         <TextField
