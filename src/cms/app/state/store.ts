@@ -74,6 +74,14 @@ export type DocStoreState = {
   issues: ValidationIssue[];
   lastSavedAt: number | null;
   lastCommit: string | null;
+  /**
+   * The last PUBLISH, as distinct from the last commit: saving a draft commits
+   * too, and only a publish starts a deploy. Carries the commit so the editor
+   * can ask whether it has reached the live site, and the time so a watcher
+   * knows how long it has been waiting. Null until something is published in
+   * this session.
+   */
+  lastPublish: { commit: string; at: number } | null;
   auth: AuthStatus | null;
 };
 
@@ -188,6 +196,7 @@ export function createDocStore(options: DocStoreOptions): DocStore {
     issues: [],
     lastSavedAt: null,
     lastCommit: null,
+    lastPublish: null,
     auth: null,
   };
 
@@ -334,6 +343,12 @@ export function createDocStore(options: DocStoreOptions): DocStore {
         hasDraft: false,
         dirty: computeDirty(state.doc),
         lastCommit: result.commit,
+        lastPublish: { commit: result.commit, at: Date.now() },
+        // The notice stays. It says the commit landed, which is this layer's
+        // whole business and all a host without the deploy chip can know; the
+        // chip answers the different question of whether the site is serving
+        // it yet. A shell mounted without that slot still tells the author
+        // their publish went through.
         notice: makeNotice('success', 'Published.', false),
       });
       return true;

@@ -76,6 +76,36 @@ async function gh<T>(token: string, path: string, options: RequestOptions): Prom
   return (await response.json()) as T;
 }
 
+/**
+ * A read of something public, with no token.
+ *
+ * Used for the deploy status (workflow runs, commit comparison). The repo is
+ * public, so these need no authentication, and not sending the author's token
+ * means a deploy poll cannot spend their rate limit or fail because a session
+ * expired while they watched a build. Anonymous requests are limited to 60 an
+ * hour per IP; a poll every few seconds for the couple of minutes a deploy
+ * takes sits inside that, and a failure here degrades to "cannot tell" rather
+ * than breaking the editor.
+ *
+ * Returns null on any non-OK response instead of throwing, for the same
+ * reason: nothing here is worth interrupting an editing session over.
+ */
+export async function ghPublic<T>(path: string): Promise<T | null> {
+  try {
+    const response = await fetch(`${API}${path}`, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'jinhyuk.org-cms',
+      },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Identity                                                                    */
 /* -------------------------------------------------------------------------- */

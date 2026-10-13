@@ -167,6 +167,55 @@ export const INTEGRATION_CSS = `
 .ws8-who a { color: var(--cms-accent, #ff5722); }
 .ws8-pages { max-width: 190px; }
 
+/* ---------------------------------------------------------------------------
+   SEAM 6: the deploy chip.
+   Publishing commits; the site appears a minute later, when Actions has built
+   it and Pages is serving it. The chip is what fills that minute, so it sits
+   with the other status chips and reads the same way, with the tone carrying
+   the state rather than a different shape for each one.
+--------------------------------------------------------------------------- */
+.ws8-deploy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cms-muted, #8c8c8c);
+  font-size: 11px;
+  white-space: nowrap;
+  /* The clock inside counts seconds, and proportional digits make the whole
+     chip twitch as it does. */
+  font-variant-numeric: tabular-nums;
+}
+.ws8-deploy a {
+  color: inherit;
+  text-decoration: none;
+}
+.ws8-deploy a:hover { text-decoration: underline; }
+.ws8-deploy__dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5a5a5a;
+}
+.ws8-deploy[data-tone='wait'] .ws8-deploy__dot {
+  background: #b58b2f;
+  /* A slow pulse, so a chip that is waiting looks like it is still watching
+     rather than stuck. */
+  animation: ws8-deploy-pulse 1.6s ease-in-out infinite;
+}
+.ws8-deploy[data-tone='good'] { color: #6f9a6f; }
+.ws8-deploy[data-tone='good'] .ws8-deploy__dot { background: #4f7a4f; }
+.ws8-deploy[data-tone='bad'] { color: #c08076; }
+.ws8-deploy[data-tone='bad'] .ws8-deploy__dot { background: #8a4a3f; }
+
+@keyframes ws8-deploy-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws8-deploy[data-tone='wait'] .ws8-deploy__dot { animation: none; }
+}
+
 `;
 
 /**

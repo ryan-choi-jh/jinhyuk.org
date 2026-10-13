@@ -72,6 +72,11 @@ const cases = [
   ['DELETE', '/api/cms/site', 401, 'discard that draft'],
   ['POST', '/api/cms/site/publish', 401, 'publish the nav and the footer'],
 
+  // Has a publish reached the live site? Signed in, like everything else, so
+  // the unauthenticated answer is 401 and not the deploy status of whatever
+  // commit a stranger asks about.
+  ['GET', '/api/cms/deploy?commit=abc1234', 401, 'deploy status'],
+
   // Phase 1, which must keep working (docs/cms-contracts.md 11, last paragraph).
   ['GET', '/api/cms/pages', 401, 'phase 1 list'],
   ['GET', '/api/cms/page/track-daily-habit-tracker', 401, 'phase 1 read'],

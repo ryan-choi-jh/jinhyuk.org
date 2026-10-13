@@ -208,6 +208,22 @@ export class CmsApiError extends Error {
  */
 export type ShaExpectation = string | null | undefined;
 
+/** What /api/cms/deploy answers with. Mirrors DeployStatus in server/deploy.ts. */
+export type DeploySnapshot = {
+  state: 'queued' | 'building' | 'live' | 'built' | 'failed' | 'superseded' | 'unknown';
+  commit: string;
+  liveRev: string | null;
+  run: {
+    name: string;
+    status: string;
+    conclusion: string | null;
+    url: string;
+    startedAt: string | null;
+  } | null;
+  elapsedMs: number | null;
+  note?: string;
+};
+
 export type CmsClientOptions = {
   /** Defaults to the current origin. Set it to point a local editor at a deployment. */
   baseUrl?: string;
@@ -230,6 +246,8 @@ export type CmsClient = {
   deleteDraft(slug: string, expect?: ShaExpectation): Promise<{ commit: string }>;
   publish(slug: string, expect?: ShaExpectation): Promise<WriteAck & { title: string }>;
   uploadMedia(slug: string, file: Blob, filename?: string): Promise<MediaUpload>;
+  /** Has a published commit reached the live site? Polled after a publish. */
+  deployStatus(commit: string): Promise<DeploySnapshot>;
 
   /* Phase 2. `key` is omitted for a singleton section (home). */
   listSections(): Promise<SectionListEntry[]>;
@@ -404,6 +422,17 @@ export function createCmsClient(options: CmsClientOptions = {}): CmsClient {
         method: 'POST',
         headers: concurrencyHeaders(expect),
       });
+    },
+
+    async deployStatus(commit) {
+      // The nonce goes all the way through to the fetch of the live site, so
+      // each poll is a cache miss at the Pages CDN rather than a ten-minute
+      // old answer. Sent from here because this is the only layer that knows
+      // a poll has happened.
+      const nonce = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      return request<DeploySnapshot>(
+        `/deploy?commit=${encodeURIComponent(commit)}&nonce=${encodeURIComponent(nonce)}`,
+      );
     },
 
     async uploadMedia(slug, file, filename) {

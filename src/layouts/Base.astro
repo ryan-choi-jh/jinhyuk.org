@@ -27,6 +27,18 @@ const siteName = wordmark.label;
 // and truncates from the right, so the name is the part that survives.
 const fullTitle = title ? `${siteName} (${title})` : siteName;
 
+/**
+ * The commit this build came from, stamped into every page so the CMS can tell
+ * whether a publish has actually reached the live site.
+ *
+ * GITHUB_SHA is set for every GitHub Actions run, and the Pages workflow is
+ * what builds this site, so it is there in production and absent in a local
+ * build. Absent means no meta: a dev build should not claim to be a revision
+ * of anything, and the CMS reads "no marker" as "cannot tell" rather than
+ * "not live yet".
+ */
+const buildRev = typeof process === 'undefined' ? '' : (process.env.GITHUB_SHA ?? '');
+
 const year = new Date().getFullYear();
 // Stored as "© {year} Ryan Choi"; the year is filled in at build time, so it
 // cannot freeze on whatever year the line was typed in.
@@ -49,6 +61,7 @@ const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.
     <title>{fullTitle}</title>
     {description && <meta name="description" content={description} />}
     <meta name="color-scheme" content="light dark" />
+    {buildRev && <meta name="build-rev" content={buildRev} />}
 
     <!-- Resolve the theme before first paint so there's no flash of the
          wrong one. A visitor's own saved choice always wins; failing that,

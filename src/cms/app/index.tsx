@@ -64,6 +64,7 @@ import { createRoot } from 'react-dom/client';
 import { REFERENCE_WIDTH, shapeSpecFromItem } from '../schema.ts';
 import type { CanvasBand, CanvasItem, Doc, ProseBlock, SectionId, SiteChrome } from '../schema.ts';
 import type { RecordSectionDef } from '../sections.ts';
+import { requireSection, siteUrlFor } from '../sections.ts';
 import { generateShape } from '../assets/shapes.ts';
 import AssetPicker from '../assets/AssetPicker.tsx';
 // The guide and the component library were built outside the section
@@ -131,6 +132,7 @@ import {
 } from './integration/media.ts';
 import type { Point } from './integration/media.ts';
 import { useIntegrationStyles } from './integration/styles.ts';
+import { DeployChip } from './integration/deploy-chip.tsx';
 
 /* -------------------------------------------------------------------------- */
 /* Props: what the route hands over                                            */
@@ -897,6 +899,21 @@ function InsertPanel({ store, state, resolved }: InspectorSlotProps) {
 
 const renderToolbarExtra = (props: ToolbarSlotProps): ReactNode => <ToolbarExtras {...props} />;
 
+/**
+ * Where the entry being edited lives on the published site, for the deploy
+ * chip to link to once it is actually there. Null when the section is unknown
+ * or has no public page, in which case the chip links to the build instead.
+ */
+function livePageUrl(state: ToolbarSlotProps['state']): string | null {
+  const id = state.doc.meta.section;
+  if (id === undefined) return null;
+  try {
+    return siteUrlFor(requireSection(id), state.slug);
+  } catch {
+    return null;
+  }
+}
+
 function ToolbarExtras(props: ToolbarSlotProps) {
   const { legacy } = useIntegration();
   const guide = useGuide();
@@ -964,6 +981,7 @@ function LegacyToolbarExtras({
 
   return (
     <span className="ws8-toolbar" data-testid="toolbar-extra">
+      <DeployChip client={api.client} publish={state.lastPublish} siteUrl={livePageUrl(state)} />
       <span
         className={!authKnown || signedIn ? 'ws8-who' : 'ws8-who ws8-who--out'}
         data-testid="auth-chip"
@@ -1376,6 +1394,7 @@ function SiteToolbarExtras({ state }: ToolbarSlotProps) {
 
   return (
     <span className="ws8-toolbar" data-testid="toolbar-extra">
+      <DeployChip client={api.client} publish={state.lastPublish} siteUrl={livePageUrl(state)} />
       {signedOut && (
         <span className="ws8-who ws8-who--out" data-testid="auth-chip" data-signed-in="false">
           <span className="ws8-who__dot" />

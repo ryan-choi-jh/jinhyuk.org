@@ -153,6 +153,10 @@ export default defineConfig({
                   pattern: '/api/cms/site/publish',
                   entrypoint: './src/cms/server/routes/site-publish.ts',
                 });
+                injectRoute({
+                  pattern: '/api/cms/deploy',
+                  entrypoint: './src/cms/server/routes/deploy.ts',
+                });
 
                 injectRoute({
                   pattern: '/api/cms/auth/status',
