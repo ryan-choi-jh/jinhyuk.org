@@ -345,7 +345,10 @@ export function createDocStore(options: DocStoreOptions): DocStore {
         hasDraft: false,
         dirty: computeDirty(state.doc),
         lastCommit: result.commit,
-        lastPublish: { commit: result.commit, at: Date.now() },
+        // `now()`, like every other timestamp in this file. The clock is
+        // injectable so history coalescing is deterministic under test, and
+        // this one line was reaching past it to the wall clock.
+        lastPublish: { commit: result.commit, at: now() },
         // The notice stays. It says the commit landed, which is this layer's
         // whole business and all a host without the deploy chip can know; the
         // chip answers the different question of whether the site is serving

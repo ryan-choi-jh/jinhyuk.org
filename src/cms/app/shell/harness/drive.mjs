@@ -700,18 +700,17 @@ async function run(page) {
     // Non-destructive on purpose: this runs in the middle of the harness, and
     // a section that deletes the fixture's items leaves every later check
     // testing a different document. Two edits, two undos, back where it was.
-    // `bottom` has to agree with `canvasContentHeight`: a caption hangs below
-    // its item's box and the fit reserves room for it, so a captioned item
-    // pushes the floor 31px further down than its geometry alone would.
+    // `bottom` IS `canvasContentHeight`, reached through the harness seam,
+    // so the two cannot disagree about captions, padding or rotation.
     const read = () => page.evaluate(`(() => {
       const band = window.__ws3.store.getState().doc.bands.find((b) => b.type === 'canvas');
-      const bottom = Math.max(
-        ...band.items.map((i) => i.y + i.h + (i.caption !== undefined && i.caption !== '' ? 31 : 0)),
-      );
       return {
         id: band.id,
         height: band.height,
-        bottom: Math.ceil(bottom + (band.padBottom ?? 0)),
+        // The REAL fit, through the seam, not a copy of its formula here.
+        // A copy drifted once already: it did not know that a rotated item
+        // reaches past its own box, and reported a correct band as 8px wrong.
+        bottom: window.__ws3.fitHeight(band.id),
         items: band.items.length,
       };
     })()`);

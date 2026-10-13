@@ -49,7 +49,6 @@ export {
   bandReservedHeight,
   blockPlainText,
   cloneDoc,
-  convertProseContent,
   createCanvasBand,
   createProseBand,
   createProseBlock,
@@ -59,6 +58,7 @@ export {
   findBand,
   mergeProseBlockUp,
   normalizeDoc,
+  replaceProseBlockWith,
   sanitizeShapeKeys,
   splitProseBlock,
 } from './doc-ops.ts';

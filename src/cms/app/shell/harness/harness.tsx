@@ -20,7 +20,7 @@ import { createRoot } from 'react-dom/client';
 
 import { formatIssues, validateDoc, validateDocJson } from '../../../schema.ts';
 import type { Doc } from '../../../schema.ts';
-import { docsEqual } from '../../state/doc-ops.ts';
+import { canvasContentHeight, docsEqual } from '../../state/doc-ops.ts';
 import { createDocStore } from '../../state/store.ts';
 import { createStubApi } from '../../state/stub-api.ts';
 import { EditorShell } from '../editor-shell.tsx';
@@ -121,6 +121,20 @@ const seam = {
   /** JSON of the current document, for exact before/after comparison. */
   docJson(): string {
     return JSON.stringify(store.getState().doc);
+  },
+  /**
+   * What the fit would make a canvas band's height, from the REAL function.
+   *
+   * drive.mjs used to restate the formula — the lowest `y + h`, plus 31 for a
+   * caption — and a copy of a formula drifts. It did: once the fit started
+   * accounting for rotation (a turned item's box is taller than its geometry,
+   * which is why doc.css clips the document's x overflow on a phone), the
+   * copy was 8px short and the harness reported a correct band as wrong.
+   */
+  fitHeight(bandId: string): number | null {
+    const band = store.getState().doc.bands.find((candidate) => candidate.id === bandId);
+    if (band === undefined || band.type !== 'canvas') return null;
+    return canvasContentHeight(band);
   },
 };
 

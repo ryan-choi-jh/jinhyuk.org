@@ -21,6 +21,9 @@
  */
 
 import { newId } from '../../schema.ts';
+// The one kind converter. It is pure data (schema and palette only, no TipTap
+// and no React), so this file still runs under bare `node`.
+import { convertBlockKind } from '../prose/block.ts';
 import type {
   Band,
   CanvasBand,
@@ -242,19 +245,52 @@ export const CAPTION_SPACE = 31;
  * published page without anyone asking. So this is what the Fit button
  * offers, and the number is shown before you press it.
  */
+/** Away with float noise, well below anything a pixel can show. */
+function round(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
+}
+
+/**
+ * How far down the page an item actually reaches.
+ *
+ * Not `y + h`, which is only true of an upright item. A rotated one turns
+ * about the middle of its box (`transform-origin: center center` in doc.css),
+ * so its real extent is the rotated bounding box: a 400 by 100 picture turned
+ * 90 degrees occupies 400px of vertical space, not 100. Fit used to measure
+ * the un-rotated box and crop it.
+ */
+function itemBottom(item: CanvasItem): number {
+  const turn = item.rotate ?? 0;
+  if (turn === 0) return item.y + item.h;
+  const radians = (turn * Math.PI) / 180;
+  const spans = Math.abs(item.w * Math.sin(radians)) + Math.abs(item.h * Math.cos(radians));
+  // The box turns about its own centre, so half of the rotated span sits
+  // either side of it.
+  //
+  // Rounded, because the caller takes a ceiling of this and sin/cos do not
+  // return exact zeros: at 180 degrees `Math.sin(Math.PI)` is 1.22e-16, which
+  // turns a height of exactly 200 into 200.00000000000003 and then into 201.
+  // Six decimals is far finer than a pixel and coarse enough to swallow that.
+  return round(item.y + item.h / 2 + spans / 2);
+}
+
 export function canvasContentHeight(band: CanvasBand): number | null {
   if (band.items.length === 0) return null;
-  let bottom = 0;
+  let bottom = -Infinity;
   for (const item of band.items) {
     // A caption hangs BELOW the item's box — 10px of margin and a 21px line
     // in doc.css — so an item that has one needs that much more room or the
     // words land on whatever follows the band. One line's worth; a longer
     // caption is what `padBottom` is for.
     const caption = item.caption !== undefined && item.caption !== '' ? CAPTION_SPACE : 0;
-    bottom = Math.max(bottom, item.y + item.h + caption);
+    bottom = Math.max(bottom, itemBottom(item) + caption);
   }
-  if (bottom <= 0) return null;
-  return Math.ceil(bottom + (band.padBottom ?? 0));
+  // An empty band has no content to fit, and is handled above. A band whose
+  // items have all been dragged above its own top has content; it is just all
+  // in negative space. Reporting null there made Fit look broken. One pixel
+  // is the smallest height a band can have and still be a band.
+  const fitted = Math.ceil(bottom + (band.padBottom ?? 0));
+  return Math.max(1, fitted);
 }
 
 /**
@@ -442,7 +478,18 @@ export function setBlockKind(doc: Doc, bandId: string, blockId: string, kind: Pr
     const current = band.blocks[index] as ProseBlock;
     if (current.kind === kind) return band;
     const blocks = [...band.blocks];
-    blocks[index] = { ...current, kind, content: convertProseContent(current.kind, kind, current.content) };
+    // WS-5's converter, not a second one of our own. There used to be two
+    // implementations of "change a block's kind" — this file's for the
+    // outline and the inspector, `block.ts`'s for the floating toolbar — and
+    // they disagreed: given a run carrying a mark the contract forbids (an
+    // `underline` from a paste), the toolbar stripped it and this path wrote
+    // it into the document. One user-visible action, one converter.
+    const converted = convertBlockKind(current, kind);
+    // `tone` only means something on a callout, and the schema now says so.
+    // Recolouring a callout and then making it a paragraph used to leave the
+    // colour behind in the file.
+    if (converted.tone !== undefined && kind !== 'callout') delete converted.tone;
+    blocks[index] = converted;
     return { ...band, blocks };
   });
 }
@@ -522,6 +569,34 @@ export function splitProseBlock(
 }
 
 /**
+ * One block becomes several, in document order, in one edit.
+ *
+ * The general case `splitProseBlock` is the two-block special case of.
+ * Breaking a list open at an empty bullet needs three: the items above, a
+ * paragraph, the items below. Doing that as three edits would be three undo
+ * steps and would pass through states the schema would reject (a list block
+ * with no items).
+ *
+ * An empty `blocks` removes the block, which is what "split a one-item list
+ * at its only item" would mean; callers that do not want that check first.
+ */
+export function replaceProseBlockWith(
+  doc: Doc,
+  bandId: string,
+  blockId: string,
+  blocks: ProseBlock[],
+): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const index = band.blocks.findIndex((block) => block.id === blockId);
+    if (index < 0) return band;
+    const next = [...band.blocks];
+    next.splice(index, 1, ...blocks);
+    return { ...band, blocks: next };
+  });
+}
+
+/**
  * The inverse: put `content` into the block before `blockId` and delete
  * `blockId`. The caller joins the text (it also needs the join offset, to put
  * the caret on the seam), so this only moves blocks around.
@@ -572,81 +647,29 @@ export function moveProseBlock(doc: Doc, bandId: string, blockId: string, toInde
 /* Prose content conversion                                                    */
 /* -------------------------------------------------------------------------- */
 
-type TipTapNode = { type?: string; content?: unknown[]; text?: string; marks?: unknown[] };
-
 /**
- * `ProseBlock.content` has a different shape per kind (docs/cms-contracts.md
- * 2.3): inline nodes for p/h2/h3, paragraph nodes for quote, listItem nodes
- * for ul/ol. Switching kind in the inspector therefore has to reshape the
- * content, or WS-1 renders a paragraph where it expected a list item.
+ * There is no converter here any more.
  *
- * Lossy on purpose, and only in one direction: several lines collapsing into
- * one paragraph are joined with a space. Marks are preserved untouched. WS-5
- * owns prose editing; this exists so the shell's kind switcher cannot write a
- * shape WS-1 does not expect.
+ * `ProseBlock.content` has a different shape per kind (docs/cms-contracts.md
+ * 2.3): inline nodes for p/h2/h3/callout, paragraph nodes for a quote,
+ * listItem nodes for a list. So switching kind has to reshape the content,
+ * and this file used to do that itself, for the outline and the inspector,
+ * while WS-5's floating toolbar used `convertBlockKind` in
+ * `../prose/block.ts`.
+ *
+ * Two implementations of one user-visible action, and they disagreed. Given a
+ * run carrying a mark the contract forbids — an `underline` that a paste can
+ * produce — the toolbar stripped it and this one wrote it into the document.
+ * Invisible, because the renderer ignores unknown marks and the next edit in
+ * TipTap normalises it away, and still exactly the kind of content the
+ * normalisation discipline exists to prevent.
+ *
+ * `setBlockKind` above now calls `convertBlockKind`. That function is pure
+ * data too — it imports the schema and the palette, no TipTap and no React —
+ * so there is no cycle and nothing was given up by deleting this one.
  */
-export function convertProseContent(
-  from: ProseBlockKind,
-  to: ProseBlockKind,
-  content: unknown[],
-): unknown[] {
-  if (shapeGroup(from) === shapeGroup(to)) return content;
-  const lines = extractLines(from, content);
-  return wrapLines(to, lines);
-}
 
-type ShapeGroup = 'inline' | 'paragraphs' | 'listItems';
-
-function shapeGroup(kind: ProseBlockKind): ShapeGroup {
-  if (kind === 'quote') return 'paragraphs';
-  if (kind === 'ul' || kind === 'ol') return 'listItems';
-  return 'inline';
-}
-
-/** Pull the inline runs out of any content shape, one array per logical line. */
-function extractLines(from: ProseBlockKind, content: unknown[]): unknown[][] {
-  const group = shapeGroup(from);
-  if (group === 'inline') return content.length > 0 ? [content] : [];
-
-  const lines: unknown[][] = [];
-  const visit = (nodes: unknown[]): void => {
-    for (const raw of nodes) {
-      const node = raw as TipTapNode;
-      if (node === null || typeof node !== 'object') continue;
-      if (node.type === 'paragraph') {
-        lines.push(Array.isArray(node.content) ? node.content : []);
-        continue;
-      }
-      if (Array.isArray(node.content)) {
-        visit(node.content);
-        continue;
-      }
-      // A bare inline node where a block was expected: treat it as its own line.
-      lines.push([node]);
-    }
-  };
-  visit(content);
-  return lines.filter((line) => line.length > 0);
-}
-
-function wrapLines(to: ProseBlockKind, lines: unknown[][]): unknown[] {
-  const group = shapeGroup(to);
-  if (group === 'inline') {
-    const flat: unknown[] = [];
-    lines.forEach((line, index) => {
-      if (index > 0) flat.push({ type: 'text', text: ' ' });
-      flat.push(...line);
-    });
-    return flat;
-  }
-  if (group === 'paragraphs') {
-    return lines.map((line) => ({ type: 'paragraph', content: line }));
-  }
-  return lines.map((line) => ({
-    type: 'listItem',
-    content: [{ type: 'paragraph', content: line }],
-  }));
-}
+type TipTapNode = { type?: string; content?: unknown[]; text?: string; marks?: unknown[] };
 
 /**
  * Plain text of a block, for outline rows and inspector previews. Not a
@@ -681,6 +704,11 @@ export function updateMeta(doc: Doc, patch: Partial<DocMeta>): Doc {
   for (const key of OPTIONAL) {
     if (meta[key] === '' || meta[key] === undefined) meta = omit(meta, key);
   }
+  // A label for a link that is not there is not a label. Clearing the URL used
+  // to leave `urlLabel` behind in the file, invisible (the renderer drops the
+  // whole row with the link) and waiting to reappear under a different URL
+  // typed months later.
+  if (meta.url === undefined) meta = omit(meta, 'urlLabel');
   if (deepEqual(meta, doc.meta)) return doc;
   return { ...doc, meta };
 }
