@@ -89,9 +89,23 @@ export function EditorShell({
     if (checkAuthOnMount) void store.refreshAuth();
   }, [store, checkAuthOnMount]);
 
-  const handlePreview = useCallback(() => {
+  /**
+   * `onPhone` asks for the preview at a phone width.
+   *
+   * It has to be the PREVIEW and cannot be the surface. The mobile rules are
+   * viewport media queries — `@media (max-width: 900px)` in doc.css and in
+   * global.css — and a viewport is a window or an iframe, not a scaled div.
+   * Narrowing the surface would change the measure and change nothing else,
+   * which is a worse lie than not offering it: the canvas would stay
+   * absolutely positioned where a phone stacks it, and the type would stay
+   * at 17.5 where a phone steps to 14. The preview renders in a real iframe
+   * and therefore gets it right.
+   */
+  const handlePreview = useCallback((width?: number) => {
     const wasDirty = state.dirty;
-    const url = previewUrl(state.slug);
+    const base = previewUrl(state.slug);
+    const url =
+      width === undefined ? base : `${base}${base.includes('?') ? '&' : '?'}w=${width}`;
     void (async () => {
       // The preview reads the draft, so an unsaved edit would simply not be in
       // it. Save first rather than show something stale.
