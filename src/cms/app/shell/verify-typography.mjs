@@ -65,9 +65,23 @@ function everyKind(section) {
   const text = (value) => [{ type: 'text', text: value }];
   const para = (value) => [{ type: 'paragraph', content: text(value) }];
   const item = (value) => ({ type: 'listItem', content: para(value) });
+  const mark = (type, value, attrs) => ({
+    type: 'text',
+    marks: [attrs === undefined ? { type } : { type, attrs }],
+    text: value,
+  });
+  const LINK = { href: 'https://example.com', target: '_blank', rel: 'noopener noreferrer' };
   return {
     version: 1,
-    meta: { title: 'Every kind', slug: 'every-kind', date: '2026-01-01', section },
+    meta: {
+      title: 'Every kind',
+      slug: 'every-kind',
+      date: '2026-01-01',
+      section,
+      url: 'https://example.com/demo',
+      urlLabel: 'Visit demo:',
+      summary: 'A standfirst, which both mastheads set in italics.',
+    },
     bands: [
       {
         id: 'b1',
@@ -80,6 +94,31 @@ function everyKind(section) {
           { id: 'k5', kind: 'callout', content: text('A callout box.') },
           { id: 'k6', kind: 'ul', content: [item('One'), item('Two')] },
           { id: 'k7', kind: 'ol', content: [item('First'), item('Second')] },
+          // Every mark, so the check is not about block kinds alone. It used
+          // to be, and it passed while bold was 600 in the editor and 400 on
+          // the page, and while a link inside a callout was underlined in the
+          // wrong grey. Both were real and both were invisible to it.
+          {
+            id: 'k8',
+            kind: 'p',
+            content: [
+              { type: 'text', text: 'plain ' },
+              mark('bold', 'bold'),
+              { type: 'text', text: ' ' },
+              mark('italic', 'italic'),
+              { type: 'text', text: ' ' },
+              mark('link', 'a link', LINK),
+              { type: 'text', text: ' ' },
+              mark('highlight', 'highlighted', { ink: 'yellow' }),
+              { type: 'text', text: ' ' },
+              mark('textStyle', 'coloured', { color: 'var(--muted, #6b6b6b)' }),
+            ],
+          },
+          {
+            id: 'k9',
+            kind: 'callout',
+            content: [mark('link', 'a guide', LINK), { type: 'text', text: ', and a note.' }],
+          },
         ],
       },
     ],
@@ -112,6 +151,26 @@ const BLOCKS = [
   ['quote', 'blockquote'],
   ['list', 'ul, ol'],
   ['callout', 'aside.doc-callout'],
+  // Marks. A block kind being right says nothing about the words inside it.
+  ['bold', 'p.doc-p strong'],
+  ['italic', 'p.doc-p em'],
+  ['a link', 'p.doc-p a'],
+  ['a highlight', 'p.doc-p mark.doc-hl'],
+  ['a coloured run', 'p.doc-p span[style]'],
+  ['a link inside a callout', 'aside.doc-callout a'],
+];
+
+/**
+ * The masthead, which is drawn by the same renderer in both places and
+ * therefore ought to match, and is not part of `.doc` so the block pass above
+ * never sees it. `--` for a section that does not draw one.
+ */
+const MASTHEAD = [
+  ['the title', 'h1'],
+  ['the date', '.post-meta, .doc-date'],
+  ['the visit row', '.project-link, .doc-visit'],
+  ['the visit label', '.project-link-label, .doc-visit-label'],
+  ['the standfirst', '.project-lead, .doc-summary'],
 ];
 
 let failures = 0;
@@ -130,6 +189,16 @@ const browser = await chromium.launch(CHROME === undefined ? {} : { executablePa
 
 for (const [section, doc] of SUBJECTS) {
   console.log(`\n${section}`);
+  // The masthead too. The page draws it above the body and the editing
+  // surface draws it inside `.cms-surface__head`, from the same function, so
+  // it belongs in the comparison; it is not part of `.doc`, so nothing else
+  // here would ever look at it.
+  const head =
+    section === 'projects'
+      ? render.renderProjectHead(doc)
+      : section === 'essays'
+        ? render.renderDocHead(doc)
+        : '';
   const body = render.renderDoc(doc);
 
   const html = `<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">
@@ -141,8 +210,10 @@ for (const [section, doc] of SUBJECTS) {
      it only has to be a box its own rules apply inside. */
   .cms-surface { position: static !important; transform: none !important; width: 760px !important; }
 </style></head><body><div class="rig">
-  <div id="page">${body}</div>
-  <div class="cms-surface cms-surface--${section}" id="editor">${body}</div>
+  <div id="page">${head}${body}</div>
+  <div class="cms-surface cms-surface--${section}" id="editor">
+    <div class="cms-surface__head">${head}</div>${body}
+  </div>
 </div></body></html>`;
 
   const server = createServer((_request, response) => {
@@ -176,7 +247,7 @@ for (const [section, doc] of SUBJECTS) {
         editor: read('editor', selector),
       }));
     },
-    { blocks: BLOCKS, properties: PROPERTIES },
+    { blocks: [...BLOCKS, ...MASTHEAD], properties: PROPERTIES },
   );
 
   for (const { name, page: onPage, editor } of compared) {

@@ -165,12 +165,21 @@
   margin-bottom: 0;
 }
 
-/* The live page has no rule for this: the UA's `bolder` against the body's
-   300 resolves to 400, so bold text is only one step heavier. Matching it
-   keeps the cutover a change of data source. 600 is the better-looking value
-   and a one-line change if that is wanted as a deliberate decision. */
+/* 600, chosen deliberately on 2026-10-13.
+
+   It was 400 for a reason that had expired. The pre-cutover page had no rule
+   here at all, so the UA's `bolder` against the body's 300 resolved to 400,
+   and matching that kept the cutover a change of data source and nothing
+   else. But at a 300 body, 400 is one step, which is very nearly no step: a
+   bolded phrase was almost indistinguishable from the sentence around it, and
+   the editor had been drawing it at 600 the whole time, so what the author
+   saw and what the reader got were different words emphasised.
+
+   Picking 600 for both is the version where bold means bold. The editor's
+   `.cms-surface strong` is the same value, and
+   src/cms/app/shell/verify-typography.mjs now checks the pair. */
 .doc strong {
-  font-weight: 400;
+  font-weight: 600;
 }
 
 /* Underlined in running prose only, the way global.css does it: a hairline
@@ -263,8 +272,16 @@
   margin-top: -16px;
 }
 
-/* A callout is usually one link, and it should look like one. */
-.doc-callout a {
+/* A callout is usually one link, and it should look like one.
+
+   The second selector is not redundant. In the editor the box sits inside
+   .cms-surface, whose own link rule underlines in --rule, and the two
+   selectors have the same specificity, so whichever stylesheet is appended
+   to <head> last wins. That was SHELL_CSS, which drew the underline in the
+   wrong grey: 228 against the page's 216. Measured, not noticed. Naming
+   the surface here settles it in the file that owns the callout. */
+.doc-callout a,
+.cms-surface .doc-callout a {
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -272,7 +289,8 @@
   text-decoration-color: var(--callout-grey-edge);
 }
 
-.doc-callout a:hover {
+.doc-callout a:hover,
+.cms-surface .doc-callout a:hover {
   text-decoration-color: var(--accent, #ff5722);
 }
 
