@@ -7,7 +7,10 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "cms:verify": "node src/cms/fixtures/verify.ts"
+    "cms:verify": "node src/cms/fixtures/verify.ts",
+    "cms:check": "node src/cms/check.mjs offline",
+    "cms:check:browser": "node src/cms/check.mjs browser",
+    "cms:check:e2e": "node src/cms/check.mjs e2e"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",
