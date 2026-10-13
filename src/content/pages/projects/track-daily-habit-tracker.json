@@ -14,6 +14,26 @@
       "type": "prose",
       "blocks": [
         {
+          "id": "b1callout",
+          "kind": "callout",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://app.notion.com/p/Track-a-quick-guide-to-your-habit-tracker-366c461b42038147bd39dd024ecf766b?source=copy_link",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "Step-by-step guide for Track"
+            }
+          ]
+        },
+        {
           "id": "b1p1",
           "kind": "p",
           "content": [
