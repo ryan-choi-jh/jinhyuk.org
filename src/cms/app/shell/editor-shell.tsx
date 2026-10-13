@@ -28,6 +28,7 @@ import type { EditorShellSlots } from './slots.ts';
 import { useShellStyles } from './styles.ts';
 import { Toolbar } from './toolbar.tsx';
 import { useShortcuts } from './use-shortcuts.ts';
+import { useLocalDraft } from './use-local-draft.ts';
 import { useUnsavedChangesGuard } from './use-unsaved-changes.ts';
 
 export type PreviewContext = {
@@ -85,6 +86,10 @@ export function EditorShell({
   useShortcuts(store, keyboardShortcuts);
   useUnsavedChangesGuard(state.dirty, guardUnsavedChanges);
 
+  /* A crash copy in this browser, offered back once. The guard above warns
+     on the way out, which cannot help if the process dies. */
+  const localDraft = useLocalDraft(store, guardUnsavedChanges);
+
   useEffect(() => {
     if (checkAuthOnMount) void store.refreshAuth();
   }, [store, checkAuthOnMount]);
@@ -130,6 +135,33 @@ export function EditorShell({
           onPreview={handlePreview}
           slots={slots}
         />
+
+        {localDraft.found !== null && (
+          <div className="cms-recovered" data-testid="local-draft" role="status">
+            <span>
+              This browser has unsaved changes to this page from{' '}
+              <strong>{localDraft.age}</strong>. They were never sent anywhere.
+            </span>
+            <span className="cms-recovered__actions">
+              <button
+                type="button"
+                className="cms-btn cms-btn--primary cms-btn--tiny"
+                data-testid="local-draft-restore"
+                onClick={localDraft.restore}
+              >
+                Restore them
+              </button>
+              <button
+                type="button"
+                className="cms-btn cms-btn--tiny"
+                data-testid="local-draft-dismiss"
+                onClick={localDraft.dismiss}
+              >
+                Discard
+              </button>
+            </span>
+          </div>
+        )}
 
         <div className="cms-panes">
           <section className="cms-pane cms-pane--left" aria-label="Band outline">

@@ -494,6 +494,27 @@ export const SHELL_CSS = `
    So the surface marks it instead of drawing a convincing blank line. The
    label is chrome, not content: it is an ::after on the wrapper, outside the
    contenteditable, and it does not change the row's height. */
+/* The crash copy, offered back.
+
+   A strip under the toolbar rather than a modal: it is an offer, and the
+   editor is perfectly usable while it is ignored. It says "never sent
+   anywhere" because that is the first thing anyone wonders when a CMS tells
+   them it has a copy of their writing. */
+.cms-recovered {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cms-line, #2b3036);
+  background: #1d2430;
+  color: var(--cms-text, #dfe4ea);
+  font-size: 12px;
+  line-height: 17px;
+}
+.cms-recovered strong { font-weight: 600; color: #fff; }
+.cms-recovered__actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
+
 /* The pre-publish checklist, floating above the toolbar.
 
    Anchored to the Publish button rather than a modal: it is a list to read

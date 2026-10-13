@@ -897,6 +897,40 @@ async function run(page) {
   console.log(`    shot  ${await page.shot('07-published')}`);
 
   /* ---------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------- */
+  section('the crash copy');
+  {
+    /* The editor keeps a copy of unsaved work in this browser, debounced,
+       and clears it the moment a real save lands. It is never sent
+       anywhere; the point is covering a crash, which the beforeunload guard
+       below cannot do because the process is gone. */
+    const KEY = 'jinhyuk-cms.local-draft.v1:essays/fixture-dense';
+    const keyFor = await page.evaluate(
+      `(() => { const s = window.__ws3.store.getState(); return 'jinhyuk-cms.local-draft.v1:' + (s.doc.meta.section ?? 'page') + '/' + s.slug; })()`,
+    );
+    await page.evaluate(`localStorage.removeItem(${JSON.stringify(keyFor)})`);
+
+    await page.evaluate(
+      `window.__ws3.store.updateMeta({ title: 'Typed but never saved' })`,
+    );
+    // Past the debounce.
+    await sleep(1600);
+    const stored = await page.evaluate(
+      `(() => { const raw = localStorage.getItem(${JSON.stringify(keyFor)}); if (raw === null) return null; const v = JSON.parse(raw); return v.doc.meta.title; })()`,
+    );
+    check('unsaved work is copied into this browser', stored === 'Typed but never saved', String(stored));
+
+    const dirty = (await page.probe()).dirty;
+    check('…while the document is still unsaved', dirty === true);
+
+    await page.click('save');
+    for (let attempt = 0; attempt < 80 && (await page.probe()).phase !== 'idle'; attempt += 1) await sleep(50);
+    await sleep(120);
+    const afterSave = await page.evaluate(`localStorage.getItem(${JSON.stringify(keyFor)})`);
+    check('and it is cleared the moment a save lands', afterSave === null, String(afterSave));
+    void KEY;
+  }
+
   section('unsaved-changes protection');
   const cleanPrompt = await page.evaluate(
     `(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; })()`,

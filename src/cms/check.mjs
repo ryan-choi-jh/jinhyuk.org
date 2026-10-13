@@ -31,6 +31,7 @@ const OFFLINE = [
   ['render', 'src/cms/render/selftest.ts'],
   ['state', 'src/cms/app/state/verify-state.ts'],
   ['site state', 'src/cms/app/state/verify-site-state.ts'],
+  ['crash copy', 'src/cms/app/state/verify-local-draft.ts'],
   ['prose', 'src/cms/app/prose/verify.ts'],
   ['canvas geometry', 'src/cms/app/canvas/verify-geometry.ts'],
   ['records', 'src/cms/app/records/verify.ts'],
