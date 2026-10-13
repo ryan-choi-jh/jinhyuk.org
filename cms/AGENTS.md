@@ -302,6 +302,18 @@ edits are commits on `main` with messages like
 - **Before rebasing, check for file overlap.** If your branch and their
   commits touch the same file, take their version as the base and re-apply
   your change on top. Never resolve a content file in your own favour.
+- **The e2e suites create a branch and push eight to ten commits to it.**
+  Vercel deploys every branch push, so a few runs of
+  `npm run cms:check:e2e` put dozens of deployments through the editor
+  project and, on 2026-10-13, used up enough of the allowance that pushes to
+  `main` stopped deploying at all for a while. The editor sat on an old
+  build and the fix looked like it had not worked.
+
+  `vercel.json` now carries an `ignoreCommand` that builds `main` and
+  nothing else, so the throwaway branches cost nothing. If a push to `main`
+  ever seems not to deploy, look at the deployment list for a flood of
+  `cms/ws-*-e2e-*` branches before looking at the code.
+
 - **A draft save is a commit too**, though it no longer triggers a rebuild:
   the Pages workflow ignores a push that only touches
   `src/content/drafts/`. Expect `main` to move under you often.
