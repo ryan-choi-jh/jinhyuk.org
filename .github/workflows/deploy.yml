@@ -1,9 +1,26 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Every push to main (including Keystatic / GitHub web-editor commits) rebuilds the site.
+  # Every push to main rebuilds the site, including the CMS's own commits and
+  # anything edited on github.com.
   push:
     branches: [main]
+    # Except a push that only touches working copies.
+    #
+    # Saving a draft in the CMS is a commit, and the site build ignores
+    # src/content/drafts/ entirely (src/lib/site-content.ts reads
+    # src/content/pages/** and src/content/data/*.json and nothing else). So
+    # every Save was costing a full build and a Pages deploy of a site that
+    # had not changed, and making the editor's deploy chip report "building"
+    # after an action nobody could see the result of.
+    #
+    # `paths-ignore` skips a push only when EVERY file in it matches, which is
+    # exactly right here: publishing writes the published file and deletes the
+    # draft in one commit, so it touches src/content/pages/** too and still
+    # builds. Uploads land in public/media/ and still build, because the file
+    # has to reach the site.
+    paths-ignore:
+      - 'src/content/drafts/**'
   # Also lets you re-run a deploy by hand from the Actions tab.
   workflow_dispatch:
 
