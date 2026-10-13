@@ -439,13 +439,18 @@ export const SHELL_CSS = `
 /* Prose, at the site's scale. global.css: p 17.5/35, h2 22/32 600, h3 18/28,
    blockquote 26/40 300 behind a 2px accent rule, 28px between paragraphs. */
 .cms-surface p { margin: 0 0 28px; }
+/* The numbers are .doc-h2 and .doc-h3 in src/cms/styles/doc.css, which is
+   what the page actually uses. They were taken from global.css's article
+   rules when this was written and had drifted: 56/4 and 40/4 against the
+   page's 48/8 and 32/4, so every heading in the editor sat 8px low and
+   4px tight. */
 .cms-surface h2 {
-  margin: 56px 0 4px;
+  margin: 48px 0 8px;
   font-size: 22px; line-height: 32px; letter-spacing: -0.02em; font-weight: 600;
 }
 .cms-surface h3 {
-  margin: 40px 0 4px;
-  font-size: 18px; line-height: 28px; letter-spacing: -0.01em; font-weight: 600;
+  margin: 32px 0 4px;
+  font-size: 18px; line-height: 28px; font-weight: 600;
 }
 .cms-surface blockquote {
   margin: 0 0 28px;
@@ -454,6 +459,26 @@ export const SHELL_CSS = `
   font-size: 26px; line-height: 40px; letter-spacing: -0.02em; font-weight: 300;
 }
 .cms-surface ul, .cms-surface ol { margin: 0 0 28px; padding-left: 24px; }
+
+/* An essay is set differently from a project, and the editor was drawing
+   every page the project way. The numbers are .doc--essays in
+   src/cms/styles/doc.css: a quote at 17.5/35 in muted behind the hairline
+   rule, not 26/40 in ink behind the accent, and 27px between blocks rather
+   than 28. A TL;DR at the top of an essay is the one everybody sees, and it
+   came out half as large again as the page shows it. */
+.cms-surface--essays p { margin: 0 0 27px; }
+.cms-surface--essays ul, .cms-surface--essays ol { margin: 0 0 27px; }
+.cms-surface--essays li { margin-bottom: 8px; }
+.cms-surface--essays li + li { margin-top: 0; }
+.cms-surface--essays blockquote {
+  margin: 0 0 27px;
+  border-left-color: var(--rule, #e4e4e4);
+  font-size: 17.5px; line-height: 35px; letter-spacing: -0.02em; font-weight: 300;
+  color: var(--muted, #6b6b6b);
+}
+/* The quote's box ends a paragraph's distance after its last line, which is
+   what the live essays do: no :last-child reset. */
+.cms-surface--essays blockquote p { margin: 0 0 27px; }
 .cms-surface li + li { margin-top: 6px; }
 .cms-surface strong { font-weight: 600; }
 .cms-surface a {

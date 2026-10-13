@@ -129,7 +129,19 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
           className="cms-surface-frame"
           style={{ width: PAGE_WIDTH * scale, height: surfaceHeight * scale }}
         >
-          <div className="cms-surface" ref={surfaceRef} style={{ transform: `scale(${scale})` }}>
+          <div
+            // The section, so the prose below can be styled the way that
+            // section is styled on the page: an essay's quote is 17.5px grey
+            // where a project's is 26px behind an accent rule, and the editor
+            // drew every quote the project way.
+            className={
+              doc.meta.section === undefined
+                ? 'cms-surface'
+                : `cms-surface cms-surface--${doc.meta.section}`
+            }
+            ref={surfaceRef}
+            style={{ transform: `scale(${scale})` }}
+          >
             <div className="cms-surface__inner" ref={innerRef}>
               {/* The connector overlay. Same element, same class and the same
                   script as the published page: `drawDocConnectors` finds this
