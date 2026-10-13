@@ -55,11 +55,14 @@ export {
   deepEqual,
   docsEqual,
   dropIndexToTargetIndex,
+  emptyProseBlocks,
   findBand,
   mergeProseBlockUp,
   normalizeDoc,
+  removeEmptyProseBlocks,
   replaceProseBlockWith,
   sanitizeShapeKeys,
+  setBlockSpace,
   splitProseBlock,
 } from './doc-ops.ts';
 

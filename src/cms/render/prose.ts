@@ -22,6 +22,7 @@ import {
   DEFAULT_CALLOUT_TONE,
   DEFAULT_HIGHLIGHT_INK,
   PROSE_MARKS,
+  isBlockSpace,
   isCalloutTone,
   isHighlightInk,
   isSafeStyleColor,
@@ -388,7 +389,17 @@ const BLOCK_SHELL: Readonly<Record<ProseBlockKind, { tag: string; className: str
  * DOM. It is an attribute rather than `id` so two documents (the preview beside
  * the editor, say) can sit in one page without colliding.
  */
-export function renderProseBlock(block: ProseBlock, ids?: HeadingIds): string {
+export function renderProseBlock(
+  block: ProseBlock,
+  ids?: HeadingIds,
+  /**
+   * True for the very first block of the document. It gets no space class:
+   * doc.css already zeroes a first block's top margin, so the class would be
+   * inert on the page, and the editing surface follows the same rule, which
+   * is how the two stay honest about it.
+   */
+  isFirst = false,
+): string {
   const shell = BLOCK_SHELL[block.kind];
   const content = block.content;
 
@@ -418,8 +429,12 @@ export function renderProseBlock(block: ProseBlock, ids?: HeadingIds): string {
       ? ` doc-callout--${isCalloutTone(block.tone) ? block.tone : DEFAULT_CALLOUT_TONE}`
       : '';
 
+  // Room above, also a class, so the three sizes live in the stylesheet and
+  // can step down on a phone. See src/cms/styles/spacing.ts.
+  const space = !isFirst && isBlockSpace(block.space) ? ` doc-space--${block.space}` : '';
+
   return (
-    `<${shell.tag} class="${shell.className}${tone}"` +
+    `<${shell.tag} class="${shell.className}${tone}${space}"` +
     (headingId === '' ? '' : attr('id', headingId)) +
     `${attr('data-block-id', block.id)}>${inner}</${shell.tag}>`
   );
@@ -433,7 +448,14 @@ export function renderProseBlock(block: ProseBlock, ids?: HeadingIds): string {
  * belongs to the document and is threaded through; a band rendered on its own
  * starts a fresh one.
  */
-export function renderProseBand(band: ProseBand, ids: HeadingIds = newHeadingIds()): string {
-  const blocks = joinParts(band.blocks.map((block) => renderProseBlock(block, ids)));
+export function renderProseBand(
+  band: ProseBand,
+  ids: HeadingIds = newHeadingIds(),
+  /** True when this band opens the document; only then can a block be first. */
+  isFirstBand = false,
+): string {
+  const blocks = joinParts(
+    band.blocks.map((block, index) => renderProseBlock(block, ids, isFirstBand && index === 0)),
+  );
   return `<div class="doc-band doc-band--prose"${attr('data-band-id', band.id)}>${blocks}</div>`;
 }

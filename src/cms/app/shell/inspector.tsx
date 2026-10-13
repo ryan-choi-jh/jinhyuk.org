@@ -12,19 +12,57 @@
 
 
 import {
+  BLOCK_SPACES,
   CALLOUT_TONES,
   DEFAULT_CALLOUT_TONE,
   PROSE_BLOCK_KINDS,
   REFERENCE_WIDTH,
   SHAPE_KINDS,
 } from '../../schema.ts';
-import type { Anchor, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
-import { blockPlainText, mergeTargetFor } from '../state/doc-ops.ts';
+import type { Anchor, BlockSpace, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
+import { SPACE_SCALE } from '../../styles/spacing.ts';
+import { blockPlainText, emptyProseBlocks, mergeTargetFor } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
 import { CheckField, DateField, Field, NumberField, Section, SelectField, TextField } from './fields.tsx';
 import type { EditorShellSlots } from './slots.ts';
+
+/* -------------------------------------------------------------------------- */
+/* Space above a block                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The sizes, with the default NAMED rather than blank.
+ *
+ * An empty first option would read as "no space", and the default is not no
+ * space: it is whatever the two blocks either side already make between
+ * them, which is 27px for two paragraphs and 8px after a heading.
+ */
+const SPACE_OPTIONS = [
+  { value: 'default' as const, label: 'Default' },
+  ...BLOCK_SPACES.map((space) => ({
+    value: space,
+    label: `${space[0]!.toUpperCase()}${space.slice(1)} · ${SPACE_SCALE[space].wide}px`,
+  })),
+];
+
+/**
+ * What the chosen size actually does, in words.
+ *
+ * It is a FLOOR and not an addition: the rule is a `margin-top`, it adjoins
+ * the previous block's `margin-bottom`, and adjoining margins collapse to
+ * the larger of the two. Saying "adds 48px" would be wrong, and would have
+ * people stacking them to get more, which is exactly the misunderstanding
+ * that empty rows caused and that this control exists to end.
+ */
+function spaceHint(space: BlockSpace | undefined): string {
+  if (space === undefined) {
+    return 'Whatever the blocks either side already make: 27px between paragraphs, 8px after a heading.';
+  }
+  const { wide, narrow } = SPACE_SCALE[space];
+  return `At least ${wide}px above this block, ${narrow}px on a phone. A floor, not an addition: if what is above it already leaves more, the larger wins.`;
+}
 
 export type InspectorProps = {
   store: DocStore;
@@ -207,6 +245,10 @@ function BandPanel({
   band: ProseBand | CanvasBand;
   bandIndex: number;
 }) {
+  // Rows with no text in them: a full line in the editor, nothing on the
+  // page. Counted here so the offer to clear them only appears when there is
+  // something to clear.
+  const emptyRows = band.type === 'prose' ? emptyProseBlocks(band).length : 0;
   return (
     <>
       <Section title={`Band ${bandIndex + 1} · ${band.type}`}>
@@ -376,6 +418,25 @@ function BandPanel({
               </button>
             ))}
           </div>
+          {emptyRows > 0 && (
+            <>
+              <div className="cms-row-actions">
+                <button
+                  type="button"
+                  className="cms-btn cms-btn--tiny"
+                  data-testid="remove-empty-rows"
+                  onClick={() => store.removeEmptyProseBlocks(band.id)}
+                >
+                  Remove {emptyRows} empty row{emptyRows === 1 ? '' : 's'}
+                </button>
+              </div>
+              <div className="cms-hint">
+                An empty row is a full line here and nothing at all on the page: its margins
+                collapse into its neighbours&rsquo;. Use &ldquo;Space above&rdquo; on a block to
+                ask for room.
+              </div>
+            </>
+          )}
         </Section>
       )}
     </>
@@ -428,6 +489,21 @@ function BlockPanel({
             </div>
           </>
         )}
+        <SelectField
+          label="Space above"
+          testId="block-space"
+          value={block.space ?? 'default'}
+          options={SPACE_OPTIONS}
+          disabled={bandIndex === 0 && blockIndex === 0}
+          onChange={(space) =>
+            store.setBlockSpace(band.id, block.id, space === 'default' ? undefined : space)
+          }
+        />
+        <div className="cms-hint">
+          {bandIndex === 0 && blockIndex === 0
+            ? 'The first block of the page has nothing above it to be spaced from, and the masthead already leaves the room it needs.'
+            : spaceHint(block.space)}
+        </div>
         <div className="cms-hint">
           id <code>{block.id}</code>
         </div>

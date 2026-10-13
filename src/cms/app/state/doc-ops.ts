@@ -32,7 +32,10 @@ import type {
   DocMeta,
   ProseBand,
   ProseBlock,
-  ProseBlockKind, CalloutTone,} from '../../schema.ts';
+  ProseBlockKind,
+  CalloutTone,
+  BlockSpace,
+} from '../../schema.ts';
 
 /* -------------------------------------------------------------------------- */
 /* Equality                                                                    */
@@ -518,6 +521,33 @@ export function setBlockTone(
   });
 }
 
+/**
+ * How much room a block asks for above itself. `undefined` removes the key,
+ * like every other optional field, so a block nobody has spaced carries
+ * nothing.
+ *
+ * Legal on every kind, unlike `tone`: any block can want air above it.
+ */
+export function setBlockSpace(
+  doc: Doc,
+  bandId: string,
+  blockId: string,
+  space: BlockSpace | undefined,
+): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const index = band.blocks.findIndex((block) => block.id === blockId);
+    if (index < 0) return band;
+    const current = band.blocks[index] as ProseBlock;
+    if (current.space === space) return band;
+    const blocks = [...band.blocks];
+    const next: ProseBlock = { ...current, space };
+    if (space === undefined) delete next.space;
+    blocks[index] = next;
+    return { ...band, blocks };
+  });
+}
+
 export function insertProseBlock(
   doc: Doc,
   bandId: string,
@@ -615,6 +645,37 @@ export function mergeProseBlockUp(
     const blocks = [...band.blocks];
     blocks.splice(index, 1);
     blocks[index - 1] = { ...previous, content };
+    return { ...band, blocks };
+  });
+}
+
+/**
+ * Every block in a band with no text in it.
+ *
+ * An empty row is a full line in the editor and nothing at all on the page,
+ * so a document that has been written by pressing Enter for air is carrying
+ * rows that do not exist for the reader. This is what the band's "remove
+ * empty rows" offers to clear, and it is also how the offer knows whether
+ * there is anything to clear.
+ *
+ * A list or a quote with no text still counts: an empty bullet renders as an
+ * empty bullet, which is worse than nothing.
+ */
+export function emptyProseBlocks(band: ProseBand): ProseBlock[] {
+  return band.blocks.filter((block) => blockPlainText(block) === '');
+}
+
+/**
+ * Drop them. Never the last one: a prose band with no blocks at all has
+ * nothing to type into and no way back, so the final empty row stays and
+ * becomes the place the cursor goes.
+ */
+export function removeEmptyProseBlocks(doc: Doc, bandId: string): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const blocks = band.blocks.filter((block) => blockPlainText(block) !== '');
+    if (blocks.length === band.blocks.length) return band;
+    if (blocks.length === 0) return { ...band, blocks: [band.blocks[0] as ProseBlock] };
     return { ...band, blocks };
   });
 }

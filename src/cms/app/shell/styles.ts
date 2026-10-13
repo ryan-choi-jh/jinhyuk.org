@@ -481,6 +481,42 @@ export const SHELL_CSS = `
 .cms-surface--essays blockquote p { margin: 0 0 27px; }
 .cms-surface li + li { margin-top: 6px; }
 .cms-surface strong { font-weight: 600; }
+
+/* An empty row, said out loud.
+
+   ProseMirror gives every empty textblock a line box so the caret has
+   somewhere to go, so a blank row is a full line high in here. On the page
+   it is 0px: its margins adjoin its neighbours' and collapse away, and
+   measured across all 36 pairs of block kinds an empty row changes the page
+   in 6 of them, never by more than 23px, and three of them do exactly what
+   one does.
+
+   So the surface marks it instead of drawing a convincing blank line. The
+   label is chrome, not content: it is an ::after on the wrapper, outside the
+   contenteditable, and it does not change the row's height. */
+.cms-block-slot[data-empty='true'] {
+  position: relative;
+  outline: 1px dashed var(--cms-line, #2b3036);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.cms-block-slot[data-empty='true']::after {
+  content: 'empty row · adds nothing to the page';
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-family: var(--cms-font, ui-sans-serif, system-ui, sans-serif);
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--cms-dim, #7b8794);
+  background: var(--cms-bg, #11151a);
+  padding: 2px 5px;
+  border-radius: 3px;
+  opacity: 0.85;
+}
 .cms-surface a {
   color: inherit; text-decoration: underline; text-underline-offset: 3px;
   text-decoration-thickness: 1px; text-decoration-color: var(--rule, #e4e4e4);

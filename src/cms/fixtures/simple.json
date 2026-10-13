@@ -15,23 +15,56 @@
           "id": "p_open",
           "kind": "p",
           "content": [
-            { "type": "text", "text": "I started coding this year, and " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Track" },
-            { "type": "text", "text": " is one of the first things I built for myself instead of as a tutorial exercise. I wanted a habit tracker that felt good on the days I showed up and " },
-            { "type": "text", "marks": [{ "type": "italic" }], "text": "did not make me feel like garbage" },
-            { "type": "text", "text": " on the days I did not." }
+            {
+              "type": "text",
+              "text": "I started coding this year, and "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "Track"
+            },
+            {
+              "type": "text",
+              "text": " is one of the first things I built for myself instead of as a tutorial exercise. I wanted a habit tracker that felt good on the days I showed up and "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "italic"
+                }
+              ],
+              "text": "did not make me feel like garbage"
+            },
+            {
+              "type": "text",
+              "text": " on the days I did not."
+            }
           ]
         },
         {
           "id": "h2_heatmap",
           "kind": "h2",
-          "content": [{ "type": "text", "text": "Why a heatmap" }]
+          "content": [
+            {
+              "type": "text",
+              "text": "Why a heatmap"
+            }
+          ]
         },
         {
           "id": "p_heatmap",
           "kind": "p",
           "content": [
-            { "type": "text", "text": "The whole app is inspired by the contribution grid: a square fills in, and a month of showing up turns into a shape you can read at a glance. You can " },
+            {
+              "type": "text",
+              "text": "The whole app is inspired by the contribution grid: a square fills in, and a month of showing up turns into a shape you can read at a glance. You can "
+            },
             {
               "type": "text",
               "marks": [
@@ -46,7 +79,10 @@
               ],
               "text": "try the live version"
             },
-            { "type": "text", "text": " if you want to see it fill in." }
+            {
+              "type": "text",
+              "text": " if you want to see it fill in."
+            }
           ]
         },
         {
@@ -56,7 +92,10 @@
             {
               "type": "paragraph",
               "content": [
-                { "type": "text", "text": "Most habit trackers run on streaks and guilt. I wanted the opposite: something that quietly rewards consistency and forgives the gaps." }
+                {
+                  "type": "text",
+                  "text": "Most habit trackers run on streaks and guilt. I wanted the opposite: something that quietly rewards consistency and forgives the gaps."
+                }
               ]
             }
           ]
@@ -65,21 +104,54 @@
           "id": "p_cover",
           "kind": "p",
           "content": [
-            { "type": "text", "text": "The part I love is that " },
             {
               "type": "text",
-              "marks": [{ "type": "textStyle", "attrs": { "color": "#ff5722" } }],
+              "text": "The part I love is that "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "textStyle",
+                  "attrs": {
+                    "color": "#ff5722"
+                  }
+                }
+              ],
               "text": "you build your own cover"
             },
-            { "type": "text", "text": ". You choose whatever images get you " },
-            { "type": "text", "marks": [{ "type": "highlight", "attrs": { "ink": "yellow" } }], "text": "fired up" },
-            { "type": "text", "text": ", and you see them every time you open the app." }
+            {
+              "type": "text",
+              "text": ". You choose whatever images get you "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "highlight",
+                  "attrs": {
+                    "ink": "yellow"
+                  }
+                }
+              ],
+              "text": "fired up"
+            },
+            {
+              "type": "text",
+              "text": ", and you see them every time you open the app."
+            }
           ]
         },
         {
           "id": "h3_detail",
           "kind": "h3",
-          "content": [{ "type": "text", "text": "What I actually track" }]
+          "content": [
+            {
+              "type": "text",
+              "text": "What I actually track"
+            }
+          ],
+          "space": "medium"
         },
         {
           "id": "ul_habits",
@@ -87,15 +159,45 @@
           "content": [
             {
               "type": "listItem",
-              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Drinking enough water" }] }]
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Drinking enough water"
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "listItem",
-              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Getting the steps in" }] }]
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Getting the steps in"
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "listItem",
-              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Taking the daily vitamins" }] }]
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Taking the daily vitamins"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -105,11 +207,31 @@
           "content": [
             {
               "type": "listItem",
-              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Open the app on today" }] }]
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Open the app on today"
+                    }
+                  ]
+                }
+              ]
             },
             {
               "type": "listItem",
-              "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Tap the row, watch the square light up" }] }]
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tap the row, watch the square light up"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -117,7 +239,10 @@
           "id": "p_close",
           "kind": "p",
           "content": [
-            { "type": "text", "text": "After all, it is just a cover. But opening the app to something that moves you does more for consistency than a push notification ever has." }
+            {
+              "type": "text",
+              "text": "After all, it is just a cover. But opening the app to something that moves you does more for consistency than a push notification ever has."
+            }
           ]
         },
         {
@@ -125,8 +250,24 @@
           "kind": "callout",
           "tone": "blue",
           "content": [
-            { "type": "text", "marks": [{ "type": "link", "attrs": { "href": "https://example.com/guide", "target": "_blank", "rel": "noopener noreferrer" } }], "text": "Step-by-step guide" },
-            { "type": "text", "text": ", for the aside that is not part of the argument." }
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://example.com/guide",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "Step-by-step guide"
+            },
+            {
+              "type": "text",
+              "text": ", for the aside that is not part of the argument."
+            }
           ]
         }
       ]

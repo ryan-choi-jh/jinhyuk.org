@@ -325,6 +325,8 @@
 }
 /* CALLOUT:END */
 
+
+
 /* ---------------------------------------------------------------------------
    Highlighter
    A brush stroke BEHIND the words, so the ink can be saturated and the text
@@ -846,3 +848,29 @@
 .doc > .doc-group:last-child > .doc-band:last-child > :last-child {
   margin-bottom: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   Space above a block
+   Written by `node src/cms/styles/sync-doc-css.mjs` from
+   src/cms/styles/spacing.ts, which is also what the editor injects.
+   cms:verify asserts the two are byte-identical. Do not edit between the
+   markers by hand.
+   --------------------------------------------------------------------------- */
+/* SPACING:START */
+/* Space above a block, as a floor rather than an addition: this margin
+   adjoins the previous block's and the two collapse, so the gap is the
+   larger of the two. See src/cms/styles/spacing.ts.
+
+   A first block is not given the class at all, by the renderer and by the
+   surface alike, because doc.css already zeroes a first block's top margin
+   and space there would only push the whole document down. */
+.doc-space--small.doc-space--small { margin-top: 48px; }
+.doc-space--medium.doc-space--medium { margin-top: 80px; }
+.doc-space--large.doc-space--large { margin-top: 120px; }
+
+@media (max-width: 900px) {
+  .doc-space--small.doc-space--small { margin-top: 32px; }
+  .doc-space--medium.doc-space--medium { margin-top: 52px; }
+  .doc-space--large.doc-space--large { margin-top: 76px; }
+}
+/* SPACING:END */

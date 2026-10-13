@@ -324,6 +324,32 @@ export function isCalloutTone(value: unknown): value is CalloutTone {
   return typeof value === 'string' && (CALLOUT_TONES as readonly string[]).includes(value);
 }
 
+/**
+ * How much air a block asks for above itself.
+ *
+ * A CLOSED set and not a number, for the reason the callout's tones are a
+ * closed set: a free value invites 23px here and 24px two paragraphs later,
+ * which nobody can see and which leaves the page quietly uneven forever.
+ *
+ * Absent means "whatever the blocks either side already do", which is what
+ * every document said before this existed, so nothing already written moves
+ * by gaining the field.
+ *
+ * It is a FLOOR, not an addition: the rule is a `margin-top`, which adjoins
+ * the previous block's `margin-bottom` and collapses with it, so the gap is
+ * the larger of the two. `src/cms/styles/spacing.ts` has the values and the
+ * reasoning, including why an empty row was never a substitute for this.
+ *
+ * Legal on every kind, unlike `tone`: any block can want room above it.
+ */
+export const BLOCK_SPACES = ['small', 'medium', 'large'] as const;
+export type BlockSpace = (typeof BLOCK_SPACES)[number];
+export const BlockSpaceSchema = z.enum(BLOCK_SPACES);
+
+export function isBlockSpace(value: unknown): value is BlockSpace {
+  return typeof value === 'string' && (BLOCK_SPACES as readonly string[]).includes(value);
+}
+
 export const PROSE_HEADING_LEVEL: Readonly<Record<'h2' | 'h3', number>> = { h2: 2, h3: 3 };
 
 /**
@@ -382,6 +408,12 @@ const ProseBlockObject = z
      * default, so a callout that has never been recoloured stores nothing.
      */
     tone: CalloutToneSchema.optional(),
+    /**
+     * Room above this block. Absent means the blocks either side decide it
+     * between them, which is what every document said before this existed.
+     * See BLOCK_SPACES.
+     */
+    space: BlockSpaceSchema.optional(),
   })
   .strict();
 

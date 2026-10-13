@@ -57,6 +57,7 @@ import { PROSE_KIND_TITLE, SINGLE_LINE_KINDS, proseExtensions } from './extensio
 import { injectProseEditorStyles } from './css.ts';
 import { injectHighlightStyles } from '../../styles/highlight.ts';
 import { injectCalloutStyles } from '../../styles/callout.ts';
+import { injectSpacingStyles } from '../../styles/spacing.ts';
 import { ProseToolbar } from './Toolbar.tsx';
 
 /** Where to put the caret: an end of the block, or a character offset into it. */
@@ -277,6 +278,11 @@ function ProseEditorInstance({
     injectHighlightStyles();
     // The callout's box, same arrangement: shared with the published page.
     injectCalloutStyles();
+    // The space-above-a-block sizes. The class they match is put on the
+    // surface's wrapper rather than inside this component, but this is where
+    // the styles a document shares with its published page are injected, and
+    // a document with a block to space always has a prose editor in it.
+    injectSpacingStyles();
   }, []);
 
   const editor = useEditor(

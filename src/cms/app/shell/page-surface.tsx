@@ -29,7 +29,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { PAGE_WIDTH, REFERENCE_WIDTH, seedFromId } from '../../schema.ts';
+import { PAGE_WIDTH, REFERENCE_WIDTH, isBlockSpace, seedFromId } from '../../schema.ts';
 import { renderDocHead, renderProjectHead } from '../../render/index.ts';
 import { drawDocConnectors, watchDocConnectors } from '../../render/connectors.ts';
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock } from '../../schema.ts';
@@ -617,9 +617,29 @@ function ProseBandBody({
         const onChange = (content: unknown[]): void =>
           store.setBlockContent(band.id, block.id, content);
 
+        // The SAME class the renderer puts on the published block, so the
+        // gap in the editor is the gap on the page and there is no second
+        // rule to keep in step. Withheld from the very first block of the
+        // document, exactly as the renderer withholds it, because doc.css
+        // zeroes a first block's top margin and space there would be inert
+        // on the page while showing in the editor.
+        const isFirst = bandIndex === 0 && blockIndex === 0;
+        const spacing =
+          !isFirst && isBlockSpace(block.space) ? ` doc-space--${block.space}` : '';
+
+        // An empty block is a full 35px line here, because ProseMirror gives
+        // every empty textblock a line box so the caret has somewhere to go,
+        // and it is 0px on the published page, where it collapses away. That
+        // is the single biggest thing this surface lies about, so it says so
+        // rather than drawing a blank line and leaving the author to find
+        // out. Space is asked for with the field above, not with Enter.
+        const isEmpty = blockPlainText(block) === '';
+
         return (
           <div
             key={block.id}
+            className={`cms-block-slot${spacing}`}
+            data-empty={isEmpty ? 'true' : undefined}
             data-block-id={block.id}
             data-testid={`surface-block-${block.id}`}
             onMouseDown={(event) => {

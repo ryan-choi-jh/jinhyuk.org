@@ -479,6 +479,47 @@ function render(bands: Band[]): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Space above a block                                                        */
+/* -------------------------------------------------------------------------- */
+
+{
+  const p = (id: string, space?: 'small' | 'medium' | 'large'): ProseBlock => {
+    const block: ProseBlock = { id, kind: 'p', content: [{ type: 'text', text: id }] };
+    if (space !== undefined) block.space = space;
+    return block;
+  };
+
+  const html = renderDoc(doc([prose('b1', [p('one'), p('two', 'medium'), p('three')])]));
+  contains(
+    'space: the class is on the block that asked for it',
+    html,
+    '<p class="doc-p doc-space--medium" data-block-id="two">',
+  );
+  excludes('space: and not on the ones that did not', html, 'data-block-id="three" class');
+  ok(
+    'space: a block with no space has no space class',
+    !/doc-space--[a-z]+" data-block-id="(one|three)"/.test(html),
+  );
+
+  // doc.css zeroes a first block's top margin, so the class would be inert
+  // there; the editing surface withholds it for the same reason, and the two
+  // agreeing is the point.
+  const first = renderDoc(doc([prose('b1', [p('lead', 'large'), p('after')])]));
+  excludes('space: the FIRST block of the document never gets the class', first, 'doc-space--large');
+
+  // Only the first block of the first band. A band further down opens with a
+  // block that does have something above it.
+  const later = renderDoc(
+    doc([prose('b1', [p('lead')]), prose('b2', [p('opener', 'large')])]),
+  );
+  contains(
+    'space: but the first block of a LATER band does',
+    later,
+    '<p class="doc-p doc-space--large" data-block-id="opener">',
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Heading ids are unique within a document                                   */
 /* -------------------------------------------------------------------------- */
 

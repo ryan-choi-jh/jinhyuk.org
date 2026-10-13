@@ -145,8 +145,10 @@ export function groupBands(bands: readonly Band[]): Group[] {
   return groups;
 }
 
-function renderBand(band: Band, doc: Doc, ids: HeadingIds): string {
-  return band.type === 'prose' ? renderProseBand(band, ids) : renderCanvasBand(band, doc);
+function renderBand(band: Band, doc: Doc, ids: HeadingIds, isFirst: boolean): string {
+  return band.type === 'prose'
+    ? renderProseBand(band, ids, isFirst)
+    : renderCanvasBand(band, doc);
 }
 
 /** True when at least one canvas item has an anchor that actually resolves. */
@@ -220,8 +222,8 @@ export function renderDocBands(doc: Doc, bands: readonly Band[] = doc.bands): st
   // different bands still get different ids. See `headingIdFor` in ./prose.ts.
   const ids = newHeadingIds();
   const groups = groupBands(bands)
-    .map((group) => {
-      const lead = renderBand(group.lead, doc, ids);
+    .map((group, groupIndex) => {
+      const lead = renderBand(group.lead, doc, ids, groupIndex === 0);
       const overlays = joinParts(group.overlays.map((band) => renderCanvasBand(band, doc)));
       if (lead === '' && overlays === '') return '';
       return `<div class="doc-group">${lead}${overlays}</div>`;

@@ -29,11 +29,13 @@ const DOC_CSS = fileURLToPath(new URL('./doc.css', import.meta.url));
 
 const { HIGHLIGHT_CSS } = await import('./highlight.ts');
 const { CALLOUT_CSS } = await import('./callout.ts');
+const { SPACING_CSS } = await import('./spacing.ts');
 
 /** Marker name -> the text that belongs between its START and END lines. */
 const BLOCKS = [
   ['HIGHLIGHT', HIGHLIGHT_CSS],
   ['CALLOUT', CALLOUT_CSS],
+  ['SPACING', SPACING_CSS],
 ];
 
 const checkOnly = process.argv.includes('--check');

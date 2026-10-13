@@ -19,7 +19,16 @@
  */
 
 import { formatIssues, validateDoc } from '../../schema.ts';
-import type { Band, CanvasItem, Doc, DocMeta, ProseBlockKind, ValidationIssue, CalloutTone} from '../../schema.ts';
+import type {
+  Band,
+  BlockSpace,
+  CanvasItem,
+  CalloutTone,
+  Doc,
+  DocMeta,
+  ProseBlockKind,
+  ValidationIssue,
+} from '../../schema.ts';
 import { apiErrorMessage } from './api.ts';
 import type { AuthStatus, CmsApi } from './api.ts';
 import * as ops from './doc-ops.ts';
@@ -150,7 +159,11 @@ export type DocStore = {
   setBlockKind(bandId: string, blockId: string, kind: ProseBlockKind): void;
   /** A callout's colour. `undefined` restores the default. */
   setBlockTone(bandId: string, blockId: string, tone: CalloutTone | undefined): void;
+  /** Room above a block. `undefined` goes back to the default spacing. */
+  setBlockSpace(bandId: string, blockId: string, space: BlockSpace | undefined): void;
   insertProseBlock(bandId: string, index: number, kind?: ProseBlockKind): void;
+  /** Drop every block in the band with no text in it. One undo step. */
+  removeEmptyProseBlocks(bandId: string): void;
   deleteProseBlock(bandId: string, blockId: string): void;
   moveProseBlock(bandId: string, blockId: string, toIndex: number): void;
 
@@ -589,9 +602,26 @@ export function createDocStore(options: DocStoreOptions): DocStore {
       });
     },
 
+    setBlockSpace(bandId, blockId, space) {
+      update((doc) => ops.setBlockSpace(doc, bandId, blockId, space), {
+        label: space === undefined ? 'clear space above' : `space above: ${space}`,
+        selection: selectBlock(bandId, blockId),
+      });
+    },
+
     insertProseBlock(bandId, index, kind = 'p') {
       update((doc) => ops.insertProseBlock(doc, bandId, index, kind), {
         label: 'insert block',
+      });
+    },
+
+    removeEmptyProseBlocks(bandId) {
+      const band = ops.findBand(state.doc, bandId);
+      const count = band !== null && band.type === 'prose' ? ops.emptyProseBlocks(band).length : 0;
+      update((doc) => ops.removeEmptyProseBlocks(doc, bandId), {
+        label: 'remove empty rows',
+        notice: `Removed ${count} empty row${count === 1 ? '' : 's'}. They were a blank line here and nothing on the page.`,
+        undoable: true,
       });
     },
 

@@ -21,6 +21,4 @@
  * `writing` collection went. Harmless, dev only, and the alternative is
  * declaring four collections nothing reads.
  */
-import type { CollectionConfig } from 'astro:content';
-
-export const collections: Record<string, CollectionConfig> = {};
+export const collections = {};
