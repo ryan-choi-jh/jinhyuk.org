@@ -35,8 +35,9 @@
 import { isCanvasBand, resolveAnchor } from '../schema.ts';
 import type { Band, CanvasBand, Doc } from '../schema.ts';
 import { renderCanvasBand } from './canvas.ts';
-import { attr, escapeText, joinParts } from './escape.ts';
-import { renderProseBand } from './prose.ts';
+import { attr, escapeText, joinParts, safeUrl } from './escape.ts';
+import { newHeadingIds, renderProseBand } from './prose.ts';
+import type { HeadingIds } from './prose.ts';
 import { renderDocButtons } from './pages/buttons.ts';
 import { renderHomeWith } from './pages/home.ts';
 
@@ -144,8 +145,8 @@ export function groupBands(bands: readonly Band[]): Group[] {
   return groups;
 }
 
-function renderBand(band: Band, doc: Doc): string {
-  return band.type === 'prose' ? renderProseBand(band) : renderCanvasBand(band, doc);
+function renderBand(band: Band, doc: Doc, ids: HeadingIds): string {
+  return band.type === 'prose' ? renderProseBand(band, ids) : renderCanvasBand(band, doc);
 }
 
 /** True when at least one canvas item has an anchor that actually resolves. */
@@ -215,9 +216,12 @@ function canvasClass(doc: Doc, bands: readonly Band[]): string {
  * site's own `.hero` and `.intro` and sends only what is left through here.
  */
 export function renderDocBands(doc: Doc, bands: readonly Band[] = doc.bands): string {
+  // One ledger for the whole document, so two headings with the same words in
+  // different bands still get different ids. See `headingIdFor` in ./prose.ts.
+  const ids = newHeadingIds();
   const groups = groupBands(bands)
     .map((group) => {
-      const lead = renderBand(group.lead, doc);
+      const lead = renderBand(group.lead, doc, ids);
       const overlays = joinParts(group.overlays.map((band) => renderCanvasBand(band, doc)));
       if (lead === '' && overlays === '') return '';
       return `<div class="doc-group">${lead}${overlays}</div>`;
@@ -348,12 +352,24 @@ function prettyUrl(raw: string): string {
  */
 export function renderDocHead(doc: Doc): string {
   const { meta } = doc;
+  // `safeUrl`, the same as the project masthead does it (./pages/project.ts).
+  // This is the one field on a document that becomes an href, the editor
+  // stores whatever is typed, and this function skipped the check for a long
+  // time: `DocMetaSchema.url` was `z.string().url()`, which is `new URL()` in
+  // a try/catch, and `new URL('javascript:alert(1)')` succeeds. The schema is
+  // tight now too; this is the belt to its braces, and it is the renderer's
+  // job not to trust the document whatever the schema says.
+  const href = meta.url === undefined ? null : safeUrl(meta.url);
   const visit =
-    meta.url === undefined
+    href === null
       ? ''
-      : `<a class="doc-visit"${attr('href', meta.url)} target="_blank" rel="noopener noreferrer">` +
-        `<span class="doc-visit-label">Visit</span>` +
-        `<span class="doc-visit-url">${escapeText(prettyUrl(meta.url))}</span></a>`;
+      : `<a class="doc-visit"${attr('href', href)} target="_blank" rel="noopener noreferrer">` +
+        // Verbatim, including any punctuation: a page whose link goes to a
+        // demo rather than to the thing itself wants to say so. Absent means
+        // "Visit", which is what every document said before the field
+        // existed, so nothing already written changes by gaining it.
+        `<span class="doc-visit-label">${escapeText(meta.urlLabel ?? 'Visit')}</span>` +
+        `<span class="doc-visit-url">${escapeText(prettyUrl(meta.url as string))}</span></a>`;
   const summary =
     meta.summary === undefined ? '' : `<p class="doc-summary">${escapeText(meta.summary)}</p>`;
 

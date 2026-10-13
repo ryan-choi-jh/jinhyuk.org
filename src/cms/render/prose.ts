@@ -297,6 +297,52 @@ export function headingSlug(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Somewhere to remember the heading ids a document has already used.
+ *
+ * github-slugger, which `headingSlug` copies, is stateful for exactly this
+ * reason: two headings reading "What I learned" slug the same, and two
+ * elements with one id is a document where `#what-i-learned` silently goes to
+ * the first of them. So the second gets `-1`, the third `-2`.
+ *
+ * It has to be a per-DOCUMENT counter, and `renderProseBlock` is per block, so
+ * the band renderer makes one and passes it down. A block rendered on its own
+ * (the preview's single-block path, a test) passes nothing and gets the plain
+ * slug, which is right: one block cannot collide with itself.
+ */
+export type HeadingIds = { used: Set<string> };
+
+export function newHeadingIds(): HeadingIds {
+  return { used: new Set<string>() };
+}
+
+/**
+ * The id for one heading: its slug, made unique against the ones already
+ * taken, with the block's own id as the fallback.
+ *
+ * The fallback matters more than it looks. `headingSlug` deletes everything
+ * that is not an ASCII letter or digit, so a heading written in Hangul, or one
+ * that is only punctuation, slugs to the empty string and used to get no id at
+ * all — no anchor, nothing to link to. The block id is already unique across
+ * the document (the schema says so) and is already in the markup as
+ * `data-block-id`, so it costs nothing and always works.
+ */
+function headingIdFor(block: ProseBlock, ids: HeadingIds | undefined): string {
+  const base = headingSlug(inlineText(block.content));
+  const wanted = base === '' ? block.id : base;
+  if (ids === undefined) return wanted;
+  if (!ids.used.has(wanted)) {
+    ids.used.add(wanted);
+    return wanted;
+  }
+  for (let n = 1; ; n += 1) {
+    const candidate = `${wanted}-${n}`;
+    if (ids.used.has(candidate)) continue;
+    ids.used.add(candidate);
+    return candidate;
+  }
+}
+
 /** The plain text of an inline tree, for slugging a heading. */
 function inlineText(content: unknown): string {
   const out: string[] = [];
@@ -342,7 +388,7 @@ const BLOCK_SHELL: Readonly<Record<ProseBlockKind, { tag: string; className: str
  * DOM. It is an attribute rather than `id` so two documents (the preview beside
  * the editor, say) can sit in one page without colliding.
  */
-export function renderProseBlock(block: ProseBlock): string {
+export function renderProseBlock(block: ProseBlock, ids?: HeadingIds): string {
   const shell = BLOCK_SHELL[block.kind];
   const content = block.content;
 
@@ -363,7 +409,7 @@ export function renderProseBlock(block: ProseBlock): string {
   // A heading also gets the id the markdown pipeline used to give it, so
   // links into the middle of an essay survive the move.
   const headingId =
-    block.kind === 'h2' || block.kind === 'h3' ? headingSlug(inlineText(content)) : '';
+    block.kind === 'h2' || block.kind === 'h3' ? headingIdFor(block, ids) : '';
 
   // The tone is a class, so the five colours live in the stylesheet with a
   // light and a dark value each, rather than a hex frozen into the document.
@@ -379,8 +425,15 @@ export function renderProseBlock(block: ProseBlock): string {
   );
 }
 
-/** One prose band: blocks in document order, in normal flow (brief 2.2). */
-export function renderProseBand(band: ProseBand): string {
-  const blocks = joinParts(band.blocks.map(renderProseBlock));
+/**
+ * One prose band: blocks in document order, in normal flow (brief 2.2).
+ *
+ * `ids` is the document's heading-id ledger. A document has several bands and
+ * a heading in the third can collide with one in the first, so the ledger
+ * belongs to the document and is threaded through; a band rendered on its own
+ * starts a fresh one.
+ */
+export function renderProseBand(band: ProseBand, ids: HeadingIds = newHeadingIds()): string {
+  const blocks = joinParts(band.blocks.map((block) => renderProseBlock(block, ids)));
   return `<div class="doc-band doc-band--prose"${attr('data-band-id', band.id)}>${blocks}</div>`;
 }

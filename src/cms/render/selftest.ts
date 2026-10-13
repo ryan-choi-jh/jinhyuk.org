@@ -219,8 +219,11 @@ function render(bands: Band[]): string {
     ]),
   ]);
 
-  contains('block: h2', html, '<h2 class="doc-h2" data-block-id="h2">Two</h2>');
-  contains('block: h3', html, '<h3 class="doc-h3" data-block-id="h3">Three</h3>');
+  // The `id` is the anchor the markdown pipeline used to put on every
+  // heading, so a `#fragment` link anyone has shared into the middle of an
+  // essay still resolves. These two assertions predated it and were failing.
+  contains('block: h2', html, '<h2 class="doc-h2" id="two" data-block-id="h2">Two</h2>');
+  contains('block: h3', html, '<h3 class="doc-h3" id="three" data-block-id="h3">Three</h3>');
   contains('block: an empty paragraph still renders', html, '<p class="doc-p" data-block-id="empty"></p>');
   // The ink is a class, so the four pens live in the stylesheet and nothing
   // author-supplied reaches a style attribute.
@@ -473,6 +476,70 @@ function render(bands: Band[]): string {
 {
   const empty = renderDoc(doc([]));
   ok('doc: an empty document is still a .doc', empty === '<div class="doc" data-doc-slug="selftest"></div>');
+}
+
+/* -------------------------------------------------------------------------- */
+/* Heading ids are unique within a document                                   */
+/* -------------------------------------------------------------------------- */
+
+{
+  const h = (id: string, text: string): ProseBlock => ({
+    id,
+    kind: 'h2',
+    content: [{ type: 'text', text }],
+  });
+  const idsIn = (html: string): string[] =>
+    [...html.matchAll(/<h2 class="doc-h2" id="([^"]*)"/g)].map((match) => match[1] as string);
+
+  // Two headings reading the same words. github-slugger, which headingSlug
+  // copies, numbers the repeats; two elements sharing an id is a document
+  // where the link to the second one silently goes to the first.
+  const twice = renderDoc(
+    doc([prose('b1', [h('ha', 'What I learned'), h('hb', 'What I learned'), h('hc', 'What I learned')])]),
+  );
+  const repeated = idsIn(twice);
+  ok(
+    'heading: a repeated heading is numbered, not duplicated',
+    repeated.length === 3 &&
+      repeated[0] === 'what-i-learned' &&
+      repeated[1] === 'what-i-learned-1' &&
+      repeated[2] === 'what-i-learned-2',
+    JSON.stringify(repeated),
+  );
+
+  // The ledger belongs to the DOCUMENT, not the band: a heading in the third
+  // band can collide with one in the first.
+  const acrossBands = renderDoc(
+    doc([prose('b1', [h('ha', 'Notes')]), prose('b2', [h('hb', 'Notes')])]),
+  );
+  const spread = idsIn(acrossBands);
+  ok(
+    'heading: the ledger spans bands, not just one of them',
+    spread.length === 2 && spread[0] === 'notes' && spread[1] === 'notes-1',
+    JSON.stringify(spread),
+  );
+
+  // headingSlug deletes everything that is not an ASCII letter or digit, so
+  // these slug to '' and used to get no id at all. The block id is already
+  // unique across the document and already in the markup, so it is the
+  // fallback: a heading you can link to beats a heading you cannot.
+  const unsluggable = renderDoc(
+    doc([prose('b1', [h('hangul', '한국어 제목'), h('dots', '…')])]),
+  );
+  const fallbacks = idsIn(unsluggable);
+  ok(
+    'heading: text with nothing to slug falls back to the block id',
+    fallbacks.length === 2 && fallbacks[0] === 'hangul' && fallbacks[1] === 'dots',
+    JSON.stringify(fallbacks),
+  );
+
+  // Everything above must leave the ordinary case exactly as it was.
+  const plain = renderDoc(doc([prose('b1', [h('only', 'Why a heatmap')])]));
+  contains(
+    'heading: a lone heading keeps its plain slug',
+    plain,
+    '<h2 class="doc-h2" id="why-a-heatmap" data-block-id="only">Why a heatmap</h2>',
+  );
 }
 
 console.log(`${passed} passed, ${failures.length} failed`);

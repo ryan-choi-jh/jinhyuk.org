@@ -219,8 +219,23 @@ export const DocMetaSchema = z
     slug: z.string().regex(SLUG_RE, 'slug must be lowercase kebab-case'),
     date: DateSchema,
     summary: z.string().optional(),
-    /** The "Visit" link. */
-    url: z.string().url('url must be an absolute URL').optional(),
+    /**
+     * The "Visit" link.
+     *
+     * `http(s)` only, and NOT `z.string().url()`, which was the rule here
+     * until it was measured. Zod's `.url()` is `new URL()` in a try/catch, and
+     * `new URL('javascript:alert(1))')` succeeds, so the schema accepted a
+     * scheme that becomes a live href on the published page. `mailto:` is out
+     * as well: this field is rendered as "Visit <host and path>", which is
+     * meaningless for an address.
+     */
+    url: z
+      .string()
+      // Case-insensitive on the scheme: `HTTPS://` is a legal URL, the old
+      // rule accepted it, and narrowing a check should not start rejecting
+      // things that were always fine.
+      .regex(/^https?:\/\/\S+$/i, 'url must be an absolute http(s) URL')
+      .optional(),
     /**
      * What that link is called, when "Visit" is not specific enough: a page
      * whose link goes to a demo rather than to the thing itself wants to say
@@ -346,7 +361,7 @@ export function isHighlightInk(value: unknown): value is HighlightInk {
   return typeof value === 'string' && (HIGHLIGHT_INKS as readonly string[]).includes(value);
 }
 
-export const ProseBlockSchema = z
+const ProseBlockObject = z
   .object({
     id: IdSchema,
     kind: ProseBlockKindSchema,
@@ -369,6 +384,24 @@ export const ProseBlockSchema = z
     tone: CalloutToneSchema.optional(),
   })
   .strict();
+
+/**
+ * `tone` only means something on a callout, so it is only legal on one, the
+ * same way `fill` is only legal on a rect or an ellipse (CanvasItemSchema
+ * below). Without this, recolouring a callout and then turning it into a
+ * paragraph left the colour behind in the file: invisible, since only a
+ * callout renders a tone, and exactly the kind of residue that makes the next
+ * reader of the JSON wonder what they are looking at.
+ */
+export const ProseBlockSchema = ProseBlockObject.superRefine((block, ctx) => {
+  if (block.tone !== undefined && block.kind !== 'callout') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tone'],
+      message: `\`tone\` is only valid on a callout, not on a "${block.kind}"`,
+    });
+  }
+});
 
 export type ProseBlock = z.infer<typeof ProseBlockSchema>;
 
@@ -488,6 +521,18 @@ const MEDIA_ONLY_KEYS = ['src', 'alt'] as const;
 export const CanvasItemSchema = CanvasItemObject.superRefine((item, ctx) => {
   const reject = (key: string, message: string) =>
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message });
+
+  // Before the shape branch, which returns early: these two are wrong on a
+  // shape as much as they are on a video. Both document themselves as
+  // kind-specific and neither was enforced. There is nothing to enlarge about
+  // a video, which has its own full-screen button, and nothing for a poster
+  // to stand in front of on an image, which is already the picture.
+  if (item.zoom !== undefined && item.kind !== 'image') {
+    reject('zoom', '`zoom` is only valid on an image');
+  }
+  if (item.poster !== undefined && item.kind !== 'video') {
+    reject('poster', '`poster` is only valid on a video');
+  }
 
   if (item.kind === 'shape') {
     if (item.shape === undefined) {
