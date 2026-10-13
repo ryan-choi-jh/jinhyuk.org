@@ -29,8 +29,7 @@ import type {
   DocMeta,
   ProseBand,
   ProseBlock,
-  ProseBlockKind,
-} from '../../schema.ts';
+  ProseBlockKind, CalloutTone,} from '../../schema.ts';
 
 /* -------------------------------------------------------------------------- */
 /* Equality                                                                    */
@@ -444,6 +443,30 @@ export function setBlockKind(doc: Doc, bandId: string, blockId: string, kind: Pr
     if (current.kind === kind) return band;
     const blocks = [...band.blocks];
     blocks[index] = { ...current, kind, content: convertProseContent(current.kind, kind, current.content) };
+    return { ...band, blocks };
+  });
+}
+
+/**
+ * A callout's colour. The default is stored as nothing, like every other
+ * optional field, so a callout nobody has recoloured carries no tone at all.
+ */
+export function setBlockTone(
+  doc: Doc,
+  bandId: string,
+  blockId: string,
+  tone: CalloutTone | undefined,
+): Doc {
+  return withBand(doc, bandId, (band) => {
+    if (band.type !== 'prose') return band;
+    const index = band.blocks.findIndex((block) => block.id === blockId);
+    if (index < 0) return band;
+    const current = band.blocks[index] as ProseBlock;
+    if (current.tone === tone) return band;
+    const blocks = [...band.blocks];
+    const next: ProseBlock = { ...current, tone };
+    if (tone === undefined) delete next.tone;
+    blocks[index] = next;
     return { ...band, blocks };
   });
 }

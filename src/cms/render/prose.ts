@@ -19,8 +19,10 @@
  */
 
 import {
+  DEFAULT_CALLOUT_TONE,
   DEFAULT_HIGHLIGHT_INK,
   PROSE_MARKS,
+  isCalloutTone,
   isHighlightInk,
   isSafeStyleColor,
 } from '../schema.ts';
@@ -325,6 +327,9 @@ const BLOCK_SHELL: Readonly<Record<ProseBlockKind, { tag: string; className: str
   h2: { tag: 'h2', className: 'doc-h2' },
   h3: { tag: 'h3', className: 'doc-h3' },
   quote: { tag: 'blockquote', className: 'doc-quote' },
+  // <aside>, not <div>: a callout is set apart from the text around it, and
+  // that is exactly what the element means.
+  callout: { tag: 'aside', className: 'doc-callout' },
   ul: { tag: 'ul', className: 'doc-list doc-list--ul' },
   ol: { tag: 'ol', className: 'doc-list doc-list--ol' },
 };
@@ -360,8 +365,15 @@ export function renderProseBlock(block: ProseBlock): string {
   const headingId =
     block.kind === 'h2' || block.kind === 'h3' ? headingSlug(inlineText(content)) : '';
 
+  // The tone is a class, so the five colours live in the stylesheet with a
+  // light and a dark value each, rather than a hex frozen into the document.
+  const tone =
+    block.kind === 'callout'
+      ? ` doc-callout--${isCalloutTone(block.tone) ? block.tone : DEFAULT_CALLOUT_TONE}`
+      : '';
+
   return (
-    `<${shell.tag} class="${shell.className}"` +
+    `<${shell.tag} class="${shell.className}${tone}"` +
     (headingId === '' ? '' : attr('id', headingId)) +
     `${attr('data-block-id', block.id)}>${inner}</${shell.tag}>`
   );

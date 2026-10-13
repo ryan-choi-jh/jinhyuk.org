@@ -42,6 +42,7 @@ import type { JSX } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import type { Editor } from '@tiptap/core';
 
+import { DEFAULT_CALLOUT_TONE } from '../../schema.ts';
 import type { ProseBlock, ProseBlockKind } from '../../schema.ts';
 import {
   blockFromDoc,
@@ -55,6 +56,7 @@ import type { ProseNode } from './block.ts';
 import { PROSE_KIND_TITLE, SINGLE_LINE_KINDS, proseExtensions } from './extensions.ts';
 import { injectProseEditorStyles } from './css.ts';
 import { injectHighlightStyles } from '../../styles/highlight.ts';
+import { injectCalloutStyles } from '../../styles/callout.ts';
 import { ProseToolbar } from './Toolbar.tsx';
 
 /** Where to put the caret: an end of the block, or a character offset into it. */
@@ -210,6 +212,8 @@ function ProseEditorInstance({
     // The highlighter's own rules. Separate stylesheet, shared with the
     // published page; see styles/highlight.ts.
     injectHighlightStyles();
+    // The callout's box, same arrangement: shared with the published page.
+    injectCalloutStyles();
   }, []);
 
   const editor = useEditor(
@@ -315,7 +319,15 @@ function ProseEditorInstance({
   const classes = className === undefined ? 'pe-root' : `pe-root ${className}`;
 
   return (
-    <div className={classes} data-prose-block={block.id} data-prose-kind={kind}>
+    <div
+      className={classes}
+      data-prose-block={block.id}
+      data-prose-kind={kind}
+      // Only a callout has one, and callout.ts keys its colours off it. The
+      // tone lives on the ProseBlock rather than inside the editor document,
+      // so it has to reach the DOM from here.
+      data-tone={kind === 'callout' ? (block.tone ?? DEFAULT_CALLOUT_TONE) : undefined}
+    >
       <div className="pe-surface">
         <EditorContent editor={editor} />
       </div>

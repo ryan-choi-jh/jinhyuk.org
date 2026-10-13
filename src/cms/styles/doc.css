@@ -189,6 +189,103 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Callout
+   A paragraph set apart in a tinted box. Generated from
+   src/cms/styles/callout.ts and copied here because a stylesheet cannot
+   import it; cms:verify asserts the two are byte-identical, so editing this
+   copy by hand fails the build rather than drifting.
+   --------------------------------------------------------------------------- */
+
+/* CALLOUT:START */
+:root {
+  --callout-grey-bg: #f4f4f4;
+  --callout-grey-edge: #d8d8d8;
+  --callout-yellow-bg: #fdf6e0;
+  --callout-yellow-edge: #e8d79a;
+  --callout-blue-bg: #eef5fc;
+  --callout-blue-edge: #bdd6ef;
+  --callout-green-bg: #eef7ef;
+  --callout-green-edge: #bedcc2;
+  --callout-pink-bg: #fdeef3;
+  --callout-pink-edge: #efbfd0;
+}
+
+:root[data-theme='dark'] {
+  --callout-grey-bg: #1b1b1b;
+  --callout-grey-edge: #3a3a3a;
+  --callout-yellow-bg: #241f10;
+  --callout-yellow-edge: #4d421f;
+  --callout-blue-bg: #141c25;
+  --callout-blue-edge: #2f4459;
+  --callout-green-bg: #141f16;
+  --callout-green-edge: #2f4a35;
+  --callout-pink-bg: #241419;
+  --callout-pink-edge: #512f3c;
+}
+
+/* The box. The editor selector is the same box around the live editor, so
+   a callout is a callout in both places. */
+.doc-callout,
+.pe-root[data-prose-kind='callout'] .pe-content {
+  /* The reading measure, like every other block of text in a document. */
+  max-width: min(var(--doc-measure, 720px), 100%);
+  margin: 28px 0;
+  padding: 16px 20px;
+  border-left: 3px solid var(--callout-grey-edge);
+  border-radius: 3px;
+  background: var(--callout-grey-bg);
+  color: var(--ink, #111111);
+  font-size: 16px;
+  line-height: 28px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* A callout is usually one link, and it should look like one. */
+.doc-callout a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--callout-grey-edge);
+}
+
+.doc-callout a:hover {
+  text-decoration-color: var(--accent, #ff5722);
+}
+
+.doc-callout--grey,
+.pe-root[data-prose-kind='callout'][data-tone='grey'] .pe-content {
+  background: var(--callout-grey-bg);
+  border-left-color: var(--callout-grey-edge);
+}
+
+.doc-callout--yellow,
+.pe-root[data-prose-kind='callout'][data-tone='yellow'] .pe-content {
+  background: var(--callout-yellow-bg);
+  border-left-color: var(--callout-yellow-edge);
+}
+
+.doc-callout--blue,
+.pe-root[data-prose-kind='callout'][data-tone='blue'] .pe-content {
+  background: var(--callout-blue-bg);
+  border-left-color: var(--callout-blue-edge);
+}
+
+.doc-callout--green,
+.pe-root[data-prose-kind='callout'][data-tone='green'] .pe-content {
+  background: var(--callout-green-bg);
+  border-left-color: var(--callout-green-edge);
+}
+
+.doc-callout--pink,
+.pe-root[data-prose-kind='callout'][data-tone='pink'] .pe-content {
+  background: var(--callout-pink-bg);
+  border-left-color: var(--callout-pink-edge);
+}
+/* CALLOUT:END */
+
+/* ---------------------------------------------------------------------------
    Highlighter
    A brush stroke BEHIND the words, so the ink can be saturated and the text
    keeps all of its contrast. The block between the markers is generated from

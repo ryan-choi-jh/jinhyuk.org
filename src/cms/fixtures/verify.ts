@@ -51,6 +51,7 @@ import {
 import type { CanvasItem, Doc, SectionId } from '../schema.ts';
 import { canvasContentHeight } from '../app/state/doc-ops.ts';
 import { HIGHLIGHT_CSS, brushUrl } from '../styles/highlight.ts';
+import { CALLOUT_CSS } from '../styles/callout.ts';
 import {
   SECTIONS,
   cmsUrlFor,
@@ -806,16 +807,30 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
 {
   const cssPath = fileURLToPath(new URL('../styles/doc.css', import.meta.url));
   const css = readFileSync(cssPath, 'utf8');
-  const start = css.indexOf('/* HIGHLIGHT:START */\n');
-  const end = css.indexOf('\n/* HIGHLIGHT:END */');
-  const copied = start < 0 || end < 0 ? null : css.slice(start + '/* HIGHLIGHT:START */\n'.length, end);
 
-  check('doc.css carries the highlighter block between its markers', copied !== null);
-  check(
-    'and it is byte-identical to styles/highlight.ts',
-    copied === HIGHLIGHT_CSS,
-    copied === HIGHLIGHT_CSS ? '' : `${copied?.length ?? 0} chars vs ${HIGHLIGHT_CSS.length}`,
-  );
+  /** The copy doc.css carries between one pair of markers. */
+  const copyOf = (name: string): string | null => {
+    const open = `/* ${name}:START */\n`;
+    const close = `\n/* ${name}:END */`;
+    const from = css.indexOf(open);
+    const to = css.indexOf(close);
+    return from < 0 || to < 0 ? null : css.slice(from + open.length, to);
+  };
+
+  for (const [name, source] of [
+    ['HIGHLIGHT', HIGHLIGHT_CSS],
+    ['CALLOUT', CALLOUT_CSS],
+  ] as const) {
+    const copied = copyOf(name);
+    check(`doc.css carries the ${name.toLowerCase()} block between its markers`, copied !== null);
+    check(
+      `and the ${name.toLowerCase()} copy is byte-identical to its module`,
+      copied === source,
+      copied === source ? '' : `${copied?.length ?? 0} chars vs ${source.length}`,
+    );
+  }
+
+  const copied = copyOf('HIGHLIGHT');
 
   // The ink is the thing a careless edit would change, so name it explicitly.
   for (const ink of HIGHLIGHT_INKS) {

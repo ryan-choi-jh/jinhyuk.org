@@ -241,6 +241,7 @@ export const SINGLE_LINE_KINDS: ReadonlySet<ProseBlockKind> = new Set<ProseBlock
   'p',
   'h2',
   'h3',
+  'callout',
 ]);
 
 export type ProseExtensionOptions = {
@@ -439,7 +440,7 @@ export function getProseSchema(kind: ProseBlockKind): Schema {
 }
 
 /** Every kind, for exhaustive tests and for the toolbar. */
-export const PROSE_KINDS: readonly ProseBlockKind[] = ['p', 'h2', 'h3', 'quote', 'ul', 'ol'];
+export const PROSE_KINDS: readonly ProseBlockKind[] = ['p', 'h2', 'h3', 'quote', 'callout', 'ul', 'ol'];
 
 /** Toolbar labels for the kind buttons. Short, because the toolbar is small. */
 export const PROSE_KIND_LABEL: Readonly<Record<ProseBlockKind, string>> = {
@@ -447,6 +448,7 @@ export const PROSE_KIND_LABEL: Readonly<Record<ProseBlockKind, string>> = {
   h2: 'H2',
   h3: 'H3',
   quote: '“”',
+  callout: '▣',
   ul: '•',
   ol: '1.',
 };
@@ -456,6 +458,7 @@ export const PROSE_KIND_TITLE: Readonly<Record<ProseBlockKind, string>> = {
   h2: 'Heading 2',
   h3: 'Heading 3',
   quote: 'Quote',
+  callout: 'Callout box',
   ul: 'Bulleted list',
   ol: 'Numbered list',
 };

@@ -149,6 +149,13 @@ function requestCaret(blockId: string, at: CaretAt): void {
   caretRequests.set(blockId, { at, nonce: caretNonce });
 }
 
+/** A fixture block by id. Index lookups break whenever the fixture grows. */
+function fixtureBlock(id: string): ProseBlock {
+  const found = FIXTURE_BLOCKS.find((block) => block.id === id);
+  if (found === undefined) throw new Error(`no fixture block ${id}`);
+  return found;
+}
+
 function blockById(id: string): ProseBlock {
   const found = bridge.get().find((block) => block.id === id);
   if (found === undefined) throw new Error(`no block ${id}`);
@@ -553,14 +560,14 @@ async function run(): Promise<void> {
     check(
       'and it kept the marks around it',
       canonicalJson(collectProseMarks(blockById('p_open').content)) ===
-        canonicalJson(collectProseMarks(FIXTURE_BLOCKS[0].content)),
+        canonicalJson(collectProseMarks(fixtureBlock('p_open').content)),
     );
     check('the id survived the edit', blockById('p_open').id === 'p_open');
     check('the kind survived the edit', blockById('p_open').kind === 'p');
     editor.commands.undo();
     check(
       'undo restores the fixture block exactly',
-      await waitFor(() => canonicalJson(blockById('p_open')) === canonicalJson(FIXTURE_BLOCKS[0])),
+      await waitFor(() => canonicalJson(blockById('p_open')) === canonicalJson(fixtureBlock('p_open'))),
     );
   }
 
@@ -585,7 +592,7 @@ async function run(): Promise<void> {
     await reset();
     check(
       'resetting the prop restores the fixture content',
-      canonicalJson(blockById('p_close')) === canonicalJson(FIXTURE_BLOCKS[FIXTURE_BLOCKS.length - 1]),
+      canonicalJson(blockById('p_close')) === canonicalJson(fixtureBlock('p_close')),
     );
   }
 
@@ -621,7 +628,7 @@ async function run(): Promise<void> {
     // the fixture. (On p_open it could not: selecting a run that is only
     // partly bold and toggling twice correctly clears the bold that was
     // already there. That is ProseMirror doing the right thing, not a loss.)
-    const pristine = FIXTURE_BLOCKS[FIXTURE_BLOCKS.length - 1];
+    const pristine = fixtureBlock('p_close');
     await focusBlock('p_close');
     await clickToolbar('Bold', () => byTitle('Bold'));
     await waitFor(() => collectProseMarks(blockById('p_close').content).some((mark) => mark.type === 'bold'));
@@ -666,7 +673,7 @@ async function run(): Promise<void> {
     editorFor('p_open').commands.undo();
     check(
       'on a partly bold run, undo restores the fixture exactly',
-      await waitFor(() => canonicalJson(blockById('p_open')) === canonicalJson(FIXTURE_BLOCKS[0])),
+      await waitFor(() => canonicalJson(blockById('p_open')) === canonicalJson(fixtureBlock('p_open'))),
       canonicalJson(collectProseMarks(blockById('p_open').content).map((mark) => mark.type)),
     );
   }
@@ -924,7 +931,7 @@ async function run(): Promise<void> {
     check('and it is empty', blockById('h2_heatmap').content.length === 0);
     const moved = bridge.get()[bridge.get().indexOf(blockById('h2_heatmap')) + 1];
     check('the heading itself moved down, still a heading', moved.kind === 'h2', moved.kind);
-    check('with all of its words', collectProseText(moved.content) === collectProseText(FIXTURE_BLOCKS[1].content), collectProseText(moved.content));
+    check('with all of its words', collectProseText(moved.content) === collectProseText(fixtureBlock('h2_heatmap').content), collectProseText(moved.content));
     await reset();
 
     // Enter at the END of a heading starts a paragraph, which is the case
@@ -935,7 +942,7 @@ async function run(): Promise<void> {
     await waitFor(() => bridge.get().length === before + 1);
     const after = bridge.get()[bridge.get().indexOf(blockById('h2_heatmap')) + 1];
     check('Enter at the end of a heading starts a paragraph', after.kind === 'p', after.kind);
-    check('and the heading keeps its words', collectProseText(blockById('h2_heatmap').content) === collectProseText(FIXTURE_BLOCKS[1].content));
+    check('and the heading keeps its words', collectProseText(blockById('h2_heatmap').content) === collectProseText(fixtureBlock('h2_heatmap').content));
     await reset();
   }
 
@@ -986,6 +993,39 @@ async function run(): Promise<void> {
       `${JSON.stringify(collectProseText(blockById('p_open').content))} + ${JSON.stringify(collectProseText(tail.content).slice(0, 16))}`,
     );
 
+    await reset();
+  }
+
+  section('the callout box');
+  {
+    await reset();
+    const root = () => document.querySelector('[data-prose-block="callout_guide"]') as HTMLElement | null;
+
+    check('a callout mounts like any other block', editors.has('callout_guide'));
+    check(
+      'its top node is a paragraph: the content is a paragraph\'s, only the box differs',
+      editorFor('callout_guide').state.doc.firstChild?.type.name === 'paragraph',
+      editorFor('callout_guide').state.doc.firstChild?.type.name,
+    );
+    check('the link inside survives the round trip', collectProseMarks(blockById('callout_guide').content).some((m) => m.type === 'link'));
+
+    // The editor has to SHOW the box, or the one thing a callout is for is
+    // invisible until the page is published.
+    const box = root();
+    const styles = box === null ? null : getComputedStyle(box.querySelector('.pe-content') as HTMLElement);
+    check('the editor draws the box, not a bare paragraph', styles !== null && styles.backgroundColor !== 'rgba(0, 0, 0, 0)', styles?.backgroundColor);
+    check(
+      'and in the tone the block stores',
+      box?.getAttribute('data-tone') === 'blue',
+      box?.getAttribute('data-tone') ?? 'none',
+    );
+
+    // Converting away and back is how the kind buttons work, and a callout
+    // must not lose its words on the way.
+    const words = collectProseText(blockById('callout_guide').content);
+    bridge.set(bridge.get().map((b) => (b.id === 'callout_guide' ? { ...b, kind: 'p' as const } : b)));
+    await waitFor(() => blockById('callout_guide').kind === 'p');
+    check('converting a callout to a paragraph keeps its words', collectProseText(blockById('callout_guide').content) === words);
     await reset();
   }
 
@@ -1083,7 +1123,7 @@ async function run(): Promise<void> {
     check('but the first block has nothing above it, so nothing happens', bridge.get().length === countBefore, String(bridge.get().length));
     check(
       'and its text is untouched',
-      canonicalJson(blockById('p_open')) === canonicalJson(FIXTURE_BLOCKS[0]),
+      canonicalJson(blockById('p_open')) === canonicalJson(fixtureBlock('p_open')),
       collectProseText(blockById('p_open').content).slice(0, 20),
     );
 

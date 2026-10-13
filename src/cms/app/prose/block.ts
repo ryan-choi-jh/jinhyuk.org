@@ -336,7 +336,10 @@ function listItemNode(inline: ProseNode[]): ProseNode {
 
 /** Inline runs -> the exact 3.2 content shape for one block kind. */
 export function contentForKind(kind: ProseBlockKind, groups: ProseNode[][]): ProseNode[] {
-  if (kind === 'p' || kind === 'h2' || kind === 'h3') return joinGroups(groups);
+  // A callout is a paragraph in a box: inline content, like p and the headings.
+  if (kind === 'p' || kind === 'h2' || kind === 'h3' || kind === 'callout') {
+    return joinGroups(groups);
+  }
   // A blockquote and a list must hold at least one child to be a legal
   // ProseMirror node, so an empty one holds one empty paragraph.
   const atLeastOne = groups.length === 0 ? [[]] : groups;

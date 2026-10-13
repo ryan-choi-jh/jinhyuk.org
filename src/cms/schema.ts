@@ -255,7 +255,7 @@ export type DocMeta = z.infer<typeof DocMetaSchema>;
 /* 3.2 Prose                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export const PROSE_BLOCK_KINDS = ['p', 'h2', 'h3', 'quote', 'ul', 'ol'] as const;
+export const PROSE_BLOCK_KINDS = ['p', 'h2', 'h3', 'quote', 'callout', 'ul', 'ol'] as const;
 
 export const ProseBlockKindSchema = z.enum(PROSE_BLOCK_KINDS);
 export type ProseBlockKind = z.infer<typeof ProseBlockKindSchema>;
@@ -277,9 +277,37 @@ export const PROSE_NODE_TYPE: Readonly<Record<ProseBlockKind, string>> = {
   h2: 'heading',
   h3: 'heading',
   quote: 'blockquote',
+  // A callout is a paragraph in a box. Its CONTENT is a paragraph's, which is
+  // what lets links, bold and colour work inside one without a line of extra
+  // code; only `kind` and the box around it differ, and `kind` is stored on
+  // the ProseBlock rather than inferred from the node.
+  callout: 'paragraph',
   ul: 'bulletList',
   ol: 'orderedList',
 };
+
+/**
+ * What colour a callout is.
+ *
+ * A CLOSED set, like the highlighter's inks, and for the same reason: each
+ * tone is a pair of CSS custom properties with a light and a dark value, so
+ * the box follows the theme instead of freezing one. A free colour would have
+ * nothing to resolve to in dark mode.
+ *
+ * These are much lighter than either the highlighter inks or the text
+ * palette, because this is a background behind a whole paragraph rather than
+ * a stroke behind a few words.
+ */
+export const CALLOUT_TONES = ['grey', 'yellow', 'blue', 'green', 'pink'] as const;
+export type CalloutTone = (typeof CALLOUT_TONES)[number];
+export const CalloutToneSchema = z.enum(CALLOUT_TONES);
+
+/** Absent means this. Grey is the quiet one, which is what a callout usually wants. */
+export const DEFAULT_CALLOUT_TONE: CalloutTone = 'grey';
+
+export function isCalloutTone(value: unknown): value is CalloutTone {
+  return typeof value === 'string' && (CALLOUT_TONES as readonly string[]).includes(value);
+}
 
 export const PROSE_HEADING_LEVEL: Readonly<Record<'h2' | 'h3', number>> = { h2: 2, h3: 3 };
 
@@ -334,6 +362,11 @@ export const ProseBlockSchema = z
      *                       content: [{ type: 'paragraph', content: [inline...] }] }]
      */
     content: z.array(z.unknown()),
+    /**
+     * A callout's colour. Ignored on every other kind, and absent means the
+     * default, so a callout that has never been recoloured stores nothing.
+     */
+    tone: CalloutToneSchema.optional(),
   })
   .strict();
 

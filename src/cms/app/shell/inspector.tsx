@@ -11,7 +11,13 @@
  */
 
 
-import { PROSE_BLOCK_KINDS, REFERENCE_WIDTH, SHAPE_KINDS } from '../../schema.ts';
+import {
+  CALLOUT_TONES,
+  DEFAULT_CALLOUT_TONE,
+  PROSE_BLOCK_KINDS,
+  REFERENCE_WIDTH,
+  SHAPE_KINDS,
+} from '../../schema.ts';
 import type { Anchor, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
 import { blockPlainText, mergeTargetFor } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
@@ -402,6 +408,26 @@ function BlockPanel({
           options={PROSE_BLOCK_KINDS}
           onChange={(kind) => store.setBlockKind(band.id, block.id, kind)}
         />
+        {block.kind === 'callout' && (
+          <>
+            <SelectField
+              label="Colour"
+              testId="block-tone"
+              value={block.tone ?? DEFAULT_CALLOUT_TONE}
+              options={CALLOUT_TONES}
+              // The default is stored as nothing, like every other optional.
+              onChange={(tone) =>
+                store.setBlockTone(band.id, block.id, tone === DEFAULT_CALLOUT_TONE ? undefined : tone)
+              }
+            />
+            <div className="cms-hint">
+              A paragraph set apart in a tinted box. Lighter than the text colours and the
+              highlighter, because this is a ground behind a whole paragraph rather than a stroke
+              behind a few words. Each colour has a light and a dark value, so the box follows the
+              theme.
+            </div>
+          </>
+        )}
         <div className="cms-hint">
           id <code>{block.id}</code>
         </div>

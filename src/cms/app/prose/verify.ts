@@ -609,8 +609,8 @@ section('splitting and joining an inline run');
   );
 
   check(
-    'only p/h2/h3 route Enter through the split: the rest have somewhere to put it',
-    [...SINGLE_LINE_KINDS].sort().join(',') === 'h2,h3,p',
+    'only the inline-content kinds route Enter through the split: the rest have somewhere to put it',
+    [...SINGLE_LINE_KINDS].sort().join(',') === 'callout,h2,h3,p',
     [...SINGLE_LINE_KINDS].join(','),
   );
 }

@@ -16,7 +16,7 @@
 
 import { formatIssues, validateDoc } from '../schema.ts';
 import type { Band, Doc, ProseBlock } from '../schema.ts';
-import { fallbackGenerateShape, renderDoc } from './index.ts';
+import { fallbackGenerateShape, renderDoc, renderProseBlock } from './index.ts';
 
 /* -------------------------------------------------------------------------- */
 
@@ -205,6 +205,8 @@ function render(bands: Band[]): string {
           },
         ],
       },
+      { id: 'callout_default', kind: 'callout', content: [{ type: 'text', text: 'quiet aside' }] },
+      { id: 'callout_blue', kind: 'callout', tone: 'blue', content: [{ type: 'text', text: 'a blue one' }] },
       {
         id: 'col',
         kind: 'p',
@@ -233,6 +235,40 @@ function render(bands: Band[]): string {
     '<span style="color:var(--muted, #6b6b6b)">muted</span>',
   );
   contains('colour: a plain hex still renders', html, '<span style="color:#3a7f6d">hexed</span>');
+  // A callout is an <aside>, which is what "set apart from the text" means,
+  // and its tone is a class so the colour has a light and a dark value.
+  contains(
+    'callout: an aside with the default tone',
+    html,
+    '<aside class="doc-callout doc-callout--grey" data-block-id="callout_default">quiet aside</aside>',
+  );
+  contains(
+    'callout: a chosen tone becomes a class',
+    html,
+    '<aside class="doc-callout doc-callout--blue" data-block-id="callout_blue">a blue one</aside>',
+  );
+  // A tone the schema would refuse cannot reach a stored document, so this
+  // goes straight at the renderer: a hand-edited file must not produce a
+  // class with nothing behind it.
+  ok(
+    'callout: a tone the schema would refuse falls back rather than emitting a dead class',
+    renderProseBlock({
+      id: 'x',
+      kind: 'callout',
+      tone: 'mauve',
+      content: [{ type: 'text', text: 'hand edited' }],
+    } as unknown as ProseBlock) ===
+      '<aside class="doc-callout doc-callout--grey" data-block-id="x">hand edited</aside>',
+    renderProseBlock({ id: 'x', kind: 'callout', tone: 'mauve', content: [] } as unknown as ProseBlock),
+  );
+  ok(
+    'callout: and the schema refuses to store it in the first place',
+    !validateDoc({
+      version: 1,
+      meta: { title: 'x', slug: 'x', date: '2026-01-01' },
+      bands: [{ id: 'b', type: 'prose', blocks: [{ id: 'c', kind: 'callout', tone: 'mauve', content: [] }] }],
+    }).ok,
+  );
   // And the style attribute stays shut.
   contains('colour: an injection attempt is dropped, text kept', html, '>injected<');
   contains(

@@ -119,6 +119,15 @@
           "content": [
             { "type": "text", "text": "After all, it is just a cover. But opening the app to something that moves you does more for consistency than a push notification ever has." }
           ]
+        },
+        {
+          "id": "callout_guide",
+          "kind": "callout",
+          "tone": "blue",
+          "content": [
+            { "type": "text", "marks": [{ "type": "link", "attrs": { "href": "https://example.com/guide", "target": "_blank", "rel": "noopener noreferrer" } }], "text": "Step-by-step guide" },
+            { "type": "text", "text": ", for the aside that is not part of the argument." }
+          ]
         }
       ]
     }

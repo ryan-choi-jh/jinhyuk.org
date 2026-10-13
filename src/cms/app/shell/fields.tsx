@@ -198,12 +198,14 @@ export function SelectField<T extends string>({
   options,
   onChange,
   disabled = false,
+  testId,
 }: {
   label: string;
   value: T;
   options: readonly T[] | readonly { value: T; label: string }[];
   onChange: (next: T) => void;
   disabled?: boolean;
+  testId?: string;
 }) {
   const normalised = options.map((option) =>
     typeof option === 'string' ? { value: option, label: option } : option,
@@ -212,6 +214,7 @@ export function SelectField<T extends string>({
     <Field label={label}>
       <select
         className="cms-select"
+        data-testid={testId}
         value={value}
         disabled={disabled}
         onChange={(event: ChangeEvent<HTMLSelectElement>) => onChange(event.target.value as T)}

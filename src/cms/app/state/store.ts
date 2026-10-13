@@ -19,7 +19,7 @@
  */
 
 import { formatIssues, validateDoc } from '../../schema.ts';
-import type { Band, CanvasItem, Doc, DocMeta, ProseBlockKind, ValidationIssue } from '../../schema.ts';
+import type { Band, CanvasItem, Doc, DocMeta, ProseBlockKind, ValidationIssue, CalloutTone} from '../../schema.ts';
 import { apiErrorMessage } from './api.ts';
 import type { AuthStatus, CmsApi } from './api.ts';
 import * as ops from './doc-ops.ts';
@@ -148,6 +148,8 @@ export type DocStore = {
   /* prose blocks */
   setBlockContent(bandId: string, blockId: string, content: unknown[], options?: EditOptions): void;
   setBlockKind(bandId: string, blockId: string, kind: ProseBlockKind): void;
+  /** A callout's colour. `undefined` restores the default. */
+  setBlockTone(bandId: string, blockId: string, tone: CalloutTone | undefined): void;
   insertProseBlock(bandId: string, index: number, kind?: ProseBlockKind): void;
   deleteProseBlock(bandId: string, blockId: string): void;
   moveProseBlock(bandId: string, blockId: string, toIndex: number): void;
@@ -573,6 +575,13 @@ export function createDocStore(options: DocStoreOptions): DocStore {
     setBlockKind(bandId, blockId, kind) {
       update((doc) => ops.setBlockKind(doc, bandId, blockId, kind), {
         label: `set block to ${kind}`,
+        selection: selectBlock(bandId, blockId),
+      });
+    },
+
+    setBlockTone(bandId, blockId, tone) {
+      update((doc) => ops.setBlockTone(doc, bandId, blockId, tone), {
+        label: 'set callout colour',
         selection: selectBlock(bandId, blockId),
       });
     },
