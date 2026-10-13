@@ -147,11 +147,22 @@ A stylesheet cannot import TypeScript, and the editor does not load
 `npm run cms:verify`, which proves it. The guard was always there; the
 copying was by hand, which is the step the guard existed to catch.
 
-**The trap, which has now bitten five times: a backtick inside a CSS comment
-inside a TypeScript template literal ends the literal.** It usually appears
-when writing something like `` /* the `--rule` token */ ``. The build error is
-far from the cause and reads like nonsense. `cms:verify` catches it in
-seconds, so run it immediately after touching one of those files.
+**Two ways to break a CSS string silently, both now checked by
+`src/cms/styles/verify-css-strings.ts` in the offline group.**
+
+A **backtick inside a CSS comment** ends the template literal. It appears
+when quoting a token, as in a comment about the `--rule` variable. This has
+happened eight times, twice in one sitting, once within an hour of this
+rule being written. The build catches it and reports `Expected ";" but
+found "flex"` at a line far from the cause.
+
+An **unbalanced brace** is worse, because nothing fails: the string builds,
+the editor boots, and every rule after the bad brace is dropped by the CSS
+parser. The symptoms of the last one were three panes at full width and a
+"desktop only" notice on a 1600px screen, which looks like anything except
+a brace.
+
+Run `npm run cms:check` after touching any file that exports CSS.
 
 **The editor's typography is a separate mirror** (`SHELL_CSS` in
 `src/cms/app/shell/styles.ts`) and it has drifted from `doc.css` three times.

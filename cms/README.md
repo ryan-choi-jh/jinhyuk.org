@@ -18,7 +18,7 @@ Where those two and these files disagree, the code wins.
 Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
-npm run cms:check           # 14 offline suites, about two seconds
+npm run cms:check           # 15 offline suites, about two seconds
 npm run cms:check:browser   # 15 that open a browser, about seven minutes
 npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
 ```
@@ -62,6 +62,7 @@ the Xcode licence is accepted.
 | `preview/selftest.ts` | What the preview renders for each surface |
 | `verify-preflight.ts` | The pre-publish checklist finds what it should and stays quiet otherwise |
 | `verify-hidden.ts` | `meta.hidden` makes a page absent, not merely unlisted |
+| `styles/verify-css-strings.ts` | No backtick inside a CSS comment, and the braces balance |
 | `server/verify.ts --offline` | Header parsers, HTTP helpers, route refusals |
 
 **Browser** (`npm run cms:check:browser`)
@@ -70,7 +71,7 @@ the Xcode licence is accepted.
 | --- | --- |
 | `app/prose/harness/run.mjs` | The live prose component |
 | `app/prose/harness/keys.mjs` | The block-boundary keys, in a band of real editors |
-| `app/shell/harness/drive.mjs` | The editor shell, including the crash copy and the publish checklist |
+| `app/shell/harness/drive.mjs` | The editor shell: the crash copy, the publish checklist, and that the toolbar fits at six widths |
 | `app/shell/site-harness/drive.mjs` | The whole-site navigation shell |
 | `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does |
 | `styles/verify-spacing.mjs` | "Space above" is a floor, in both places, at both widths |
@@ -100,4 +101,4 @@ claimed fixed.
 
 ## State
 
-All 31 suites passed on 2026-10-13: 14 offline, 15 browser, 2 end to end.
+All 32 suites passed on 2026-10-13: 15 offline, 15 browser, 2 end to end.
