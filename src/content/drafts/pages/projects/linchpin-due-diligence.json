@@ -1,11 +1,12 @@
 {
   "version": 1,
   "meta": {
-    "title": "Linchpin: Due Diligence Management for Sell-Side M&A",
+    "title": "Linchpin: Due Diligence Management for Sell‑Side M&A",
     "slug": "linchpin-due-diligence",
     "date": "2026-05-18",
     "summary": "An AI-powered due diligence tracker for sell-side M&A bankers, built to consolidate buyer requests, eliminate duplicate work, and keep deals moving.",
     "url": "https://linchpin-prototype.vercel.app",
+    "urlLabel": "Visit demo prototype:",
     "section": "projects"
   },
   "bands": [

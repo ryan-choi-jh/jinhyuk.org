@@ -460,6 +460,27 @@ html.theme-vt::view-transition-new(root) {
   height: 100%;
 }
 
+/* A figure from a document, unlike an album photograph, is opened to be READ:
+   a diagram drawn for the full column has text in it that disappears when the
+   picture is fitted to a phone. So it opens at the size it was drawn at (the
+   script sets the width) and the stage is pannable, which is how the homepage
+   hero behaves and for the same reason. */
+.doc-lightbox .lightbox-stage {
+  justify-content: safe center;
+  align-items: safe center;
+  overflow: auto;
+}
+
+.doc-lightbox .lightbox-stage img {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  flex: none;
+  background: #fff;
+}
+
 .lightbox-close {
   position: absolute;
   /* Sits clear of the notch and the browser chrome, as high as it can go

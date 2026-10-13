@@ -286,17 +286,41 @@
 .doc-frame > img,
 .doc-frame > video,
 .doc-frame > svg,
-.doc-frame > iframe {
+.doc-frame > iframe,
+.doc-frame > .doc-zoom {
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+/* The enlarge trigger around a figure. A bare block, so wrapping the picture
+   in a button changes nothing about how the picture sits in its frame. */
+.doc-zoom {
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.doc-zoom > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.doc-zoom:focus-visible {
+  outline: 2px solid var(--accent, #ff5722);
+  outline-offset: 3px;
 }
 
 /* object-fit so an authored box whose ratio drifts from the file's crops
    instead of squashing. The same hairline the album tiles and film posters
    carry (--media-edge), without which a screenshot that is white to its edges
    dissolves into the page. */
-.doc-item--image .doc-frame > img,
+.doc-item--image .doc-frame > .doc-zoom > img,
 .doc-item--video .doc-frame > video {
   object-fit: cover;
   border: 1px solid var(--media-edge, #e4e4e4);

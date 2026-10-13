@@ -106,7 +106,24 @@ function itemBody(item: CanvasItem): string {
 
   switch (item.kind) {
     case 'image':
-      return `<img${attr('src', src)}${attr('alt', item.alt ?? '')} loading="lazy" decoding="async" />`;
+      // Wrapped in a button so it can be enlarged. A diagram authored to fill
+      // the 1344px column is unreadable on a phone, where every canvas item
+      // becomes a full-width block; the overlay is the only way to see it.
+      //
+      // A real button, not a click handler on the <img>, because an image is
+      // not focusable and this has to work from a keyboard. The same shape the
+      // homepage hero uses. doc.css makes it a bare block and reaches through
+      // it for the sizing the frame used to apply to the image directly.
+      return (
+        // The width the figure was DRAWN at, in the same reference pixels the
+        // rest of the geometry uses. The overlay opens it at that size so the
+        // text inside a diagram is the size it was designed to be, rather
+        // than fitted to a phone, which is how a 1344px flowchart ends up
+        // smaller in the overlay than it was on the page.
+        `<button type="button" class="doc-zoom"${attr('data-zoom-width', String(Math.round(item.w)))} aria-label="Enlarge">` +
+        `<img${attr('src', src)}${attr('alt', item.alt ?? '')} loading="lazy" decoding="async" />` +
+        '</button>'
+      );
 
     case 'video':
       return `<video${attr('src', src)} controls playsinline preload="metadata"></video>`;

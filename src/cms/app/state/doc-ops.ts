@@ -646,7 +646,7 @@ export function blockPlainText(block: ProseBlock): string {
  * place to put it.
  */
 export function updateMeta(doc: Doc, patch: Partial<DocMeta>): Doc {
-  const OPTIONAL = ['summary', 'url', 'cover'] as const;
+  const OPTIONAL = ['summary', 'url', 'urlLabel', 'cover'] as const;
   let meta: DocMeta = { ...doc.meta, ...patch };
   for (const key of OPTIONAL) {
     if (meta[key] === '' || meta[key] === undefined) meta = omit(meta, key);

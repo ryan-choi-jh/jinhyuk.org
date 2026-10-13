@@ -127,6 +127,14 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
           onChange={(url) => store.updateMeta({ url })}
         />
         <TextField
+          label="Link label"
+          wide
+          testId="meta-url-label"
+          value={meta.urlLabel ?? ''}
+          placeholder="Visit"
+          onChange={(urlLabel) => store.updateMeta({ urlLabel: urlLabel === '' ? undefined : urlLabel })}
+        />
+        <TextField
           label="Cover"
           wide
           value={meta.cover ?? ''}

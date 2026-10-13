@@ -67,7 +67,7 @@ export function renderProjectHead(doc: Doc): string {
     href === null
       ? ''
       : `<a class="project-link"${attr('href', href)} target="_blank" rel="noopener noreferrer">` +
-        '<span class="project-link-label">Visit</span>' +
+        `<span class="project-link-label">${escapeText(meta.urlLabel ?? 'Visit')}</span>` +
         `<span class="project-link-url">${escapeText(prettyProjectUrl(meta.url as string))}</span>` +
         VISIT_ARROW +
         '</a>';

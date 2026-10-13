@@ -167,20 +167,34 @@ export function initHeroLightbox(root: ParentNode = document): Teardown {
 /* An album                                                                   */
 /* -------------------------------------------------------------------------- */
 
-type AlbumSlide = { src: string; alt: string };
+type AlbumSlide = { src: string; alt: string; drawnWidth?: number | null };
 
 /**
  * The slides, read off the grid rather than duplicated into a data attribute:
  * the photograph the overlay shows is the file the tile already loaded, so the
  * browser has it cached and the enlarge is instant.
  */
+/**
+ * The triggers inside a container.
+ *
+ * `.album-open` is a photograph in an album grid; `.doc-zoom` is a figure in a
+ * document body (src/cms/render/canvas.ts). The same overlay drives both,
+ * because enlarging one picture out of several is the same job whichever page
+ * it is on, and a document with three diagrams wants the album's arrows for
+ * exactly the album's reason.
+ */
+const TRIGGERS = '.album-open, .doc-zoom';
+
 function slidesOf(grid: HTMLElement): { buttons: HTMLElement[]; slides: AlbumSlide[] } {
-  const buttons = Array.from(grid.querySelectorAll<HTMLElement>('.album-open'));
+  const buttons = Array.from(grid.querySelectorAll<HTMLElement>(TRIGGERS));
   const slides = buttons.map((button) => {
     const img = button.querySelector('img');
+    const drawn = Number(button.getAttribute('data-zoom-width'));
     return {
       src: img?.getAttribute('src') ?? '',
       alt: img?.getAttribute('alt') ?? '',
+      // Absent for an album photograph, which is meant to be seen whole.
+      drawnWidth: Number.isFinite(drawn) && drawn > 0 ? drawn : null,
     };
   });
   return { buttons, slides };
@@ -207,13 +221,24 @@ export function initAlbumLightbox(grid: HTMLElement): Teardown {
   let index = 0;
   let opener: HTMLElement | null = null;
 
+  // An album only emits arrows and a counter when it has more than one
+  // photograph. A document cannot know that at render time without counting
+  // its figures twice, so it always emits them and they are taken away here
+  // when there is nothing to step to. Removed rather than hidden: a button
+  // that does nothing should not be in the tab order either.
+  if (slides.length < 2) {
+    for (const spare of [counter, prev, next]) spare?.remove();
+  }
+
   const paint = (): void => {
     const slide = slides[index];
     if (slide === undefined) return;
     picture.setAttribute('src', slide.src);
     picture.setAttribute('alt', slide.alt);
     if (counter !== null) counter.textContent = `${index + 1} / ${slides.length}`;
+
   };
+
 
   // `returnFocusTo` is a getter, so focus goes back to whichever photograph
   // was clicked rather than always to the first.
@@ -233,9 +258,45 @@ export function initAlbumLightbox(grid: HTMLElement): Teardown {
     },
   });
 
+  /*
+   * How big to open a figure.
+   *
+   * A photograph is fitted to the window: it is one image and you want to see
+   * all of it. A figure from a document is not. A flowchart drawn for the
+   * 1344px column, fitted to a 390px phone, is LESS readable in the overlay
+   * than it was on the page, which makes the whole gesture pointless.
+   *
+   * So: show the whole figure when it fits at no less than the size it was
+   * drawn at, and otherwise show it at its drawn size and let the reader pan.
+   * Never beyond the file's own pixels, which would only be blur.
+   *
+   * Measured against the stage, not the window, and therefore only once the
+   * overlay is visible: a hidden element is 0 wide, and sizing against the
+   * window instead means guessing at this stylesheet's margins.
+   */
+  function size(): void {
+    const slide = slides[index];
+    const drawn = slide?.drawnWidth;
+    if (drawn == null) {
+      picture!.style.removeProperty('width');
+      return;
+    }
+    const natural = picture!.naturalWidth;
+    if (natural === 0) {
+      picture!.addEventListener('load', size, { once: true });
+      return;
+    }
+    const ratio = picture!.naturalHeight / natural;
+    const roomW = stage!.clientWidth;
+    const roomH = stage!.clientHeight;
+    const whole = ratio > 0 ? Math.min(roomW, roomH / ratio) : roomW;
+    picture!.style.width = `${Math.round(Math.min(whole >= drawn ? whole : drawn, natural))}px`;
+  }
+
   function step(delta: number): void {
     index = (index + delta + slides.length) % slides.length;
     paint();
+    size();
     centreStage(stage!);
   }
 
@@ -244,10 +305,12 @@ export function initAlbumLightbox(grid: HTMLElement): Teardown {
     opener = from;
     paint();
     chrome.show();
+    // Sizing comes after show(), so the stage has a box to measure against.
+    size();
     // The first paint of a new src has no layout yet, so centring has to wait
     // for the picture to have a size.
     if (picture.complete) centreStage(stage);
-    else picture.addEventListener('load', () => centreStage(stage), { once: true });
+    else picture.addEventListener('load', () => { size(); centreStage(stage); }, { once: true });
   };
 
   const wired: Teardown[] = [];
@@ -280,7 +343,9 @@ export function initAlbumLightbox(grid: HTMLElement): Teardown {
  */
 export function initLightboxes(root: ParentNode = document): Teardown {
   const stops: Teardown[] = [initHeroLightbox(root)];
-  for (const grid of Array.from(root.querySelectorAll<HTMLElement>('.album-grid[data-lightbox]'))) {
+  // Any container that names an overlay, not only an album grid: a document
+  // body carries the same attribute and the same kind of triggers.
+  for (const grid of Array.from(root.querySelectorAll<HTMLElement>('[data-lightbox]'))) {
     stops.push(initAlbumLightbox(grid));
   }
   return () => {

@@ -194,6 +194,17 @@ export const DocMetaSchema = z
     summary: z.string().optional(),
     /** The "Visit" link. */
     url: z.string().url('url must be an absolute URL').optional(),
+    /**
+     * What that link is called, when "Visit" is not specific enough: a page
+     * whose link goes to a demo rather than to the thing itself wants to say
+     * so. Absent means "Visit", which is what every project said before this
+     * existed, so no stored page changes by gaining the field.
+     *
+     * Verbatim, including any punctuation: the renderer adds nothing. A label
+     * ending in a colon is a choice the author makes, not one made for them,
+     * because "Visit:" would be wrong for the default.
+     */
+    urlLabel: z.string().min(1, 'the link label must not be empty').optional(),
     /** List thumbnail. */
     cover: SrcSchema.optional(),
     /**

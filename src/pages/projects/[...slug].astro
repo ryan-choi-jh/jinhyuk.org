@@ -45,5 +45,10 @@ const body = renderDoc(doc);
 
 <script>
   import { initDocConnectors } from '../../cms/render/connectors.ts';
+  import { initLightboxes } from '../../cms/render/lightbox.ts';
   initDocConnectors();
+  // Click a figure to see it full-screen. The same overlay the homepage and
+  // the albums use; a diagram drawn for the 1344px column is unreadable on a
+  // phone otherwise.
+  initLightboxes();
 </script>

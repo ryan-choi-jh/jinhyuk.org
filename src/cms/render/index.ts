@@ -231,10 +231,60 @@ export function renderDocBands(doc: Doc, bands: readonly Band[] = doc.bands): st
     ? '<svg class="doc-connectors" aria-hidden="true" focusable="false"></svg>'
     : '';
 
+  // One enlarge overlay for the whole document, wired by the same script the
+  // homepage and the albums use. Only when there is an image to enlarge: an
+  // empty dialog is markup on every prose-only page for nothing.
+  const zoomId = `doc-lightbox-${doc.meta.slug}`;
+  const zoomable = hasImage(bands);
+
   return (
     `<div class="doc${sectionClass(doc)}${canvasClass(doc, bands)}"` +
     attr('data-doc-slug', doc.meta.slug) +
-    `>${groups.join('')}${connectors}</div>`
+    (zoomable ? attr('data-lightbox', zoomId) : '') +
+    `>${groups.join('')}${connectors}</div>` +
+    (zoomable ? renderDocLightbox(zoomId) : '')
+  );
+}
+
+/** Does any band hold a picture the reader might want to see larger? */
+function hasImage(bands: readonly Band[]): boolean {
+  return bands.some(
+    (band) => isCanvasBand(band) && band.items.some((item) => item.kind === 'image'),
+  );
+}
+
+const ZOOM_CLOSE_SVG =
+  '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />' +
+  '</svg>';
+
+/**
+ * The overlay, empty until something is clicked: the stage's `src` is filled
+ * in by the client script, so a page with ten figures ships one dialog and no
+ * second copy of any image.
+ *
+ * Deliberately the album's markup, class for class, because that is what
+ * `initAlbumLightbox` knows how to drive. Arrows and a counter come with it
+ * when a document has more than one figure, which is the behaviour an album
+ * already has and which is right here too: a reader who enlarges the first
+ * diagram can step to the next without closing it.
+ */
+function renderDocLightbox(id: string): string {
+  return (
+    `<div class="lightbox doc-lightbox"${attr('id', id)}` +
+    ' tabindex="-1" role="dialog" aria-modal="true" aria-label="Figure, enlarged">' +
+    '<div class="lightbox-stage"><img src="" alt="" /></div>' +
+    '<span class="lightbox-count" aria-hidden="true"></span>' +
+    '<button class="lightbox-close" type="button" aria-label="Close">' +
+    ZOOM_CLOSE_SVG +
+    '</button>' +
+    '<button class="lightbox-prev" type="button" aria-label="Previous figure">' +
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3L5 8l5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>' +
+    '</button>' +
+    '<button class="lightbox-next" type="button" aria-label="Next figure">' +
+    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3L11 8l-5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>' +
+    '</button>' +
+    '</div>'
   );
 }
 
