@@ -1343,6 +1343,33 @@ export function resolveInitialTheme(initial: ThemeChoice, prefersDark: boolean):
 export const COPYRIGHT_YEAR_TOKEN = '{year}';
 
 /**
+ * A stored YYYY-MM-DD as a date a person reads: "July 7, 2026".
+ *
+ * One implementation, used by the published page and by the editor's Date
+ * field, so what the inspector shows is the string the page will print rather
+ * than a second opinion about it. That is also what settles the question the
+ * field exists to settle: a month spelled out cannot be read in two orders,
+ * where 07/07/2026 leaves you counting on your fingers.
+ *
+ * Parsed and formatted in UTC on purpose. `new Date('2026-07-07')` is midnight
+ * UTC, and formatting that in a timezone behind UTC prints the 6th.
+ *
+ * Anything that is not a real date comes back unchanged: this is for display,
+ * and showing the raw text beats showing "Invalid Date".
+ */
+export function formatLongDate(date: string): string {
+  if (!DATE_RE.test(date) || !isRealCalendarDate(date)) return date;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/**
  * The stored line with the year filled in. Every occurrence of `{year}` is
  * replaced; a line without the token comes back unchanged.
  *

@@ -736,6 +736,19 @@ export const SHELL_CSS = `
 .cms-field { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 8px; }
 .cms-field > label { color: var(--cms-muted); font-size: 11px; }
 .cms-field--wide { grid-template-columns: 1fr; gap: 3px; }
+
+/* The date written out under the Date input, so the month is a word and the
+   order of the numbers above it stops mattering. Column 2, so it lines up
+   under the control and not under the label. */
+.cms-field__read { grid-column: 2; margin: -1px 0 0; color: var(--cms-muted); font-size: 10.5px; }
+.cms-field--wide .cms-field__read { grid-column: 1; }
+.cms-field__read--bad { color: #f0b3ae; }
+
+/* The whole field opens the calendar, so the icon is a hint rather than the
+   only way in. Lightened because it is dark-on-dark in this panel otherwise. */
+.cms-input[type='date'] { cursor: pointer; }
+.cms-input[type='date']::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
 .cms-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cms-check { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
 .cms-check input { margin: 0; }

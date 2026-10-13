@@ -17,7 +17,7 @@ import { blockPlainText, mergeTargetFor } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
-import { CheckField, Field, NumberField, Section, SelectField, TextField } from './fields.tsx';
+import { CheckField, DateField, Field, NumberField, Section, SelectField, TextField } from './fields.tsx';
 import type { EditorShellSlots } from './slots.ts';
 
 export type InspectorProps = {
@@ -111,7 +111,7 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
           The slug is the file name under <code>src/content/</code>. Renaming a page is a move, not an
           edit, so it is not done here.
         </div>
-        <TextField label="Date" type="date" value={meta.date} onChange={(date) => store.updateMeta({ date })} />
+        <DateField label="Date" testId="meta-date" value={meta.date} onChange={(date) => store.updateMeta({ date })} />
         <TextField
           label="Summary"
           wide

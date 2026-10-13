@@ -482,6 +482,74 @@ async function run(page) {
   console.log(`    shot  ${await page.shot('03-item-edited')}`);
 
   /* ---------------------------------------------------------------------- */
+  section('the Date field says which number is the month');
+  {
+    // Page metadata only shows when nothing is selected, and the section
+    // above left a canvas item selected.
+    await page.click('inspector-back');
+    await page.settle();
+
+    // The input holds ISO and the browser renders it in its own locale, so
+    // the number order on screen is whatever this machine prefers. What has
+    // to be true is that the written-out line under it agrees with the stored
+    // date, because that line is the one the author reads.
+    const stored = await page.evaluate('window.__ws3.store.getState().doc.meta.date');
+    const shown = await page.evaluate(
+      `document.querySelector('[data-testid="meta-date"]').value`,
+    );
+    const written = await page.evaluate(
+      `document.querySelector('[data-testid="meta-date-read"]').textContent`,
+    );
+    check('the input carries the stored ISO date', shown === stored, `${shown} vs ${stored}`);
+    check(
+      'and it is written out underneath with the month as a word',
+      /^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(written ?? ''),
+      written,
+    );
+    // The point of the feature: the words have to name the same day the ISO
+    // does, or the field is worse than no field.
+    const [y, m, d] = (stored ?? '').split('-').map(Number);
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    check(
+      'and it names the same day, not one either side of it',
+      written === `${months[m - 1]} ${d}, ${y}`,
+      `${written} for ${stored}`,
+    );
+
+    // Clicking anywhere in the field opens the calendar, rather than only the
+    // small icon at its right-hand end.
+    await page.evaluate(`(() => {
+      window.__pickerOpens = 0;
+      HTMLInputElement.prototype.showPicker = function () { window.__pickerOpens += 1; };
+      return true;
+    })()`);
+    await page.click('meta-date');
+    const opens = await page.evaluate('window.__pickerOpens');
+    check('clicking the field opens the calendar', opens >= 1, `showPicker called ${opens}x`);
+
+    // And the field is still an editor, not a readout.
+    await page.evaluate(`(() => {
+      const el = document.querySelector('[data-testid="meta-date"]');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(el, '2031-03-07');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await page.settle();
+    const after = await page.evaluate('window.__ws3.store.getState().doc.meta.date');
+    const afterWritten = await page.evaluate(
+      `document.querySelector('[data-testid="meta-date-read"]').textContent`,
+    );
+    check('picking a date writes it to the document', after === '2031-03-07', after);
+    // 03/07 is the case the whole field exists for: March or July depending on
+    // where you live, and the words have to settle it.
+    check('and the words follow it', afterWritten === 'March 7, 2031', afterWritten);
+
+    await page.evaluate('window.__ws3.store.undo()');
+    await page.settle();
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('an overlay band is outlined round its items, not its layer');
   {
     const overlayId = await page.evaluate(`(() => {

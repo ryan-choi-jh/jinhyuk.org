@@ -26,19 +26,18 @@
  * No DOM, no React, no Astro.
  */
 
+import { formatLongDate } from '../../schema.ts';
 import type { Doc } from '../../schema.ts';
 import { attr, escapeText, safeUrl } from '../escape.ts';
 
 /** "July 7, 2026", as `src/pages/projects/[...slug].astro` wrote it. */
 export function formatProjectDate(date: string): string {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) return date;
-  return parsed.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
+  // The implementation moved to the schema, which the editor can import and
+  // this file cannot be: the Date field in the inspector now shows the same
+  // string this prints, so the two cannot disagree about what a stored date
+  // says. Kept as a named export because that is what this module's callers
+  // and its tests ask for.
+  return formatLongDate(date);
 }
 
 /** `habit-tracker-xi-gilt.vercel.app/welcome` — host and path, no scheme. */

@@ -5,8 +5,10 @@
  * controlled, no state of their own except the number field's in-progress text.
  */
 
-import type { ChangeEvent, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
+
+import { formatLongDate } from '../../schema.ts';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -61,6 +63,70 @@ export function TextField({
         placeholder={placeholder}
         onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
       />
+    </Field>
+  );
+}
+
+/**
+ * A date, with the month spelled out underneath it.
+ *
+ * `<input type="date">` stores and emits YYYY-MM-DD, which is unambiguous, and
+ * then displays it in the browser's locale, which is not: 07/03/2026 is the
+ * 7th of March or the 3rd of July depending on a setting nobody looks at, and
+ * there is nothing in the field to tell you which. So the date is also written
+ * out in full, by the SAME function that prints it on the published page
+ * (`formatLongDate`), which settles the question and doubles as a preview of
+ * what the page will say.
+ *
+ * The native input is kept rather than replaced with a hand-built calendar: it
+ * already has one, it is keyboard-editable, it is what a screen reader
+ * expects, and a bespoke month grid would be a lot of code to arrive back
+ * where this starts. What it gets instead is a click that opens the calendar
+ * from anywhere in the field, rather than only from the small icon at its
+ * right-hand end.
+ */
+export function DateField({
+  label,
+  value,
+  onChange,
+  testId,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  testId?: string;
+}) {
+  const written = value === '' ? 'No date set' : formatLongDate(value);
+  // formatLongDate returns its input unchanged when it cannot read it, which
+  // is the one case where echoing it would say nothing useful.
+  const unreadable = value !== '' && written === value;
+
+  return (
+    <Field label={label}>
+      <input
+        className="cms-input"
+        data-testid={testId}
+        type="date"
+        value={value}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+        onClick={(event) => {
+          // Chrome, Edge and Safari 16+. Older browsers keep the icon, which
+          // is what they had before, so a missing method is not a problem
+          // worth reporting; neither is the SecurityError this throws when it
+          // decides the click was not a real one.
+          try {
+            event.currentTarget.showPicker?.();
+          } catch {
+            /* the icon still works */
+          }
+        }}
+      />
+      <p
+        className={unreadable ? 'cms-field__read cms-field__read--bad' : 'cms-field__read'}
+        data-testid={testId === undefined ? undefined : `${testId}-read`}
+      >
+        {unreadable ? `${value} is not a date` : written}
+      </p>
     </Field>
   );
 }
