@@ -1,0 +1,696 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Linchpin: Due Diligence Management for Sell-Side M&A",
+    "slug": "linchpin-due-diligence",
+    "date": "2026-05-01",
+    "summary": "A deal-team tool for sell-side M&A diligence: turn every buyer's request list into one tracker, reuse approved answers across buyers, and diff follow-ups without a line-by-line check.",
+    "url": "https://linchpin-prototype.vercel.app",
+    "section": "projects"
+  },
+  "bands": [
+    {
+      "id": "b1",
+      "type": "canvas",
+      "height": 628,
+      "items": [
+        {
+          "id": "b1i1",
+          "kind": "video",
+          "src": "/media/projects/linchpin-due-diligence/demo.mp4",
+          "x": 144,
+          "y": 34,
+          "w": 1056,
+          "h": 594,
+          "alt": "Linchpin demo",
+          "caption": ""
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p1",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "text": "What it is, and who it's for"
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "On a competitive sell-side M&A process, every buyer sends its own diligence request list for the selling company: typically 50 to 200+ line items each, either in Excel, Word, PDF, or the body of an email. The analyst and associate on the deal consolidate them into a master tracker, then work out what's already answerable based on the provided data room, what the bank can answer from the client’s shared materials not already in the data room, and what has to be deferred to the client. Then the next buyer's list arrives and they repeat the process again."
+            }
+          ]
+        },
+        {
+          "id": "p3",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "This product sits on the banker's side of the table and does three things:"
+            }
+          ]
+        },
+        {
+          "id": "p4",
+          "kind": "ol",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "One tracker for every buyer: ingest a request list in any format and turn it into a structured tracker without having to enter each request manually."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Answer once, reuse across buyers: match semantically similar questions across buyers, so an approved answer for Buyer 1 carries forward to Buyers 2 through 5."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Follow-ups without the line-by-line check: upload a buyer's follow-up list in any format and Linchpin diffs it against the version you last saved, showing what's new, what the buyer changed, and what was dropped. You accept the changes all at once or one at a time."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p5",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "It's for the analysts, associates and VPs running sell-side processes at boutique, mid-market and bulge bracket M&A firms. They own the tracker, and they don't yet have an internal AI team building this for them."
+            }
+          ]
+        },
+        {
+          "id": "p6",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Key thing here is that only the deal team works in Linchpin. Buyers and the client never log in; they simply get an export when the banker decides to send one. This was a deliberate choice, because buyers often use diligence to keep the seller occupied, in part to dig deeper into the company, but also to slow down the sale process — because a slower process thins out the competitive field and a thinner field rarely sells at a premium. The banker’s job is to be the filter."
+            }
+          ]
+        },
+        {
+          "id": "p7",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "text": "Why this problem"
+            }
+          ]
+        },
+        {
+          "id": "p8",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Sell-side bankers get paid when the deal closes. Retainers exist, mostly in the middle market, but they’re small and usually credited against the success fee, which is 85–95% of what the bank earns on a closed deal. Winning the mandate pays close to nothing; closing pays almost everything. What kills deals is time, and diligence is where a process loses most of it."
+            }
+          ]
+        },
+        {
+          "id": "p9",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Bankers interviewed estimated that 50-90% of questions repeat across buyer groups within a single deal, phrased differently enough that a first-year analyst won't catch it so easily. One senior associate mentioned a single batch of requests takes 6-12 hours to process. An executive director put the client's \"didn't we already answer this?\" rate at 1 in 10 early in a process and 3 in 10 once you're past ~200 questions. Every banker knows that line. It's the cardinal sin of the job, yet it happens on every deal."
+            }
+          ]
+        },
+        {
+          "id": "p10",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Two things made it interesting to me beyond the hours."
+            }
+          ]
+        },
+        {
+          "id": "p11",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "It looks like judgment work, but most of it is actually about repurposing"
+            }
+          ]
+        },
+        {
+          "id": "p12",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Legal space found a similar thing in contract review: reading 200 contracts for the same 12 clauses is an extraction problem, not judgment. Due diligence triage is matching request #47 from Buyer A to request #31 from Buyer B, and both to file number 2.5.2 in the data room. The real judgment (what to share, when, and how much) stays with the banker and their client."
+            }
+          ]
+        },
+        {
+          "id": "p13",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "None of it compounds today"
+            }
+          ]
+        },
+        {
+          "id": "p14",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Which buyer asked what, which document answered it, what each buyer was really fishing for: all of that gets created during diligence and lost at close. Over time, the accumulation of this knowledge across deals compounds as expertise, and it lives in managing directors' heads and dead Excel trackers without a central system of record. My bet was that banks won't compete on AI output quality. That race ends in commodity and the frontier models could win it. Instead the banks will compete on expertise, as they always have, and diligence is where the densest expertise gets created and thrown away. Dedupe within a deal was the identified wedge, but deal memory across deals was the longer term vision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b3",
+      "type": "canvas",
+      "height": 1217,
+      "items": [
+        {
+          "id": "b3i1",
+          "kind": "image",
+          "src": "/media/projects/linchpin-due-diligence/diligence-workflow.png",
+          "x": 0,
+          "y": 34,
+          "w": 1344,
+          "h": 1152,
+          "alt": "Existing workflow for sell-side M&A due diligence management",
+          "caption": "Existing workflow for sell-side M&A due diligence management",
+          "captionAlign": "center"
+        }
+      ]
+    },
+    {
+      "id": "b4",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p15",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "text": "What customer interviews taught me"
+            }
+          ]
+        },
+        {
+          "id": "p16",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Every interview I ran opened with the same question: if you could hire someone to sit next to you and do your work, what would you have them do? Managing due diligence came up consistently after they'd described their past few weeks."
+            }
+          ]
+        },
+        {
+          "id": "p17",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "The pain exists, and it belongs to people without budget"
+            }
+          ]
+        },
+        {
+          "id": "p18",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Analysts and associates raised tracker management unprompted at almost every firm. Seniors mostly didn't. Key issue here is that the user and the buyer sit 3-4 levels apart."
+            }
+          ]
+        },
+        {
+          "id": "p19",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Bankers want more control"
+            }
+          ]
+        },
+        {
+          "id": "p20",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "VDR companies had recently introduced a Q&A feature within the data room, that allows for automatic routing of the buyer requests to the appropriate team on the client’s side. While some bankers like how this reduces an extra triage step in their workflow, the adoption across Wall Street is generally patchy even within the same firm. A VP explained why: an open Q&A portal invites buyers to flood management with requests and crowd out other bidders, and sometimes the bank wants to deliberately slow down or hold back an answer to protect their client’s interests (i.e. the banker's job is to be the filter). Any tool that gives buyers more visibility works against that."
+            }
+          ]
+        },
+        {
+          "id": "p21",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "The workaround is already an LLM"
+            }
+          ]
+        },
+        {
+          "id": "p22",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Most juniors were running a ChatGPT project per deal, or Copilot, to dedupe requests. One associate said it works well for catching the same question in different jargon. At firms that had rolled out a frontier model, usage of finance-specific AI tools fell off sharply. Several had been bought because peer banks had them, not because juniors asked. That told me not to compete on work that frontier models could tap into (e.g. slides creation, excel modeling). It also meant my wedge was up against \"good enough and already approved.\""
+            }
+          ]
+        },
+        {
+          "id": "p23",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Trust is binary"
+            }
+          ]
+        },
+        {
+          "id": "p24",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "One associate's MD had warned the team that careless AI output in client materials is worse than no AI at all. This doesn’t come as surprise, and in a field like investment banking where the stakes are high for the selling company, trust, once lost, takes at least a quarter or more to rebuild. Users wanted the original tracker next to the parsed version, a timestamped audit trail, and sources they could click. That set two design rules: no false positives (an \"I don't know\" is better than pretending to know), and a verification view that lets a VP confirm an answer without opening the data room."
+            }
+          ]
+        },
+        {
+          "id": "p25",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "The pain people brought up on their own wasn't just due diligence"
+            }
+          ]
+        },
+        {
+          "id": "p26",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Asked the open question, bankers talked about buyer logs (one team kept an 800+ buyer log that took a full day to update, every two days), NDA tracking across 50 to 200 parties, call notes that compliance won't let AI near, and keeping up with every thread across several live deals. Diligence ranked sixth of ten on one senior associate's list of where his time goes. I noted it and kept going. In hindsight I think it was important to pause here and re-think the wedge."
+            }
+          ]
+        },
+        {
+          "id": "p27",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "text": "How the prototype was developed"
+            }
+          ]
+        },
+        {
+          "id": "p28",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "v1 covered the whole workflow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b5",
+      "type": "canvas",
+      "height": 278,
+      "items": [
+        {
+          "id": "b5i1",
+          "kind": "image",
+          "src": "/media/projects/linchpin-due-diligence/product-ux-map.png",
+          "x": 0,
+          "y": 34,
+          "w": 1344,
+          "h": 213,
+          "alt": "Product UX map",
+          "caption": "Product UX map",
+          "captionAlign": "center"
+        }
+      ]
+    },
+    {
+      "id": "b6",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p29",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "v1 showed everything I thought the product should be: a deals dashboard, a connected and indexed VDR, every buyer request auto-classified as answered, partial or gap with cited sources, cross-buyer reuse through a canonical answer layer, an analyst-to-VP review flow, cross-buyer analytics, an audit log, and stale-answer flags when a VDR file changed."
+            }
+          ]
+        },
+        {
+          "id": "p30",
+          "kind": "quote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "v1 demo prototype: https://linchpin-prototype-v1.vercel.app/"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p31",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The prototype feedback sessions went really well, which funnily enough was the problem. The bankers each liked most of it, and I couldn't tell what they’d miss if it were gone."
+            }
+          ]
+        },
+        {
+          "id": "p32",
+          "kind": "ul",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bundling contaminates feedback: when a banker called dedupe the wow moment, I couldn't tell whether that reaction depended on auto-classification sitting underneath it."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Visible features are cheap to endorse: nodding at a screen costs a banker nothing."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The real signal is what people ask for that they can't see."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p33",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I also heard something that cut against my core assumption: around 90% of responses on deals needed new files from the client, not something already in the data room. Auto-answering from the VDR, the part I'd spent a lot of time on, mattered less than a single deduplicated list of what to answer once."
+            }
+          ]
+        },
+        {
+          "id": "p34",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "v2 stripped the prototype down to a single hypothesis"
+            }
+          ]
+        },
+        {
+          "id": "p35",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "v2 felt like a step backwards, but a necessary step to identify priorities. I cut the VDR connection, auto-classification, the review workflow, analytics, and the audit log. What stayed were: deal setup, every buyer's requests in one configurable tracker, conversion of request lists into that tracker, semantic dedupe across buyers with a review step, version diffs when a buyer sends an updated list, and export."
+            }
+          ]
+        },
+        {
+          "id": "p36",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Each cut was a bet that bankers wouldn't ask for it unprompted. v1 stayed in my back pocket as a reveal, only to be shown if someone asked for VDR integration unprompted."
+            }
+          ]
+        },
+        {
+          "id": "p37",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The hypothesis: cross-buyer dedupe alone was what mattered most."
+            }
+          ]
+        },
+        {
+          "id": "p38",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Sessions were hands-off. I shared the link with \"treat it like the tool you've been handed for this deal,\" and stayed quiet to see how intuitive the product felt in the hands of a user."
+            }
+          ]
+        },
+        {
+          "id": "p39",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "What happened"
+            }
+          ]
+        },
+        {
+          "id": "p40",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Everyone liked the dedupe. Almost nobody needed it immediately (or in the next 2-4 weeks)."
+            }
+          ]
+        },
+        {
+          "id": "p41",
+          "kind": "ul",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The window is narrow. Overlap only hurts when several buyers are each asking a lot, which mostly means round two. Round two lasts a few weeks, and many deals die before it. There’s even a case where a banker handles round one entirely over email and never uses a tracker."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "It arrives too late. By the time the pain shows up, the team is already deep in an Excel tracker. I'd be asking them to switch tools at the busiest point of the deal."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The pain is inconsistent. Although on average, bankers estimated 50 to 90% overlap on requests across buyers, there are also deals where this number is closer to 20%. Still useful but not the same pitch and not used enough to ultimately serve as the system of record."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p42",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "text": "Lessons learned"
+            }
+          ]
+        },
+        {
+          "id": "p43",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Strip the prototype to the hypothesis"
+            }
+          ]
+        },
+        {
+          "id": "p44",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "A demo that shows everything tests nothing. v2 taught me more in a handful of sessions than v1 could have in twenty, because every missing feature became a question bankers could answer by asking for it, or not."
+            }
+          ]
+        },
+        {
+          "id": "p45",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Write the kill criteria before the data comes in"
+            }
+          ]
+        },
+        {
+          "id": "p46",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The bars felt like overkill when I wrote them but they were ultimately the thing that stopped me from hearing \"this is cool\" as demand."
+            }
+          ]
+        },
+        {
+          "id": "p47",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Frequency and timing matter as much as intensity"
+            }
+          ]
+        },
+        {
+          "id": "p48",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Diligence pain is severe for a few weeks per deal and absent the rest of the time, and it peaks exactly when nobody can adopt anything new. The buyer log, for example, is a duller problem that hurts every day from launch to close."
+            }
+          ]
+        },
+        {
+          "id": "p49",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "P.S. While I’m no longer working on this problem, I still think someone should build the deal memory layer for banks. If you're working on it, I'm happy to share my learnings!"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
