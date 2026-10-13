@@ -43,6 +43,7 @@
  * isSafeStyleColorValue(), which the editor applies to everything it stores and
  * which WS-1 is welcome to re-apply on render.
  */
+import { isSafeStyleColor } from '../../schema.ts';
 
 /* -------------------------------------------------------------------------- */
 /* The palette                                                                 */
@@ -294,11 +295,10 @@ export function colorLabel(value: string | null | undefined): string {
  * with an optional hex fallback.
  */
 export function isSafeStyleColorValue(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  const trimmed = value.trim();
-  if (trimmed === '' || trimmed.length > 64) return false;
-  if (/[;{}()'"\\<>]/.test(trimmed) && !isTokenColor(trimmed)) return false;
-  return normalizeHex(trimmed) !== null || isTokenColor(trimmed);
+  // The schema's rule, not a second copy of it. These two drifted once: the
+  // editor stored a token colour that the published renderer then refused,
+  // so the colour showed in the CMS and nowhere else.
+  return isSafeStyleColor(value);
 }
 
 /**

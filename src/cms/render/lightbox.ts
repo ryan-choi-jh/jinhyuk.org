@@ -245,7 +245,11 @@ export function initAlbumLightbox(grid: HTMLElement): Teardown {
   const chrome = overlay(box, {
     returnFocusTo: () => opener,
     onKey: (event) => {
-      if (slides.length < 2) return false;
+      // Tied to the arrows being on screen, not just to there being more than
+      // one slide: a document's overlay has no arrows and no counter, so
+      // stepping would silently swap the picture with nothing to say where
+      // you are or that it was possible.
+      if (slides.length < 2 || prev === null || next === null) return false;
       if (event.key === 'ArrowRight') {
         step(1);
         return true;

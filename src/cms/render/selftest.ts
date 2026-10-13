@@ -205,6 +205,15 @@ function render(bands: Band[]): string {
           },
         ],
       },
+      {
+        id: 'col',
+        kind: 'p',
+        content: [
+          { type: 'text', marks: [{ type: 'textStyle', attrs: { color: 'var(--muted, #6b6b6b)' } }], text: 'muted' },
+          { type: 'text', marks: [{ type: 'textStyle', attrs: { color: '#3a7f6d' } }], text: 'hexed' },
+          { type: 'text', marks: [{ type: 'textStyle', attrs: { color: '#fff;background:url(//evil)' } }], text: 'injected' },
+        ],
+      },
     ]),
   ]);
 
@@ -214,6 +223,18 @@ function render(bands: Band[]): string {
   // The ink is a class, so the four pens live in the stylesheet and nothing
   // author-supplied reaches a style attribute.
   contains('highlight: the ink is a class', html, '<mark class="doc-hl doc-hl--blue">inked</mark>');
+  // A token colour has to render. The editor's palette stores this form on
+  // purpose, so the colour follows the theme instead of freezing the
+  // light-mode hex; the renderer used to accept hex only and dropped it
+  // silently, which showed the colour in the CMS and nowhere else.
+  contains(
+    'colour: a palette token renders',
+    html,
+    '<span style="color:var(--muted, #6b6b6b)">muted</span>',
+  );
+  contains('colour: a plain hex still renders', html, '<span style="color:#3a7f6d">hexed</span>');
+  // And the style attribute stays shut.
+  contains('colour: an injection attempt is dropped, text kept', html, '>injected<');
   contains(
     'highlight: an unknown ink falls back rather than dropping the mark',
     html,

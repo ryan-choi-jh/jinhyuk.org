@@ -98,6 +98,33 @@ export const HexColorSchema = z
   .string()
   .regex(HEX_RE, 'colour must be hex, e.g. #ff5722 or #ff5722cc');
 
+/** `var(--accent, #ff5722)`, with the fallback optional. */
+export const COLOR_TOKEN_RE = /^var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,\s*(#[0-9a-fA-F]{3,8})\s*)?\)$/;
+
+/**
+ * What may appear in a `style="color:…"` attribute.
+ *
+ * TWO forms, not one: a canonical hex, and a reference to a site token. The
+ * editor's palette stores the token form on purpose, so a colour follows the
+ * theme instead of freezing the light-mode hex into the document.
+ *
+ * It lives here because both sides need the same answer and for a while they
+ * did not: the editor stored `var(--muted, #6b6b6b)` and the published
+ * renderer accepted hex only, so it dropped the mark and the colour appeared
+ * in the CMS and nowhere else. Nothing had been coloured with a swatch yet,
+ * which is the only reason it never showed.
+ *
+ * A stored colour ends up inside a style attribute, so the rule has to be
+ * tight enough that nothing can close the declaration, open a block, or reach
+ * the network. Both forms are fully anchored patterns; nothing else passes.
+ */
+export function isSafeStyleColor(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed === '' || trimmed.length > 64) return false;
+  return HEX_RE.test(trimmed) || COLOR_TOKEN_RE.test(trimmed);
+}
+
 function isRealCalendarDate(value: string): boolean {
   const [y, m, d] = value.split('-').map(Number) as [number, number, number];
   const probe = new Date(Date.UTC(y, m - 1, d));

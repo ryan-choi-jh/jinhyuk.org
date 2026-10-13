@@ -265,26 +265,22 @@ const ZOOM_CLOSE_SVG =
  * in by the client script, so a page with ten figures ships one dialog and no
  * second copy of any image.
  *
- * Deliberately the album's markup, class for class, because that is what
- * `initAlbumLightbox` knows how to drive. Arrows and a counter come with it
- * when a document has more than one figure, which is the behaviour an album
- * already has and which is right here too: a reader who enlarges the first
- * diagram can step to the next without closing it.
+ * The album's markup, class for class, because that is what
+ * `initAlbumLightbox` knows how to drive, but WITHOUT its arrows and counter.
+ *
+ * Two reasons. An album is a gallery and browsing it is the point; a reader
+ * who enlarges one diagram in the middle of an essay wants that diagram, then
+ * wants to carry on reading. And the arrows are styled in sections.css, which
+ * an album page loads and a document page does not, so on a project page they
+ * came out as two unstyled dashes floating at the right-hand edge.
  */
 function renderDocLightbox(id: string): string {
   return (
     `<div class="lightbox doc-lightbox"${attr('id', id)}` +
     ' tabindex="-1" role="dialog" aria-modal="true" aria-label="Figure, enlarged">' +
     '<div class="lightbox-stage"><img src="" alt="" /></div>' +
-    '<span class="lightbox-count" aria-hidden="true"></span>' +
     '<button class="lightbox-close" type="button" aria-label="Close">' +
     ZOOM_CLOSE_SVG +
-    '</button>' +
-    '<button class="lightbox-prev" type="button" aria-label="Previous figure">' +
-    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3L5 8l5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>' +
-    '</button>' +
-    '<button class="lightbox-next" type="button" aria-label="Next figure">' +
-    '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3L11 8l-5.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>' +
     '</button>' +
     '</div>'
   );

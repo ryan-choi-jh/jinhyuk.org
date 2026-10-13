@@ -18,7 +18,12 @@
  * No DOM, no React, no Astro.
  */
 
-import { DEFAULT_HIGHLIGHT_INK, HexColorSchema, PROSE_MARKS, isHighlightInk } from '../schema.ts';
+import {
+  DEFAULT_HIGHLIGHT_INK,
+  PROSE_MARKS,
+  isHighlightInk,
+  isSafeStyleColor,
+} from '../schema.ts';
 import type { ProseBand, ProseBlock, ProseBlockKind, ProseMarkType } from '../schema.ts';
 import { attr, escapeText, joinParts, safeUrl } from './escape.ts';
 
@@ -127,10 +132,12 @@ function markTags(mark: Mark): { open: string; close: string } | null {
 
     case 'textStyle': {
       const { color } = mark.attrs;
-      // Only a hex colour, checked against the schema's own rule rather than a
-      // second regex, so a pasted `color: url(...)` cannot reach the style
-      // attribute.
-      if (typeof color !== 'string' || !HexColorSchema.safeParse(color).success) return null;
+      // A hex OR a site token, checked against the schema's own rule rather
+      // than a second regex, so a pasted `color: url(...)` cannot reach the
+      // style attribute. Hex only was the rule here until a grey paragraph
+      // came out black: the editor's palette stores `var(--muted, #6b6b6b)`
+      // precisely so a colour follows the theme, and this dropped it.
+      if (!isSafeStyleColor(color)) return null;
       return { open: `<span style="color:${color}">`, close: '</span>' };
     }
 
