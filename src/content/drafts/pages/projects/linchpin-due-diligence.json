@@ -3,7 +3,7 @@
   "meta": {
     "title": "Linchpin: Due Diligence Management for Sell-Side M&A",
     "slug": "linchpin-due-diligence",
-    "date": "2026-05-01",
+    "date": "2026-05-18",
     "summary": "An AI-powered due diligence tracker for sell-side M&A bankers, built to consolidate buyer requests, eliminate duplicate work, and keep deals moving.",
     "url": "https://linchpin-prototype.vercel.app",
     "section": "projects"
@@ -12,16 +12,16 @@
     {
       "id": "b1",
       "type": "canvas",
-      "height": 628,
+      "height": 594,
       "items": [
         {
           "id": "b1i1",
           "kind": "video",
-          "src": "/media/projects/linchpin-due-diligence/demo.mp4",
-          "x": 144,
-          "y": 34,
+          "x": 0,
+          "y": 0,
           "w": 1056,
           "h": 594,
+          "src": "/media/projects/linchpin-due-diligence/demo.mp4",
           "alt": "Linchpin demo",
           "caption": ""
         }
@@ -73,7 +73,16 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "One tracker for every buyer: ingest a request list in any format and turn it into a structured tracker without having to enter each request manually."
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ],
+                      "text": "One tracker for every buyer:"
+                    },
+                    {
+                      "type": "text",
+                      "text": " ingest a request list in any format and turn it into a structured tracker without having to enter each request manually."
                     }
                   ]
                 }
@@ -87,7 +96,16 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Answer once, reuse across buyers: match semantically similar questions across buyers, so an approved answer for Buyer 1 carries forward to Buyers 2 through 5."
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ],
+                      "text": "Answer once, reuse across buyers:"
+                    },
+                    {
+                      "type": "text",
+                      "text": " match semantically similar questions across buyers, so an approved answer for Buyer 1 carries forward to Buyers 2 through 5."
                     }
                   ]
                 }
@@ -101,7 +119,16 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Follow-ups without the line-by-line check: upload a buyer's follow-up list in any format and Linchpin diffs it against the version you last saved, showing what's new, what the buyer changed, and what was dropped. You accept the changes all at once or one at a time."
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ],
+                      "text": "Follow-ups without the line-by-line check:"
+                    },
+                    {
+                      "type": "text",
+                      "text": " upload a buyer's follow-up list in any format and Linchpin diffs it against the version you last saved, showing what's new, what the buyer changed, and what was dropped. You accept the changes all at once or one at a time."
                     }
                   ]
                 }
@@ -126,6 +153,9 @@
             {
               "type": "text",
               "text": "Key thing here is that only the deal team works in Linchpin. Buyers and the client never log in; they simply get an export when the banker decides to send one. This was a deliberate choice, because buyers often use diligence to keep the seller occupied, in part to dig deeper into the company, but also to slow down the sale process — because a slower process thins out the competitive field and a thinner field rarely sells at a premium. The banker’s job is to be the filter."
+            },
+            {
+              "type": "hardBreak"
             }
           ]
         },
@@ -165,7 +195,7 @@
           "content": [
             {
               "type": "text",
-              "text": "Two things made it interesting to me beyond the hours."
+              "text": "Two things made it interesting to me beyond the hours:"
             }
           ]
         },
@@ -219,11 +249,11 @@
         {
           "id": "b3i1",
           "kind": "image",
-          "src": "/media/projects/linchpin-due-diligence/diligence-workflow.png",
           "x": 0,
           "y": 34,
           "w": 1344,
           "h": 1152,
+          "src": "/media/projects/linchpin-due-diligence/diligence-workflow.png",
           "alt": "Existing workflow for sell-side M&A due diligence management",
           "caption": "Existing workflow for sell-side M&A due diligence management",
           "captionAlign": "center"
@@ -384,11 +414,11 @@
         {
           "id": "b5i1",
           "kind": "image",
-          "src": "/media/projects/linchpin-due-diligence/product-ux-map.png",
           "x": 0,
           "y": 34,
           "w": 1344,
           "h": 213,
+          "src": "/media/projects/linchpin-due-diligence/product-ux-map.png",
           "alt": "Product UX map",
           "caption": "Product UX map",
           "captionAlign": "center"
@@ -411,16 +441,21 @@
         },
         {
           "id": "p30",
-          "kind": "quote",
+          "kind": "p",
           "content": [
             {
-              "type": "paragraph",
-              "content": [
+              "type": "text",
+              "marks": [
                 {
-                  "type": "text",
-                  "text": "v1 demo prototype: https://linchpin-prototype-v1.vercel.app/"
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://linchpin-prototype-v1.vercel.app/",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
                 }
-              ]
+              ],
+              "text": "Link to v1 demo prototype"
             }
           ]
         },
@@ -681,11 +716,27 @@
           ]
         },
         {
+          "id": "p_6c8128f6bf",
+          "kind": "p",
+          "content": []
+        },
+        {
           "id": "p49",
           "kind": "p",
           "content": [
             {
               "type": "text",
+              "marks": [
+                {
+                  "type": "textStyle",
+                  "attrs": {
+                    "color": "var(--muted, #6b6b6b)"
+                  }
+                },
+                {
+                  "type": "italic"
+                }
+              ],
               "text": "P.S. While I’m no longer working on this problem, I still think someone should build the deal memory layer for banks. If you're working on it, I'm happy to share my learnings!"
             }
           ]
