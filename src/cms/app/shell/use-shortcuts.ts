@@ -29,9 +29,25 @@ export function useShortcuts(store: ShortcutTarget, enabled = true): void {
     const onKeyDown = (event: KeyboardEvent): void => {
       const mod = event.metaKey || event.ctrlKey;
       if (!mod || event.defaultPrevented) return;
-      if (isTextEntry(event.target)) return;
 
       const key = event.key.toLowerCase();
+
+      /* Save works wherever the caret is, INCLUDING inside a block.
+         The guard below is there because TipTap owns undo within the block
+         being typed in, and stealing ⌘Z from it would undo a band reorder
+         mid-sentence. Nothing binds ⌘S, and the caret is in a block
+         essentially always, so applying that guard here meant the one
+         shortcut people reach for most did nothing but open the browser's
+         "Save page as…" dialog. Measured: the keydown reached window with
+         defaultPrevented false. */
+      if (key === 's') {
+        event.preventDefault();
+        void store.save();
+        return;
+      }
+
+      if (isTextEntry(event.target)) return;
+
       if (key === 'z') {
         event.preventDefault();
         if (event.shiftKey) store.redo();
@@ -41,11 +57,6 @@ export function useShortcuts(store: ShortcutTarget, enabled = true): void {
       if (key === 'y') {
         event.preventDefault();
         store.redo();
-        return;
-      }
-      if (key === 's') {
-        event.preventDefault();
-        void store.save();
       }
     };
 

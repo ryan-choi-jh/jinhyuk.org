@@ -107,6 +107,7 @@ import {
   mergeProseBlockUp,
   selectBlock,
   selectItems,
+  replaceProseBlockWith,
   splitProseBlock,
   useDocStoreSelector,
   useSiteStoreState,
@@ -444,6 +445,86 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
     return true;
   }, [store, band.id, band.blocks, block.id, block.kind, block.content]);
 
+  /**
+   * Delete at the very end: the block BELOW joins this one. The mirror of
+   * `handleMergeUp`, with the indices shifted by one, and subject to the same
+   * rule about which kinds may be joined.
+   */
+  const handleMergeDown = useCallback((): boolean => {
+    const index = band.blocks.findIndex((candidate) => candidate.id === block.id);
+    const next = index >= 0 ? band.blocks[index + 1] : undefined;
+    if (next === undefined) return false;
+    if (!SINGLE_LINE_KINDS.has(next.kind) || !SINGLE_LINE_KINDS.has(block.kind)) return false;
+
+    const seam = inlineLength(block.content);
+    const merged = joinInlineContent(block.content, next.content);
+    // `mergeProseBlockUp` removes the named block and puts the joined content
+    // into the one before it, which is exactly this operation named from the
+    // other end: remove the NEXT block, content into this one.
+    store.update((doc) => mergeProseBlockUp(doc, band.id, next.id, merged), {
+      label: 'join text blocks',
+      selection: selectBlock(band.id, block.id),
+    });
+    requestCaret(block.id, seam);
+    return true;
+  }, [store, band.id, band.blocks, block.id, block.kind, block.content]);
+
+  /**
+   * Enter on an empty bullet: break the list open there.
+   *
+   * Up to three blocks where there was one — the items above, a paragraph,
+   * the items below — and only the ones that have anything in them. At the
+   * end of a list `after` is empty and this is simply "end the list", which
+   * is what people mean by it; in the middle it genuinely splits.
+   *
+   * One `store.update`, so it is one undo step and the document never passes
+   * through a state the schema would reject, such as a list block with no
+   * items in it.
+   */
+  const handleSplitList = useCallback(
+    (before: ProseNode[], after: ProseNode[]): boolean => {
+      const paragraph = createProseBlock('p', []);
+      const replacement: ProseBlock[] = [];
+      if (before.length > 0) replacement.push({ ...block, content: before });
+      replacement.push(paragraph);
+      if (after.length > 0) replacement.push(createProseBlock(block.kind, after));
+      store.update((doc) => replaceProseBlockWith(doc, band.id, block.id, replacement), {
+        label: after.length > 0 ? 'split list' : 'end list',
+        selection: selectBlock(band.id, paragraph.id),
+      });
+      requestCaret(paragraph.id, 'start');
+      return true;
+    },
+    [store, band.id, block],
+  );
+
+  /**
+   * The caret has run off an edge of this block. Move it into the neighbour.
+   *
+   * Every block is its own editor, so without this the arrow keys stop dead
+   * at a block boundary and a long page has to be navigated by clicking.
+   * Unlike merging, this crosses ANY two kinds: moving the caret into a list
+   * or a quote is unambiguous in a way that joining text into one is not.
+   */
+  const handleLeaveEdge = useCallback(
+    (direction: 'up' | 'down' | 'left' | 'right'): boolean => {
+      const back = direction === 'up' || direction === 'left';
+      const index = band.blocks.findIndex((candidate) => candidate.id === block.id);
+      if (index < 0) return false;
+      const neighbour = band.blocks[back ? index - 1 : index + 1];
+      if (neighbour === undefined) return false;
+      // Arriving from above lands at the start, from below at the end, which
+      // is what the caret does when it crosses a paragraph boundary anywhere
+      // else. Sideways is the same rule: Right off the end arrives at the
+      // start of the next, Left off the start arrives at the end of the
+      // previous.
+      requestCaret(neighbour.id, back ? 'end' : 'start');
+      store.selectBlock(band.id, neighbour.id);
+      return true;
+    },
+    [store, band.id, band.blocks, block.id],
+  );
+
   const caret = useCaretRequest(block.id);
 
   return (
@@ -452,6 +533,9 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
       onChange={handleChange}
       onSplit={handleSplit}
       onMergeUp={handleMergeUp}
+      onMergeDown={handleMergeDown}
+      onSplitList={handleSplitList}
+      onLeaveEdge={handleLeaveEdge}
       caret={caret}
       onFocusChange={handleFocus}
       // WS-5's toolbar owns kind, and `handleChange` writes kind and content

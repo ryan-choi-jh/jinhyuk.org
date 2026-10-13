@@ -69,6 +69,7 @@
 import { Extension, Mark, Node, getSchema, mergeAttributes } from '@tiptap/core';
 import type { Extensions } from '@tiptap/core';
 import type { Schema } from '@tiptap/pm/model';
+import type { EditorView } from '@tiptap/pm/view';
 import { Color } from '@tiptap/extension-color';
 import { ListItem } from '@tiptap/extension-list';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -260,12 +261,85 @@ export type ProseExtensionOptions = {
    * and leave the document alone.
    */
   onMergeUp?: () => boolean;
+  /**
+   * Delete with the caret at the very END of a single-line block, nothing
+   * selected: the host joins the block BELOW onto this one. The mirror of
+   * `onMergeUp`, and it was simply missing — Backspace joined backwards and
+   * Delete did nothing at all, which is an asymmetry no other editor has.
+   */
+  onMergeDown?: () => boolean;
+  /**
+   * Enter on an EMPTY item of a ul or ol: the author is trying to stop making
+   * bullets. The host drops that item and breaks the list open there, in one
+   * edit. Return false and the key does nothing, which is what it did before
+   * this existed.
+   */
+  onSplitList?: () => boolean;
+  /**
+   * The caret has tried to leave the block vertically: Down from the last
+   * line, Up from the first. The host moves it into the neighbouring block.
+   *
+   * Every block is its own editor, so there is nothing inside this one for
+   * the caret to move into and the key does nothing without a host. `at` is
+   * where the caret should land in the block it arrives in.
+   */
+  onLeaveVertically?: (direction: 'up' | 'down') => boolean;
+  /**
+   * The caret has tried to leave the block sideways: Left from the very
+   * start, Right from the very end. Same story as the vertical pair.
+   */
+  onLeaveHorizontally?: (direction: 'left' | 'right') => boolean;
 };
+
+/**
+ * Is the caret sitting at the very end of the document, with nothing
+ * selected? `doc.content.size - 1` is the last position inside the single top
+ * node, the mirror of position 1 at the other end.
+ */
+function atDocumentEnd(editor: { state: { selection: { empty: boolean; from: number } ; doc: { content: { size: number } } } }): boolean {
+  const { selection, doc } = editor.state;
+  return selection.empty && selection.from >= doc.content.size - 1;
+}
+
+/**
+ * Is the caret on the first (or last) VISUAL line of the editor?
+ *
+ * Not the same question as "is it at the first position". A paragraph wraps,
+ * and pressing Down in the middle of a three-line paragraph should move to
+ * the next line, not jump out of the block. So this measures: it compares the
+ * caret's own rectangle against the editor's, which is the only way to know
+ * where the lines actually fell.
+ *
+ * Returns true when it cannot tell, which errs towards handing the key to the
+ * host. A caret with no rectangle is a caret in an empty block, and an empty
+ * block is both its first line and its last.
+ */
+function onEdgeLine(view: EditorView, edge: 'first' | 'last'): boolean {
+  const { selection } = view.state;
+  if (!selection.empty) return false;
+  let caret: { top: number; bottom: number };
+  try {
+    caret = view.coordsAtPos(selection.from);
+  } catch {
+    return true;
+  }
+  const box = view.dom.getBoundingClientRect();
+  // Half a line of tolerance, so a caret sitting on the first line is still
+  // "on the first line" when the line box is a little taller than the glyphs.
+  const slack = Math.max(4, (caret.bottom - caret.top) / 2);
+  return edge === 'first'
+    ? caret.top - box.top <= slack
+    : box.bottom - caret.bottom <= slack;
+}
 
 function ProseKeymap(kind: ProseBlockKind, options: ProseExtensionOptions): Extension {
   const onRequestLink = options.onRequestLink;
   const onSplit = options.onSplit;
   const onMergeUp = options.onMergeUp;
+  const onMergeDown = options.onMergeDown;
+  const onSplitList = options.onSplitList;
+  const onLeaveVertically = options.onLeaveVertically;
+  const onLeaveHorizontally = options.onLeaveHorizontally;
   const singleLine = SINGLE_LINE_KINDS.has(kind);
 
   return Extension.create({
@@ -298,7 +372,85 @@ function ProseKeymap(kind: ProseBlockKind, options: ProseExtensionOptions): Exte
           if (!selection.empty || selection.from !== 1) return false;
           return onMergeUp();
         };
+
+        // The mirror of the above. Delete at the end of a block pulls the
+        // next one up onto it, exactly as Backspace at the start pushes this
+        // one onto the previous.
+        shortcuts.Delete = () => {
+          if (onMergeDown === undefined) return false;
+          if (!atDocumentEnd(this.editor)) return false;
+          return onMergeDown();
+        };
+      } else if (flagsFor(kind).lists) {
+        /* Enter on an EMPTY list item breaks the list open there.
+
+           In every other editor that is how you stop making bullets. Here it
+           could not be: the block's document is pinned to a single
+           `bulletList`, so `liftListItem` has nowhere to lift to and the key
+           did nothing at all. Measured on the shipped component, twice: on
+           the last item the list stayed at three with the third empty and no
+           paragraph appeared, and on an item in the MIDDLE the key was just
+           as dead, which only showed up once there was a test for it.
+
+           So it is any empty item, not only the last: before it stays a
+           list, after it stays a list, and a paragraph opens between them.
+           At the end that degenerates to "end the list", which is the common
+           case and the one people mean.
+
+           This only RECOGNISES the moment. It does not touch the document,
+           because the fix is up to three blocks where there was one and only
+           the host can do that atomically. It is deliberately not `onSplit`,
+           which builds inline content: handing a list's content to that
+           would flatten the bullets into a paragraph. */
+        shortcuts.Enter = () => {
+          if (onSplitList === undefined) return false;
+          const { selection } = this.editor.state;
+          if (!selection.empty) return false;
+          const item = selection.$from.node(-1);
+          const list = selection.$from.node(-2);
+          if (item === undefined || item.type.name !== 'listItem') return false;
+          if (item.textContent !== '') return false;
+          // One item and it is empty: the list is empty, and taking the item
+          // out would leave a node with no legal content. Leave it alone; the
+          // way out of an empty list is the toolbar, or Backspace.
+          if (list === undefined || list.childCount <= 1) return false;
+          return onSplitList();
+        };
       }
+
+      /* Arrow keys cross block boundaries.
+
+         Every block is a separate editor, so there is nothing inside this one
+         for the caret to move into and these keys simply stopped at the edge:
+         measured, ArrowDown from the end of a paragraph left focus exactly
+         where it was. On a long page that means clicking into every block.
+
+         The host moves the caret, through the same `caretRequests` machinery
+         that split and merge already use. Returning false where there is no
+         host, or where the caret is not on the edge line, leaves ProseMirror
+         to do its ordinary within-block thing. */
+      shortcuts.ArrowDown = () =>
+        onLeaveVertically !== undefined &&
+        onEdgeLine(this.editor.view, 'last') &&
+        onLeaveVertically('down');
+
+      shortcuts.ArrowUp = () =>
+        onLeaveVertically !== undefined &&
+        onEdgeLine(this.editor.view, 'first') &&
+        onLeaveVertically('up');
+
+      shortcuts.ArrowRight = () => {
+        if (onLeaveHorizontally === undefined) return false;
+        if (!atDocumentEnd(this.editor)) return false;
+        return onLeaveHorizontally('right');
+      };
+
+      shortcuts.ArrowLeft = () => {
+        if (onLeaveHorizontally === undefined) return false;
+        const { selection } = this.editor.state;
+        if (!selection.empty || selection.from > 1) return false;
+        return onLeaveHorizontally('left');
+      };
 
       shortcuts['Mod-k'] = () => {
         if (onRequestLink === undefined) return false;

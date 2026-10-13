@@ -87,6 +87,32 @@ export type ProseEditorProps = {
    * joined this block onto the one above; false and the key does nothing.
    */
   onMergeUp?: () => boolean;
+  /**
+   * Delete at the very end of a p/h2/h3/callout block. Return true if the
+   * host pulled the block below up onto this one. The mirror of `onMergeUp`.
+   */
+  onMergeDown?: () => boolean;
+  /**
+   * Enter on an empty item of a list: the author wants out of it.
+   *
+   * `before` and `after` are this block's items either side of the empty one,
+   * which is dropped. The host puts back whichever of them is non-empty as a
+   * list and opens a paragraph between, in ONE edit, so it is one undo step
+   * and the document never holds a stray empty bullet.
+   *
+   * At the end of a list `after` is empty and this is just "end the list",
+   * which is the case people mean. In the middle it genuinely splits.
+   */
+  onSplitList?: (before: ProseNode[], after: ProseNode[]) => boolean;
+  /**
+   * The caret has reached an edge of this block and kept going. `direction`
+   * is which way. Return true if the host moved it into a neighbouring block.
+   *
+   * 'up' and 'down' fire from the first and last VISUAL line, so a wrapped
+   * paragraph still moves line by line inside itself first. 'left' and
+   * 'right' fire from the very first and very last position.
+   */
+  onLeaveEdge?: (direction: 'up' | 'down' | 'left' | 'right') => boolean;
   /** Move the caret and take focus. Bump `nonce` to fire it again. */
   caret?: CaretRequest | null;
 
@@ -144,6 +170,9 @@ function ProseEditorInstance({
   onChange,
   onSplit,
   onMergeUp,
+  onMergeDown,
+  onSplitList,
+  onLeaveEdge,
   caret = null,
   readOnly = false,
   autoFocus = false,
@@ -165,6 +194,12 @@ function ProseEditorInstance({
   onSplitRef.current = onSplit;
   const onMergeUpRef = useRef(onMergeUp);
   onMergeUpRef.current = onMergeUp;
+  const onMergeDownRef = useRef(onMergeDown);
+  onMergeDownRef.current = onMergeDown;
+  const onSplitListRef = useRef(onSplitList);
+  onSplitListRef.current = onSplitList;
+  const onLeaveEdgeRef = useRef(onLeaveEdge);
+  onLeaveEdgeRef.current = onLeaveEdge;
   const onFocusChangeRef = useRef(onFocusChange);
   onFocusChangeRef.current = onFocusChange;
   const onReadyRef = useRef(onReady);
@@ -206,6 +241,34 @@ function ProseEditorInstance({
   });
 
   const handleMergeUp = useRef((): boolean => onMergeUpRef.current?.() ?? false);
+  const handleMergeDown = useRef((): boolean => onMergeDownRef.current?.() ?? false);
+
+  /**
+   * The list, cut either side of the empty bullet the author pressed Enter on.
+   *
+   * The content comes from the editor's own JSON rather than from `block`,
+   * which the parent may not have echoed back yet, and goes through
+   * `blockFromDoc` so what the host receives is already in the stored shape.
+   * The index comes from the selection, so it is the item the caret is
+   * actually in and not an assumption about which one that is. The extension
+   * has already checked that the item is empty and not the only one.
+   */
+  const handleSplitList = useRef((): boolean => {
+    const instance = editorRef.current;
+    const split = onSplitListRef.current;
+    if (instance === null || split === undefined) return false;
+    const content = blockFromDoc(blockRef.current, instance.getJSON()).content;
+    if (content.length < 2) return false;
+    // depth -1 from the text position is the listItem; its index within the
+    // list is the one to drop.
+    const at = instance.state.selection.$from.index(instance.state.selection.$from.depth - 2);
+    if (at < 0 || at >= content.length) return false;
+    return split(content.slice(0, at) as ProseNode[], content.slice(at + 1) as ProseNode[]);
+  });
+  const handleLeaveEdge = useRef(
+    (direction: 'up' | 'down' | 'left' | 'right'): boolean =>
+      onLeaveEdgeRef.current?.(direction) ?? false,
+  );
 
   useEffect(() => {
     injectProseEditorStyles();
@@ -222,6 +285,10 @@ function ProseEditorInstance({
         onRequestLink: () => requestLink.current(),
         onSplit: () => handleSplit.current(),
         onMergeUp: () => handleMergeUp.current(),
+        onMergeDown: () => handleMergeDown.current(),
+        onSplitList: () => handleSplitList.current(),
+        onLeaveVertically: (direction) => handleLeaveEdge.current(direction),
+        onLeaveHorizontally: (direction) => handleLeaveEdge.current(direction),
       }),
       content: docFromBlock(block),
       editable: !readOnly,
