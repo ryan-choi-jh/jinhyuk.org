@@ -479,6 +479,8 @@ export function splitProseBlock(
   blockId: string,
   head: unknown[],
   tail: ProseBlock,
+  /** The head's kind, when the split changes it. Defaults to unchanged. */
+  headKind?: ProseBlockKind,
 ): Doc {
   return withBand(doc, bandId, (band) => {
     if (band.type !== 'prose') return band;
@@ -486,7 +488,12 @@ export function splitProseBlock(
     if (index < 0) return band;
     const current = band.blocks[index] as ProseBlock;
     const blocks = [...band.blocks];
-    blocks.splice(index, 1, { ...current, content: head }, tail);
+    blocks.splice(
+      index,
+      1,
+      { ...current, kind: headKind ?? current.kind, content: head },
+      tail,
+    );
     return { ...band, blocks };
   });
 }

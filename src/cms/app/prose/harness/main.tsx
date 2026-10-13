@@ -178,12 +178,18 @@ function App(): JSX.Element {
 
   const handleSplit = (block: ProseBlock, head: ProseNode[], tail: ProseNode[]): void => {
     splitCount += 1;
-    const kind = block.kind === 'p' || tail.length > 0 ? block.kind : 'p';
+    // The same rule the real slot applies: no split ever leaves an empty
+    // heading, at either end. See src/cms/app/index.tsx.
+    const heading = block.kind === 'h2' || block.kind === 'h3';
+    const kind = heading && tail.length === 0 ? 'p' : block.kind;
+    const headKind = heading && head.length === 0 ? 'p' : block.kind;
     const made: ProseBlock = { id: `split_${splitCount}`, kind, content: tail };
     requestCaret(made.id, 'start');
     setBlocks((previous) =>
       previous.flatMap((candidate) =>
-        candidate.id === block.id ? [{ ...candidate, content: head }, made] : [candidate],
+        candidate.id === block.id
+          ? [{ ...candidate, kind: headKind, content: head }, made]
+          : [candidate],
       ),
     );
   };
@@ -900,6 +906,36 @@ async function run(): Promise<void> {
       `${editorFor('p_open').state.selection.from} (want ${at + 1})`,
     );
 
+    await reset();
+  }
+
+  section('a split never leaves an empty heading');
+  {
+    await reset();
+    const before = bridge.get().length;
+
+    // Enter at the START of a heading: how you push a heading down to make a
+    // blank row above it. The blank row must be a paragraph; left as a
+    // heading, a screen reader announces "heading level 2, blank".
+    editorFor('h2_heatmap').chain().focus().setTextSelection(1).run();
+    await press('h2_heatmap', 'Enter');
+    await waitFor(() => bridge.get().length === before + 1);
+    check('the blank row left above is a paragraph, not a heading', blockById('h2_heatmap').kind === 'p', blockById('h2_heatmap').kind);
+    check('and it is empty', blockById('h2_heatmap').content.length === 0);
+    const moved = bridge.get()[bridge.get().indexOf(blockById('h2_heatmap')) + 1];
+    check('the heading itself moved down, still a heading', moved.kind === 'h2', moved.kind);
+    check('with all of its words', collectProseText(moved.content) === collectProseText(FIXTURE_BLOCKS[1].content), collectProseText(moved.content));
+    await reset();
+
+    // Enter at the END of a heading starts a paragraph, which is the case
+    // that already worked and must keep working.
+    const h2 = editorFor('h2_heatmap');
+    h2.chain().focus().setTextSelection(h2.state.doc.content.size - 1).run();
+    await press('h2_heatmap', 'Enter');
+    await waitFor(() => bridge.get().length === before + 1);
+    const after = bridge.get()[bridge.get().indexOf(blockById('h2_heatmap')) + 1];
+    check('Enter at the end of a heading starts a paragraph', after.kind === 'p', after.kind);
+    check('and the heading keeps its words', collectProseText(blockById('h2_heatmap').content) === collectProseText(FIXTURE_BLOCKS[1].content));
     await reset();
   }
 

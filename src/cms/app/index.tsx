@@ -402,9 +402,18 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
    */
   const handleSplit = useCallback(
     (head: ProseNode[], tail: ProseNode[]) => {
-      const kind = block.kind === 'p' || tail.length > 0 ? block.kind : 'p';
-      const next = createProseBlock(kind, tail);
-      store.update((doc) => splitProseBlock(doc, band.id, block.id, head, next), {
+      // An EMPTY HEADING is never what was meant, whichever end the split
+      // happens at. Enter at the end of a heading starts a paragraph, which
+      // is what every editor does; Enter at the start of one is how you push
+      // a heading down to make room above it, and that leaves a blank row
+      // which should be a paragraph too. Left as a heading it is a real
+      // defect, not just untidy: a screen reader announces it as "heading
+      // level 2, blank".
+      const heading = block.kind === 'h2' || block.kind === 'h3';
+      const tailKind = heading && tail.length === 0 ? 'p' : block.kind;
+      const headKind = heading && head.length === 0 ? 'p' : block.kind;
+      const next = createProseBlock(tailKind, tail);
+      store.update((doc) => splitProseBlock(doc, band.id, block.id, head, next, headKind), {
         label: 'split text block',
         selection: selectBlock(band.id, next.id),
       });
