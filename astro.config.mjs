@@ -1,25 +1,33 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
-import keystatic from '@keystatic/astro';
 import vercel from '@astrojs/vercel';
 
 // This repo builds two different things.
 //
 // 1. The site itself: static HTML, built by GitHub Actions and served from
 //    GitHub Pages at https://jinhyuk.org (see .github/workflows/deploy.yml).
-//    Pages can't run a server, so Keystatic's editor and its API routes are
-//    left out entirely — along with the React runtime they need.
+//    Pages can't run a server, so the CMS, its API routes and its preview are
+//    left out entirely, along with the React runtime they need.
 //
-// 2. The Keystatic editor: deployed separately to Vercel, which can run
-//    Node. Set PUBLIC_EDITOR_BUILD=1 and the build switches to server output with
-//    the Vercel adapter and includes Keystatic. That deployment commits to
-//    the GitHub repo, which triggers the Pages build above.
+// 2. The CMS: deployed separately to Vercel, which can run Node. Set
+//    PUBLIC_EDITOR_BUILD=1 and the build switches to server output with the
+//    Vercel adapter and injects everything under /cms and /api/cms. That
+//    deployment commits to the GitHub repo, which triggers the Pages build
+//    above.
 //
-// `npm run dev` gets the editor too, reading and writing local files.
+// `npm run dev` gets the editor too, reading and writing the real repo.
+//
+// KEYSTATIC IS GONE (2026-10-13). It was still mounted here long after the
+// cutover, editing `src/content/writing/*` and `src/content/projects/*`,
+// which the site stopped reading: a complete, working editor that changed
+// nothing. `/studio` and `/preview/projects/[slug]` went with it, being two
+// earlier attempts at the same job that authenticated off its cookie. Their
+// files are still in the working tree, unreferenced, like the content they
+// edited.
 const isDev = process.argv.includes('dev');
 const isEditor = process.env.PUBLIC_EDITOR_BUILD === '1';
-const withKeystatic = isDev || isEditor;
+const withEditor = isDev || isEditor;
 
 const EDITOR_ORIGIN = 'https://jinhyuk-editor.vercel.app';
 
@@ -29,36 +37,17 @@ export default defineConfig({
   output: isEditor ? 'server' : 'static',
   ...(isEditor ? { adapter: vercel() } : {}),
   integrations: [
-    ...(withKeystatic ? [react(), keystatic()] : []),
-    // The live preview behind Keystatic's Preview button. It is server
-    // rendered, so it can only exist where there is an adapter: injecting it
-    // here keeps it out of the static Pages build, which would otherwise fail
-    // on its `prerender = false`.
-    ...(withKeystatic
+    ...(withEditor ? [react()] : []),
+    // The CMS, its API and its preview. All server rendered, so they can
+    // only exist where there is an adapter: injecting them here keeps them
+    // out of the static Pages build, which would otherwise fail on their
+    // `prerender = false`.
+    ...(withEditor
       ? [
           {
             name: 'editor-routes',
             hooks: {
               'astro:config:setup': ({ injectRoute }) => {
-                injectRoute({
-                  pattern: '/preview/projects/[slug]',
-                  entrypoint: './src/preview/project-preview.astro',
-                });
-                // The studio: the editor that is meant to replace Keystatic.
-                injectRoute({ pattern: '/studio', entrypoint: './src/studio/index.astro' });
-                injectRoute({
-                  pattern: '/studio/projects/[slug]',
-                  entrypoint: './src/studio/project.astro',
-                });
-                injectRoute({
-                  pattern: '/studio/api/save',
-                  entrypoint: './src/studio/api/save.ts',
-                });
-                injectRoute({
-                  pattern: '/studio/api/upload',
-                  entrypoint: './src/studio/api/upload.ts',
-                });
-
                 // WS-2 STORAGE AND API. The CMS's own endpoints
                 // (docs/cms-rebuild.md 3.5). Injected here, next to the ones
                 // above, for the same reason: they are server rendered, they
@@ -213,11 +202,10 @@ export default defineConfig({
                 });
 
                 // WS-7 PREVIEW, extended by WS-H (docs/cms-sections.md 5).
-                // Server rendered, and excluded from the static Pages build in
-                // exactly the way the Keystatic-era /preview/projects/[slug]
-                // above is: injected under this same `withKeystatic`
-                // condition, with the files outside src/pages/ so they are not
-                // routes in both builds.
+                // Server rendered, and excluded from the static Pages build
+                // the same way everything else here is: injected under the
+                // `withEditor` condition, with the files outside src/pages/
+                // so they are not routes in both builds.
                 //
                 // THREE ROUTES, and the order of the last two matters.
                 //

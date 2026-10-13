@@ -1,82 +1,83 @@
 # jinhyuk.org
 
-Ryan Choi's personal site. Built with [Astro](https://astro.build), edited with
-[Keystatic](https://keystatic.com), deployed to GitHub Pages at
-<https://jinhyuk.org>.
+Ryan Choi's personal site. Built with [Astro](https://astro.build), edited
+with its own CMS, deployed to GitHub Pages at <https://jinhyuk.org>.
 
-The design lives in Paper ("Personal Site" file) — the landing page plus four
+The design lives in Paper ("Personal Site" file): the landing page plus four
 section pages. `src/styles/global.css` holds the tokens that mirror it.
 
 ## Pages
 
+Every page is a JSON document validated against `src/cms/schema.ts` and read
+through `src/lib/site-content.ts`.
+
 | Address | What it is | Where the content comes from |
 | --- | --- | --- |
-| `/` | Hero illustration + intro | `src/content/home.yaml` |
-| `/projects/` | List of projects | `src/content/projects/*.yaml` |
+| `/` | Hero illustration + intro | `src/content/pages/home.json` |
+| `/projects/` | List of projects | `src/content/pages/projects/*.json` |
 | `/projects/<slug>/` | A project write-up | same |
-| `/essays/` | List of essays | `src/content/writing/*.md` |
+| `/essays/` | List of essays | `src/content/pages/essays/*.json` |
 | `/essays/<slug>/` | An essay | same |
-| `/photography/` | Album grid | `src/data/photography.ts` |
-| `/filmography/` | Short films | `src/data/filmography.ts` |
+| `/photography/` | Album grid | `src/content/data/photography.json` |
+| `/photography/<slug>/` | One album | same |
+| `/filmography/` | Short films | `src/content/data/filmography.json` |
+| the nav and the footer | drawn around every page | `src/content/data/site.json` |
 
-`/writing/` and `/writing/<slug>/` still work — they redirect to `/essays/`,
+`/writing/` and `/writing/<slug>/` still work: they redirect to `/essays/`,
 because the essays lived there before the nav was renamed.
 
 ## Editing
 
-```
-npm run dev
-```
+The CMS is at <https://jinhyuk-editor.vercel.app/cms>. Sign in with GitHub and
+edit any of the five sections in place. **Save** writes a draft the site
+ignores; **Publish** moves that draft into the published tree and the site
+rebuilds itself, usually within a minute or two. The deploy chip in the
+toolbar watches the live site and tells you when your change is actually
+being served.
 
-Then <http://localhost:4321/keystatic> for the visual editor (home page,
-projects, essays). It edits the files in `src/content/` directly — commit and
-push when you're done. The editor only runs locally; the live site is static
-files on GitHub Pages, which can't run the server the editor needs.
-
-Editing a `.md` file on github.com and committing works too, from any device.
-
-### Adding an essay by hand
-
-Create `src/content/writing/the-thing-i-learned.md`. The filename becomes the
-URL (`/essays/the-thing-i-learned/`).
+To run it against the real repository from here:
 
 ```
----
-title: "The thing I learned"
-date: 2026-06-10
----
-
-Your writing goes here, in plain Markdown.
+CMS_DEV_TOKEN=$(gh auth token) npm run dev
 ```
 
-Add `draft: true` under the date to keep it unpublished.
+then <http://localhost:4321/cms>.
 
-### Photography and filmography
+Editing a `.json` file on github.com and committing works too, from any
+device, as long as it still validates.
 
-These two aren't in Keystatic — they're small TypeScript files you edit
-directly.
+### What happened to Keystatic
 
-- **Photography** (`src/data/photography.ts`) is currently placeholders with no
-  images behind them. Put images in `public/photography/<slug>/` and point each
-  album's `cover` at one.
-- **Filmography** (`src/data/filmography.ts`) lists YouTube video IDs. Each film
-  needs a poster frame at `public/filmography/<id>.jpg` (1280×720). The page
-  shows that still and only loads the YouTube player when someone clicks, so
-  four embeds don't slow the page down.
+It was removed on 2026-10-13. It had kept working long after the cutover,
+pointed at `src/content/writing/*` and `src/content/projects/*`, which the
+site stopped reading: a complete, usable editor that changed nothing on the
+site. `/studio` and `/preview/projects/[slug]`, two earlier attempts at the
+same job, went at the same time.
+
+The files those three edited are still in the working tree, unreferenced:
+`src/content/home.yaml`, `src/content/writing/*.md`,
+`src/content/projects/*.mdoc`, `src/data/photography.ts`,
+`src/data/filmography.ts`, and the code under `src/studio/` and
+`src/preview/`. Nothing reads any of it. They are the pre-cutover originals,
+kept as a safety net, and git has them whenever they are not wanted any more.
 
 ### The hero illustration
 
 `public/home/hero.webp` (with a `.jpg` twin for social previews) is exported
-from the Paper file at 2× — the "Grid hero" frame. Re-export and re-convert it
+from the Paper file at 2x, the "Grid hero" frame. Re-export and re-convert it
 there when the illustration changes.
 
 ## Publishing
 
-Push to `main`. GitHub Actions (`.github/workflows/deploy.yml`) builds and
-deploys to GitHub Pages, usually live within a minute or two.
+Push to `main`, or press Publish in the CMS, which commits to `main` for you.
+GitHub Actions (`.github/workflows/deploy.yml`) builds and deploys to GitHub
+Pages.
 
 ## Where to change things
 
 - Colours, type, spacing: `src/styles/global.css` (tokens at the top)
-- Nav and footer: `src/layouts/Base.astro`
-- Social links: `src/components/SocialLinks.astro`
+- How a document is drawn: `src/cms/styles/doc.css` and `src/cms/render/`
+- Nav and footer: edited in the CMS, under Home
+- **Working on the CMS itself: read [`cms/AGENTS.md`](cms/AGENTS.md) first.**
+  `cms/` holds its documentation: how it works, where it and the site can
+  drift, and the rules that keep it honest.
