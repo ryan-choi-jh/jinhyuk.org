@@ -494,6 +494,58 @@ export const SHELL_CSS = `
    So the surface marks it instead of drawing a convincing blank line. The
    label is chrome, not content: it is an ::after on the wrapper, outside the
    contenteditable, and it does not change the row's height. */
+/* The pre-publish checklist, floating above the toolbar.
+
+   Anchored to the Publish button rather than a modal: it is a list to read
+   before a click, not a decision to be trapped in. Warnings carry the
+   accent, notes do not, so the eye goes to the ones that matter without the
+   list shouting. */
+.cms-publish { position: relative; display: inline-flex; }
+.cms-preflight {
+  position: absolute;
+  /* BELOW the button. The toolbar runs along the top of the editor, so a
+     popover anchored above it opens at a negative y, off the top of the
+     window: present in the DOM, impossible to click. The harness caught it
+     by clicking "Publish anyway" and nothing happening. */
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(420px, 70vw);
+  padding: 12px 14px;
+  border: 1px solid var(--cms-line, #2b3036);
+  border-radius: 8px;
+  background: var(--cms-panel, #171c22);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+.cms-preflight__head {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cms-dim, #7b8794);
+  margin-bottom: 8px;
+}
+.cms-preflight__list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+.cms-preflight__list li {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--cms-text, #dfe4ea);
+  padding-left: 12px;
+  border-left: 2px solid var(--cms-line, #2b3036);
+}
+.cms-preflight__list li[data-level='warn'] { border-left-color: var(--cms-accent, #ff5722); }
+.cms-preflight__actions { display: flex; gap: 6px; }
+
 .cms-block-slot[data-empty='true'] {
   position: relative;
   outline: 1px dashed var(--cms-line, #2b3036);

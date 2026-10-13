@@ -36,6 +36,7 @@ const OFFLINE = [
   ['records', 'src/cms/app/records/verify.ts'],
   ['assets', 'src/cms/assets/verify.ts'],
   ['preview', 'src/cms/preview/selftest.ts'],
+  ['pre-publish checklist', 'src/cms/verify-preflight.ts'],
   ['server', 'src/cms/server/verify.ts', ['--offline']],
 ];
 
@@ -106,7 +107,7 @@ const failed = [];
 const started = Date.now();
 
 for (const [label, file, args = []] of suites) {
-  process.stdout.write(`  ${label.padEnd(26)}`);
+  process.stdout.write(`  ${label.padEnd(28)}`);
   const began = Date.now();
   const result = await run(file, args);
   const took = `${((Date.now() - began) / 1000).toFixed(1)}s`;

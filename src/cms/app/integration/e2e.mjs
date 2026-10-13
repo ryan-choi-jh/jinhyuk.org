@@ -236,6 +236,20 @@ function loadPlaywright() {
   throw new Error('playwright not found; this check needs a browser');
 }
 
+/**
+ * Press Publish, and clear the pre-publish checklist if it appears.
+ *
+ * The checklist is warnings and never a block: the first press opens it when
+ * there is something to say, the second publishes, and a page with nothing
+ * to say publishes on the first press. A harness has to handle both, because
+ * whether a fixture trips it depends on the fixture.
+ */
+async function publishThrough(target) {
+  await target.click('[data-testid="publish"]');
+  const list = await target.$('[data-testid="preflight"]');
+  if (list !== null) await target.click('[data-testid="preflight-go"]');
+}
+
 /* -------------------------------------------------------------------------- */
 /* The dev server                                                              */
 /* -------------------------------------------------------------------------- */
@@ -620,7 +634,7 @@ try {
   step('11. Publish, which is a copy and a delete in one commit (2.3)');
   const draftBeforePublish = await fileOnBranch(DRAFT_PATH, branch);
   await page.bringToFront();
-  await page.click('[data-testid="publish"]');
+  await publishThrough(page);
   await page.waitForFunction(
     () => (document.querySelector('[data-testid="status-message"]')?.textContent ?? '').includes('Published'),
     undefined,

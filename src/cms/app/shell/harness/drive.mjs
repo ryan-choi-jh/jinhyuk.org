@@ -875,7 +875,19 @@ async function run(page) {
   const previewUrl = await page.evaluate('window.__ws3.previews[0].url');
   check('and it addresses the draft', previewUrl === '/preview/fixture-dense?draft=1', String(previewUrl));
 
+  /* Publish goes through the pre-publish checklist now. The dense fixture
+     has images with no alt text in it, so the first press opens the list
+     rather than publishing: warnings, never a block, and the second press
+     goes. A page with nothing to say publishes on the first press, which is
+     the case asserted further down. */
   await page.click('publish');
+  await sleep(80);
+  const listed = await page.evaluate(
+    `(() => { const el = document.querySelector('[data-testid="preflight"]'); return el === null ? 0 : el.querySelectorAll('li').length; })()`,
+  );
+  check('the first press shows the checklist rather than publishing', listed > 0, `${listed} items`);
+  check('…and nothing has been published yet', (await page.probe()).server.hasDraft === true);
+  await page.click('preflight-go');
   for (let attempt = 0; attempt < 80 && (await page.probe()).phase !== 'idle'; attempt += 1) await sleep(50);
   state = await page.probe();
   check('publish copies the draft over the published document', state.server.publishedBandCount === 8, `${state.server.publishedBandCount}`);

@@ -267,6 +267,21 @@ async function startDevServer(branch) {
   throw new Error(`astro dev never answered on ${ORIGIN}:\n${log.slice(-4000)}`);
 }
 
+
+/**
+ * Press Publish, and clear the pre-publish checklist if it appears.
+ *
+ * The checklist is warnings and never a block: the first press opens it when
+ * there is something to say, the second publishes, and a page with nothing
+ * to say publishes on the first press. A harness has to handle both, because
+ * whether a fixture trips it depends on the fixture.
+ */
+async function publishThrough(target) {
+  await target.click('[data-testid="publish"]');
+  const list = await target.$('[data-testid="preflight"]');
+  if (list !== null) await target.click('[data-testid="preflight-go"]');
+}
+
 /* -------------------------------------------------------------------------- */
 /* Run                                                                         */
 /* -------------------------------------------------------------------------- */
@@ -747,7 +762,7 @@ try {
   /* ---------------------------------------------------------------------- */
   step('8. publish');
   const photographyDraftBefore = await fileOnBranch('src/content/drafts/data/photography.json', branch);
-  await page.click('[data-testid="publish"]');
+  await publishThrough(page);
   await waitForStatus(page, 'Published');
   check('the record editor says it published', true);
   const photographyPublished = await fileOnBranch('src/content/data/photography.json', branch, {
@@ -800,7 +815,7 @@ try {
   );
   check('reopening home shows the draft that was saved, not the published page', true);
   const homeDraftBefore = await fileOnBranch('src/content/drafts/pages/home.json', branch);
-  await page.click('[data-testid="publish"]');
+  await publishThrough(page);
   await waitForStatus(page, 'Published');
   const homeAfter = await fileOnBranch('src/content/pages/home.json', branch, {
     wantText: HOME_SENTENCE.trim(),
