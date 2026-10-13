@@ -70,6 +70,24 @@ export function defaultBranch(): string {
   return env('CMS_BRANCH') ?? 'main';
 }
 
+/**
+ * Where the published site is served from. Not the editor's own origin.
+ *
+ * The deploy watcher asks this origin what commit it is serving, by reading
+ * the `<meta name="build-rev">` every page carries, so it has to be the real
+ * public site and not wherever the CMS happens to be running.
+ *
+ * Here, beside `REPO` and `defaultBranch()`, rather than as a literal in
+ * `deploy.ts`, where it was the one hardcoded address left in the codebase.
+ * `CMS_SITE_ORIGIN` overrides it, which is what makes the watcher usable
+ * against a staging branch: point `CMS_BRANCH` at the branch and this at
+ * wherever that branch is published. A trailing slash is trimmed so the
+ * caller can append a path without doubling it.
+ */
+export function siteOrigin(): string {
+  return (env('CMS_SITE_ORIGIN') ?? 'https://jinhyuk.org').replace(/\/+$/, '');
+}
+
 /* -------------------------------------------------------------------------- */
 /* Paths (docs/cms-rebuild.md 2.1, 2.3; docs/cms-contracts.md 9.2, 9.3)        */
 /* -------------------------------------------------------------------------- */

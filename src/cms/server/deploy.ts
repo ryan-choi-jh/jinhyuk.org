@@ -37,11 +37,20 @@
  * live deploy as still building for ten minutes).
  */
 
-import { REPO } from './config.ts';
+import { REPO, siteOrigin } from './config.ts';
 import { ghPublic } from './github.ts';
 
-/** Where the published site lives. Not the editor's own origin. */
-export const SITE_ORIGIN = 'https://jinhyuk.org';
+/**
+ * Where the published site lives. Not the editor's own origin.
+ *
+ * A function, not a constant, and read at call time. `config.ts` says in its
+ * header that nothing in it reads a value at module scope that could differ
+ * between requests, and a `const` initialised from `siteOrigin()` would do
+ * exactly that: freeze whatever the environment said when the module first
+ * loaded. It used to be a hardcoded `https://jinhyuk.org` here, which is the
+ * thing `config.ts` exists to prevent.
+ */
+export { siteOrigin as SITE_ORIGIN } from './config.ts';
 
 export type DeployState =
   /** No run yet, or one that has not started. */
@@ -110,7 +119,7 @@ const REV_META = /<meta\s+name=["']build-rev["']\s+content=["']([0-9a-f]{7,40})[
  */
 export async function liveRevision(nonce: string): Promise<string | null> {
   try {
-    const response = await fetch(`${SITE_ORIGIN}/?cms-deploy-probe=${encodeURIComponent(nonce)}`, {
+    const response = await fetch(`${siteOrigin()}/?cms-deploy-probe=${encodeURIComponent(nonce)}`, {
       headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'jinhyuk.org-cms' },
       redirect: 'follow',
     });
