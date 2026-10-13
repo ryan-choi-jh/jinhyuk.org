@@ -44,8 +44,38 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
+import {
+  contentPathFor,
+  draftPathFor,
+  mediaDirFor,
+  mediaUrlFor,
+  requireSection,
+} from '../../sections.ts';
+
 const REPO = 'ryan-choi-jh/jinhyuk.org';
 const SLUG = 'ws8-e2e';
+
+/**
+ * Where this page's files live, asked of the registry rather than written out.
+ *
+ * They used to be written out, as `src/content/pages/<slug>.json` and
+ * `src/content/drafts/<slug>.json` and `public/media/<slug>/`. Those were
+ * phase 1's paths. Phase 2 moved them — a bare slug resolves through
+ * `LEGACY_SECTION_ID` to the projects section, so it is
+ * `src/content/pages/projects/<slug>.json` now, with media under
+ * `public/media/projects/<slug>/` — and this file was not updated. It
+ * therefore seeded a page the server would never look for, and then waited a
+ * minute for an editor with nothing to open. It had been failing that way
+ * since the cutover and nobody noticed, because nobody runs a check that
+ * takes two minutes and creates a branch.
+ *
+ * Asking the registry is the part that stops it happening again.
+ */
+const SECTION = requireSection('projects');
+const PAGE_PATH = contentPathFor(SECTION, SLUG);
+const DRAFT_PATH = draftPathFor(SECTION, SLUG);
+const MEDIA_DIR = mediaDirFor(SECTION, SLUG);
+const MEDIA_URL = mediaUrlFor(SECTION, SLUG);
 const BASE_BRANCH = 'main';
 const PORT = Number(process.env.E2E_PORT ?? 4331);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -289,7 +319,7 @@ try {
   fixture.meta.slug = SLUG;
   fixture.meta.title = 'WS-8 end to end';
   const seeded = `${JSON.stringify(fixture, null, 2)}\n`;
-  await gh(`/repos/${REPO}/contents/src/content/pages/${SLUG}.json`, {
+  await gh(`/repos/${REPO}/contents/${PAGE_PATH}`, {
     method: 'PUT',
     body: JSON.stringify({
       message: `WS-8 e2e: seed ${SLUG}`,
@@ -297,7 +327,7 @@ try {
       branch,
     }),
   });
-  check('a published page exists to load', true, `src/content/pages/${SLUG}.json`);
+  check('a published page exists to load', true, PAGE_PATH);
 
   step('3. astro dev against that branch');
   server = await startDevServer(branch);
@@ -309,6 +339,18 @@ try {
   const { chromium } = loadPlaywright();
   browser = await chromium.launch({ headless: process.env.E2E_HEADED !== '1' });
   const context = await browser.newContext({ viewport: { width: 1680, height: 1050 } });
+  // The guide opens itself on a FIRST VISIT, and every run here is a first
+  // visit: a fresh browser context has empty localStorage. Its backdrop is
+  // `position: fixed; inset: 0; z-index: 200`, so it swallows every click
+  // that follows and the run dies on a 30-second timeout with no clue why.
+  // Measured: with this flag seeded, the identical click works.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem('jinhyuk-cms.guide-seen.v1', '1');
+    } catch {
+      /* a context with no storage never shows it either */
+    }
+  });
   const page = await context.newPage();
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
@@ -335,16 +377,19 @@ try {
     `${(squigglePath ?? '').length} chars of path data`,
   );
 
-  // `authStatus()` checks the token against GitHub, so the chip starts as
-  // "checking" and resolves a moment later.
-  await page.waitForSelector('[data-testid="auth-chip"][data-signed-in="true"]', {
-    timeout: 30_000,
-  });
-  check(
-    'the auth chip resolves to signed in',
-    true,
-    (await page.textContent('[data-testid="auth-chip"]')) ?? '',
-  );
+  // `authStatus()` checks the token against GitHub, so this resolves a
+  // moment after the page is up rather than with it.
+  //
+  // The SITE BAR, not `auth-chip`. That chip belongs to phase 1's
+  // single-page toolbar, which `/cms/<slug>` no longer reaches: the URL
+  // redirects to `/cms/projects/<slug>` and mounts the whole-site app, whose
+  // toolbar shows an auth chip only when signed OUT, because the site bar
+  // above it already says who you are. Waiting for a signed-in `auth-chip`
+  // was therefore waiting for an element that appears only when the thing it
+  // is asserting is false.
+  await page.waitForSelector('[data-testid="site-auth"]', { timeout: 30_000 });
+  const who = (await page.textContent('[data-testid="site-auth"]')) ?? '';
+  check('the site bar resolves to signed in', who.includes('signed in'), who);
 
   const imagesLoaded = await page.evaluate(() =>
     [...document.querySelectorAll('[data-cv-stage] img')].map((img) => ({
@@ -472,8 +517,8 @@ try {
     (statusLine ?? '').includes('160×90'),
     statusLine ?? '',
   );
-  const committedMedia = await fileOnBranch(`public/media/${SLUG}/${filename}`, branch);
-  check('the file is committed to the branch', committedMedia !== null, `public/media/${SLUG}/${filename}`);
+  const committedMedia = await fileOnBranch(`${MEDIA_DIR}/${filename}`, branch);
+  check('the file is committed to the branch', committedMedia !== null, `${MEDIA_DIR}/${filename}`);
 
   await page.screenshot({ path: join(OUT_DIR, '02-edited.png') });
 
@@ -491,8 +536,8 @@ try {
     'cms-dirty',
   );
 
-  const draftFile = await fileOnBranch(`src/content/drafts/${SLUG}.json`, branch);
-  if (check('the draft exists on the branch', draftFile !== null, `src/content/drafts/${SLUG}.json`)) {
+  const draftFile = await fileOnBranch(DRAFT_PATH, branch);
+  if (check('the draft exists on the branch', draftFile !== null, DRAFT_PATH)) {
     const draft = JSON.parse(draftFile.text);
     const stage = draft.bands.find((band) => band.id === 'b_canvas_stage');
     const intro = draft.bands
@@ -517,11 +562,20 @@ try {
       boldRun !== undefined,
       boldRun === undefined ? JSON.stringify((intro?.content ?? []).map((n) => n.marks ?? [])) : 'bold',
     );
-    // 140 + 180 and 24 + 40. The tolerance is for WS-4's snapping, which is on
-    // by default and can pull an edge a few px onto a neighbour's.
+    // 140 + 180 and 24 + 40, within one snap.
+    //
+    // The tolerance has to be the snap radius AS IT APPLIES, which is not
+    // `DEFAULT_SNAP_THRESHOLD`. That 6 is in screen pixels and the caller
+    // divides it by the surface's scale, so in the reference pixels this
+    // assertion is written in it is 6/scale, and the middle pane draws the
+    // 1344px column at roughly half size. The old tolerance of 8 was tighter
+    // than the editor's own snapping and failed on a legitimate pull: the
+    // image lands at 330 because its centre (330 + 280/2 = 470) snaps onto
+    // i_canvas_cover's left edge, which is exactly at 470.
+    const SNAP_ALLOWANCE = 14;
     check(
       'the dragged image moved by the reference px the gesture asked for',
-      Math.abs(image.x - 320) <= 8 && Math.abs(image.y - 64) <= 8,
+      Math.abs(image.x - 320) <= SNAP_ALLOWANCE && Math.abs(image.y - 64) <= SNAP_ALLOWANCE,
       `x ${image.x} (was 140, wanted ~320), y ${image.y} (was 24, wanted ~64)`,
     );
     check('the inserted asset is in the committed JSON', newShapes.length === 1, JSON.stringify(newShapes.map((s) => s.shape)));
@@ -530,14 +584,14 @@ try {
       uploaded !== undefined && uploaded.w === 160 && uploaded.h === 90,
       uploaded === undefined ? 'missing' : `${uploaded.w}x${uploaded.h} at ${uploaded.x},${uploaded.y}`,
     );
-    eq('…with a site-absolute src', (uploaded?.src ?? '').startsWith(`/media/${SLUG}/`), true);
+    eq('…with a site-absolute src', (uploaded?.src ?? '').startsWith(`${MEDIA_URL}/`), true);
     check('the slug in the file matches the URL', draft.meta.slug === SLUG, draft.meta.slug);
     check(
       'the committed JSON is two-space with a trailing newline',
       draftFile.text.endsWith('}\n') && draftFile.text.includes('\n  "version"'),
     );
 
-    const published = await fileOnBranch(`src/content/pages/${SLUG}.json`, branch);
+    const published = await fileOnBranch(PAGE_PATH, branch);
     check(
       'the published page is untouched by saving a draft (2.3)',
       published !== null && published.text === seeded,
@@ -564,7 +618,7 @@ try {
   await preview.screenshot({ path: join(OUT_DIR, '03-preview.png') });
 
   step('11. Publish, which is a copy and a delete in one commit (2.3)');
-  const draftBeforePublish = await fileOnBranch(`src/content/drafts/${SLUG}.json`, branch);
+  const draftBeforePublish = await fileOnBranch(DRAFT_PATH, branch);
   await page.bringToFront();
   await page.click('[data-testid="publish"]');
   await page.waitForFunction(
@@ -573,7 +627,7 @@ try {
     { timeout: 90_000 },
   );
   check('the editor says it published', true);
-  const publishedAfter = await fileOnBranch(`src/content/pages/${SLUG}.json`, branch);
+  const publishedAfter = await fileOnBranch(PAGE_PATH, branch);
   check(
     'the published page is now the draft, byte for byte',
     publishedAfter !== null && draftBeforePublish !== null &&
@@ -581,7 +635,7 @@ try {
   );
   eq(
     'the draft is gone',
-    await fileOnBranch(`src/content/drafts/${SLUG}.json`, branch),
+    await fileOnBranch(DRAFT_PATH, branch),
     null,
   );
   // And the editor can keep going: the next save must create a draft again
@@ -595,46 +649,81 @@ try {
     undefined,
     { timeout: 60_000 },
   );
-  const reborn = await fileOnBranch(`src/content/drafts/${SLUG}.json`, branch);
+  const reborn = await fileOnBranch(DRAFT_PATH, branch);
   check(
     'saving after a publish creates the draft again',
     reborn !== null && reborn.text.includes('And again after publishing'),
   );
 
   step('12. a slug with no page yet');
+  // Phase 1 opened a blank editor here and said "No page X yet. Saving will
+  // create it." Phase 2 deliberately does not: a bare slug now resolves into
+  // the whole-site app, where making an entry is "+ New project" and a URL
+  // for something that does not exist is a mistake to be told about rather
+  // than a draft to be started. This asserts THAT, which is the behaviour
+  // the application actually has.
   const fresh = await context.newPage();
   await fresh.goto(`${ORIGIN}/cms/ws8-does-not-exist`, { waitUntil: 'domcontentloaded' });
-  await fresh.waitForSelector('[data-testid="cms-root"]', { timeout: 60_000 });
-  const notice = await fresh.textContent('[data-testid="status-message"]');
-  check(
-    'a new slug opens a blank editor and says so',
-    (notice ?? '').includes('No page'),
-    notice ?? '',
+  // The placeholder appears immediately saying "Opening…", so waiting for
+  // the ELEMENT is not waiting for the answer. Wait for the read to come
+  // back, which is what turns it into a sentence about this slug.
+  await fresh.waitForSelector('[data-testid="editor-loading"]', { timeout: 60_000 });
+  await fresh.waitForFunction(
+    () => {
+      const el = document.querySelector('[data-testid="editor-loading"]');
+      // `?? ''` on a missing element would read as "not Opening" and let this
+      // through before the placeholder exists at all, which is how it passed
+      // with an empty string the first time.
+      return el !== null && !(el.textContent ?? 'Opening').includes('Opening');
+    },
+    undefined,
+    { timeout: 60_000 },
   );
+  const missing = await fresh.evaluate(
+    () => document.querySelector('[data-testid="editor-loading"]')?.textContent ?? '',
+  );
+  check(
+    'a slug with no entry says so, by name',
+    missing.includes('ws8-does-not-exist') && /no project at/i.test(missing),
+    missing.replace(/\s+/g, ' ').trim(),
+  );
+  check('…and does not sit on a spinner', !missing.includes('Opening'), missing.replace(/\s+/g, ' ').trim());
   await fresh.close();
 
   step('13. the /cms index');
+  // Also phase 2's, not phase 1's: `/cms` is the whole-site overview now, a
+  // rail of the five sections with a list of entries beside it, rather than
+  // a flat `ul` of project slugs with a new-page form on it.
   const index = await context.newPage();
   await index.goto(`${ORIGIN}/cms`, { waitUntil: 'domcontentloaded' });
-  await index.waitForSelector('ul li', { timeout: 30_000 });
-  const listed = await index.evaluate(() =>
-    [...document.querySelectorAll('ul li')].map((li) => ({
-      href: li.querySelector('a.name')?.getAttribute('href') ?? '',
-      text: li.innerText.replace(/\s+/g, ' ').trim(),
-    })),
+  await index.waitForSelector('[data-testid="section-nav"]', { timeout: 30_000 });
+  const sections = await index.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="section-row-"]')].map((el) =>
+      (el.getAttribute('data-testid') ?? '').replace('section-row-', ''),
+    ),
   );
-  const row = listed.find((entry) => entry.href === `/cms/${SLUG}`);
-  check('the seeded page is listed', row !== undefined, JSON.stringify(listed.slice(0, 3)));
-  check('…and is flagged as having a draft', (row?.text ?? '').toLowerCase().includes('draft'), row?.text ?? '');
-  await index.click(`a.name[href="/cms/${SLUG}"]`);
-  await index.waitForSelector('[data-testid="cms-root"]', { timeout: 60_000 });
-  check('a page in the list opens the editor', index.url().endsWith(`/cms/${SLUG}`), index.url());
+  check(
+    'the five sections are listed, in registry order',
+    JSON.stringify(sections) ===
+      JSON.stringify(['home', 'projects', 'essays', 'filmography', 'photography']),
+    JSON.stringify(sections),
+  );
 
-  await index.goto(`${ORIGIN}/cms?slug=brand-new-thing`, { waitUntil: 'domcontentloaded' });
-  check('the new-page form redirects to the editor', index.url().endsWith('/cms/brand-new-thing'), index.url());
-  await index.goto(`${ORIGIN}/cms?slug=Not%20A%20Slug`, { waitUntil: 'domcontentloaded' });
-  const refused = await index.textContent('p.problem');
-  check('a bad slug is refused with a reason', (refused ?? '').includes('is not a page name'), refused ?? '');
+  await index.click('[data-testid="section-row-projects"]');
+  await index.waitForSelector(`[data-testid="entry-row-${SLUG}"]`, { timeout: 30_000 });
+  const rowText = await index.evaluate(
+    (slug) => document.querySelector(`[data-testid="entry-row-${slug}"]`)?.textContent ?? '',
+    SLUG,
+  );
+  check('the seeded page is listed under Projects', rowText.includes('WS-8'), rowText.replace(/\s+/g, ' ').trim());
+
+  await index.click(`[data-testid="entry-open-${SLUG}"]`);
+  await index.waitForSelector('[data-testid="cms-root"]', { timeout: 60_000 });
+  check(
+    'a page in the list opens the editor',
+    index.url().endsWith(`/cms/projects/${SLUG}`),
+    index.url(),
+  );
   await index.close();
 
   step('14. the console');

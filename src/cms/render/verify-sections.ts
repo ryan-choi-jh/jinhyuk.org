@@ -142,6 +142,15 @@ function readDoc(name: string): Doc {
   return result.doc;
 }
 
+/** A document the site actually builds from, by path. */
+function readLiveDoc(relative: string): Doc {
+  const result = validateDocJson(readFileSync(join(PROJECT, relative), 'utf8'));
+  if (!result.ok) {
+    throw new Error(`${relative} does not validate:\n${formatIssues(result.issues)}`);
+  }
+  return result.doc;
+}
+
 function readFilms(): Film[] {
   const result = validateFilmographyJson(readFileSync(join(FIXTURES, 'filmography.json'), 'utf8'));
   if (!result.ok) throw new Error(`filmography.json:\n${formatIssues(result.issues)}`);
@@ -155,52 +164,42 @@ function readAlbums(): Album[] {
 }
 
 /**
- * Frontmatter off the live content files, for the two ledger surfaces. Reading
- * the real content rather than a fixture is the point: an index page that
- * renders the same rows as the live one is the only way to compare it.
+ * The content the two ledger surfaces are built from. Reading the real
+ * content rather than a fixture is the point: an index page that renders the
+ * same rows as the live one is the only way to compare it.
+ *
+ * It used to read the PRE-CUTOVER sources — `src/content/writing/*.md` and
+ * `src/content/projects/*.mdoc` — by scraping their YAML frontmatter. The
+ * site stopped reading those at the cutover and they have not changed since,
+ * so the moment a project was published through the CMS this check started
+ * rendering one row against a live page showing two and reporting it as a
+ * renderer fault. Now it reads `src/content/pages/<section>/*.json`, which is
+ * what `src/lib/site-content.ts` builds the site from, so the comparison
+ * stays true as the site is edited.
  */
 type Front = { title: string; date: string; summary?: string; draft: boolean; slug: string };
 
-function readFrontmatter(dir: string, ext: string): Front[] {
-  const full = join(PROJECT, dir);
-  if (!existsSync(full)) return [];
+/** Every document in a section, as the index page needs it. */
+function readSectionDocs(section: 'projects' | 'essays'): Front[] {
+  const dir = join(PROJECT, 'src/content/pages', section);
+  if (!existsSync(dir)) return [];
   const out: Front[] = [];
-  for (const file of readdirSync(full).sort()) {
-    if (!file.endsWith(ext)) continue;
-    const text = readFileSync(join(full, file), 'utf8');
-    const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
-    if (block === null) continue;
-    const body = block[1]!;
-    const one = (key: string): string | undefined => {
-      const match = new RegExp(`^${key}:\\s*(.+)$`, 'm').exec(body);
-      if (match === null) return undefined;
-      return match[1]!.trim().replace(/^['"]|['"]$/g, '');
-    };
-    // A folded summary (`summary: >-`) runs over several indented lines, and
-    // ends at the first line that is not indented. No `m` flag: with it, `$`
-    // matches at the end of every line and the lazy body stops after one.
-    const folded = (key: string): string | undefined => {
-      const match = new RegExp(`(?:^|\\n)${key}:[ \\t]*>-?[ \\t]*\\r?\\n((?:[ \\t]+[^\\n]*\\r?\\n?)+)`).exec(
-        body,
-      );
-      if (match === null) return undefined;
-      return match[1]!
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line !== '')
-        .join(' ');
-    };
-    const title = one('title');
-    const date = one('date');
-    if (title === undefined || date === undefined) continue;
-    const summary = folded('summary') ?? one('summary');
+  for (const file of readdirSync(dir).sort()) {
+    if (!file.endsWith('.json')) continue;
+    const result = validateDocJson(readFileSync(join(dir, file), 'utf8'));
+    if (!result.ok) {
+      throw new Error(`${section}/${file} does not validate:\n${formatIssues(result.issues)}`);
+    }
+    const { meta } = result.doc;
     const entry: Front = {
-      title,
-      date: date.slice(0, 10),
-      draft: one('draft') === 'true',
-      slug: file.slice(0, -ext.length),
+      title: meta.title,
+      date: meta.date,
+      // Nothing published is a draft: a draft lives under src/content/drafts/
+      // and the site never reads it, so anything in here is on the site.
+      draft: false,
+      slug: meta.slug,
     };
-    if (summary !== undefined) entry.summary = summary;
+    if (meta.summary !== undefined) entry.summary = meta.summary;
     out.push(entry);
   }
   return out;
@@ -846,7 +845,12 @@ async function main(): Promise<void> {
 
   /* ---- the content -------------------------------------------------------- */
 
-  const home = readDoc('home');
+  // The REAL homepage, not the fixture. This surface is pixel-compared
+  // against the live `/`, and the fixture is a snapshot of the homepage as it
+  // was at the cutover; the moment the intro copy was edited the two differed
+  // by 70px and ten per cent of their pixels, which is the check reporting an
+  // edit as a regression.
+  const home = readLiveDoc('src/content/pages/home.json');
   const essay = readDoc('essay');
   const films = readFilms();
   const albums = readAlbums();
@@ -872,8 +876,8 @@ async function main(): Promise<void> {
     )}`,
   );
 
-  const essayFront = readFrontmatter('src/content/writing', '.md');
-  const projectFront = readFrontmatter('src/content/projects', '.mdoc');
+  const essayFront = readSectionDocs('essays');
+  const projectFront = readSectionDocs('projects');
 
   const firstBuild = albums.find((album) => album.slug === 'first-build');
   const developing = albums.find((album) => album.slug === 'developing');
@@ -932,6 +936,13 @@ async function main(): Promise<void> {
         // The live essay's own numbers: `article p { margin: 0 0 27px }`,
         // narrowed to 20px below the breakpoint by global.css.
         const gap = width < MOBILE_BREAKPOINT ? 20 : 27;
+        // And its body size, which global.css steps down with
+        // `body { font-size: 14px }` inside the same media query. An essay's
+        // quote is deliberately body-sized rather than the 26px display
+        // quote, so it follows that step; this assertion used to demand 17.5
+        // at every width, which was written before anyone looked at a phone
+        // and contradicted the rule in doc.css that puts it at 14 there.
+        const bodySize = width < MOBILE_BREAKPOINT ? 14 : 17.5;
 
         check(m.counts.docButton === 1, `essay @ ${width}: the end-of-post button is rendered`);
         check(
@@ -943,8 +954,8 @@ async function main(): Promise<void> {
           `essay @ ${width}: paragraphs are ${gap}px apart like a live essay, got ${m.el.docP?.marginBottom}`,
         );
         check(
-          m.el.docQuote !== null && approx(m.el.docQuote.fontSize ?? 0, 17.5, 0.1),
-          `essay @ ${width}: the quote is body size like a live essay, got ${m.el.docQuote?.fontSize}`,
+          m.el.docQuote !== null && approx(m.el.docQuote.fontSize ?? 0, bodySize, 0.1),
+          `essay @ ${width}: the quote is body size (${bodySize}) like a live essay, got ${m.el.docQuote?.fontSize}`,
         );
         check(
           m.el.docQuote !== null && m.el.docQuote.borderLeftColor === 'rgb(228, 228, 228)',

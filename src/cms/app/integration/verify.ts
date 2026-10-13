@@ -715,11 +715,25 @@ function checkStyles(): void {
 
   // Every selector must be prefixed, so this file cannot restyle the site or
   // another workstream's chrome by accident.
-  const selectors = INTEGRATION_CSS.replace(/\/\*[\s\S]*?\*\//g, '')
+  //
+  // At-rules with BODIES have to come out first. Splitting on braces treats
+  // everything before a `{` as a selector, and inside `@keyframes` that is
+  // `0%, 100%` and `50%`, which are not selectors and are not prefixed. The
+  // deploy chip's pulse animation tripped this and the check reported
+  // `["50%"]` as an escaped rule for weeks. `@media` is fine either way: its
+  // body really does hold selectors, and those should be prefixed too, so
+  // only the block-bodied at-rules whose contents are NOT selectors are cut.
+  const withoutKeyframes = INTEGRATION_CSS.replace(/\/\*[\s\S]*?\*\//g, '').replace(
+    /@(?:-\w+-)?keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g,
+    '',
+  );
+  const selectors = withoutKeyframes
     .split('}')
     .map((block) => block.split('{')[0]?.trim() ?? '')
     .filter((text) => text !== '')
     .flatMap((group) => group.split(',').map((one) => one.trim()))
+    // An `@media` wrapper line, now that its body's selectors are checked on
+    // their own.
     .filter((one) => one !== '' && !one.startsWith('@'));
   const stray = selectors.filter(
     (one) => !/^(\.ws8-|\.cms-|:root)/.test(one),

@@ -360,6 +360,18 @@ try {
   const { chromium } = loadPlaywright();
   browser = await chromium.launch({ headless: process.env.SITE_E2E_HEADED !== '1' });
   const context = await browser.newContext({ viewport: { width: 1680, height: 1050 } });
+  // The guide opens itself on a FIRST VISIT, and every run here is a first
+  // visit: a fresh browser context has empty localStorage. Its backdrop is
+  // `position: fixed; inset: 0; z-index: 200`, so it swallows every click
+  // that follows and the run dies on a 30-second timeout with no clue why.
+  // Measured: with this flag seeded, the identical click works.
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem('jinhyuk-cms.guide-seen.v1', '1');
+    } catch {
+      /* a context with no storage never shows it either */
+    }
+  });
   const page = await context.newPage();
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
