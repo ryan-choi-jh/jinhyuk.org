@@ -1,15 +1,13 @@
 # The CMS, documented
 
-Everything known about the editor that is not in the code itself. 
+Everything known about the editor that is not in the code itself.
 Last updated: 2026-10-13.
 
 | File | What it is |
 | --- | --- |
-| [`AGENTS.md`](AGENTS.md) | **Read this first if you are about to change the editor.** The rules the system already keeps, and the ways people have broken it. |
+| [`AGENTS.md`](AGENTS.md) | **Read this first if you are about to change the editor.** The rules the system keeps, and the ways people have broken it. |
 | [`workflow.md`](workflow.md) | How the editor works, end to end, as flowcharts. What happens between a keystroke and the live site. |
 | [`consistency.md`](consistency.md) | Where the editor and the published page agree, where they do not, and how each answer was measured. |
-| [`bugs.md`](bugs.md) | Twenty findings from the sweep, each with the evidence that produced it and the fix. |
-| [`roadmap.md`](roadmap.md) | The edge cases worth turning into features. Problem, fix, size. |
 
 The authoritative description of the data model stays where it is:
 `src/cms/schema.ts` (machine readable) and `docs/cms-contracts.md` (prose).
@@ -17,94 +15,89 @@ Where those two and these files disagree, the code wins.
 
 ## Running the checks
 
-Everything here is a plain `node` script. No build, no test runner, no watch
-mode. Nothing needs a network except where it says so.
+Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
-# the fast ones, all offline, about ten seconds for the lot
-node src/cms/fixtures/verify.ts            # the schema, the fixtures, the CSS mirrors
-node src/cms/render/selftest.ts            # what the renderer's string actually says
-node src/cms/app/state/verify-state.ts     # the document store, undo, dirty
-node src/cms/app/state/verify-site-state.ts
-node src/cms/app/prose/verify.ts           # the real ProseMirror schema, round trips
-node src/cms/app/canvas/verify-geometry.ts
-node src/cms/app/records/verify.ts
-node src/cms/assets/verify.ts
-node src/cms/preview/selftest.ts
-
-# these open a real browser
-node src/cms/app/prose/harness/run.mjs            # the live prose component
-node src/cms/app/prose/harness/keys.mjs           # the block-boundary keys
-node src/cms/app/shell/harness/drive.mjs          # the live shell
-node src/cms/app/shell/site-harness/drive.mjs
-node src/cms/app/shell/verify-typography.mjs      # editor type vs page type
-node src/cms/app/records/harness/drive.mjs
-node src/cms/app/chrome/harness/run.mjs
-node src/cms/app/guide/harness/run.mjs
-node src/cms/app/library/harness/run.mjs
-node src/cms/app/canvas/harness/verify-browser.mjs
-node src/cms/render/verify.ts
-node src/cms/render/verify-sections.ts
-node src/cms/preview/verify.ts
-node src/cms/app/integration/e2e.mjs
-node src/cms/app/integration/site-e2e.mjs
-node src/cms/app/integration/verify.ts
-
-# this one talks to GitHub, on a throwaway branch it creates and deletes
-node src/cms/server/verify.ts
-node src/cms/server/verify.ts --offline     # or just the offline half
-node src/cms/server/verify-routes.mjs
+npm run cms:check           # 14 offline suites, about two seconds
+npm run cms:check:browser   # 15 that open a browser, about seven minutes
+npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
 ```
 
-`npm run cms:verify` is `src/cms/fixtures/verify.ts` alone.
+The runner (`src/cms/check.mjs`) runs every suite in the group rather than
+stopping at the first failure, prints a table with timings, and then prints
+the output of only the ones that failed. A passing run is six lines. Exit
+code 0, or 1 for any failure, or 2 for an unknown group name.
+
+`npm run cms:verify` is `src/cms/fixtures/verify.ts` alone, which is the
+schema, the fixtures and the mirrored-CSS guard. Run it after touching
+`src/cms/styles/*.ts`.
 
 Two more that are tools rather than checks:
 
 ```
-node src/cms/styles/sync-doc-css.mjs       # copy highlight.ts/callout.ts into doc.css
+node src/cms/styles/sync-doc-css.mjs       # copy highlight/callout/spacing into doc.css
 node src/cms/server/unused-media.mjs       # which uploads nothing points at
 ```
 
-On this machine `git` and `node` need `DEVELOPER_DIR=/Library/Developer/CommandLineTools`
-in front of them until the Xcode licence is accepted.
+On this machine, `git` and `node` need
+`DEVELOPER_DIR=/Library/Developer/CommandLineTools` in front of them until
+the Xcode licence is accepted.
 
-## State as of this sweep
+## What each suite is for
 
-**All 27 suites pass**, as of 2026-10-13 after the twenty fixes in
-[`bugs.md`](bugs.md). Five of them were red before, none for a product
-reason, and that was the finding that mattered most: everything running in
-ten seconds passed, and everything slow or awkward to run was broken, so
-nothing the slow ones would have caught was being caught.
+**Offline** (`npm run cms:check`)
 
-| Suite | Result |
+| Suite | What it proves |
 | --- | --- |
-| `fixtures/verify.ts` | pass |
-| `render/selftest.ts` | 112 / 112 |
-| `app/state/verify-state.ts` | 121 / 121 |
-| `app/state/verify-site-state.ts` | 182 / 182 |
-| `app/prose/verify.ts` | 176 / 176 |
-| `app/canvas/verify-geometry.ts` | 207 / 207 |
-| `app/records/verify.ts` | pass |
-| `assets/verify.ts` | 10 / 10 |
-| `preview/selftest.ts` | 202 / 202 |
-| `app/prose/harness/run.mjs` | 127 / 127 |
-| `app/prose/harness/keys.mjs` | 26 / 26 (new) |
-| `app/shell/harness/drive.mjs` | 116 / 116 |
-| `app/shell/site-harness/drive.mjs` | 143 / 143 |
-| `app/shell/verify-typography.mjs` | 34 / 34 (was 12) |
-| `app/records/harness/drive.mjs` | 103 / 103 |
-| `app/chrome/harness/run.mjs` | 46 / 46 |
-| `app/guide/harness/run.mjs` | 90 / 90 |
-| `app/library/harness/run.mjs` | 68 / 68 |
-| `app/canvas/harness/verify-browser.mjs` | 70 / 70 |
-| `preview/verify.ts` | 424 / 424 |
-| `render/verify.ts` | pass |
-| `render/verify-sections.ts` | pass (7 failures before) |
-| `app/integration/verify.ts` | 108 / 108 |
-| `app/integration/e2e.mjs` | 48 / 48 (died in step 4 before) |
-| `app/integration/site-e2e.mjs` | 96 / 96 (died in step 4 before) |
-| `server/verify-routes.mjs` | 40 / 40 |
-| `server/verify.ts --offline` | 74 / 74 |
+| `fixtures/verify.ts` | Every fixture validates; the mirrored CSS in `doc.css` is byte-identical to its TypeScript source |
+| `render/selftest.ts` | What the renderer's string actually says: escaping, marks, heading ids, block spacing |
+| `app/state/verify-state.ts` | The document store: undo, redo, dirty tracking, selection pruning |
+| `app/state/verify-site-state.ts` | Navigation across the five sections |
+| `app/state/verify-local-draft.ts` | The crash copy, against storage that throws, is full, or holds rubbish |
+| `server/verify-moves.ts` | The redirect bookkeeping behind a rename, including the chain case |
+| `app/prose/verify.ts` | The real ProseMirror schema: block ↔ editor round trips, mark order |
+| `app/canvas/verify-geometry.ts` | Dragging, resizing, rotating, snapping, z-order |
+| `app/records/verify.ts` | Film and album editing |
+| `assets/verify.ts` | The shape generator, including hostile input |
+| `preview/selftest.ts` | What the preview renders for each surface |
+| `verify-preflight.ts` | The pre-publish checklist finds what it should and stays quiet otherwise |
+| `verify-hidden.ts` | `meta.hidden` makes a page absent, not merely unlisted |
+| `server/verify.ts --offline` | Header parsers, HTTP helpers, route refusals |
 
-`server/verify.ts` without `--offline` writes to GitHub on a throwaway
-branch and was not run in this sweep.
+**Browser** (`npm run cms:check:browser`)
+
+| Suite | What it proves |
+| --- | --- |
+| `app/prose/harness/run.mjs` | The live prose component |
+| `app/prose/harness/keys.mjs` | The block-boundary keys, in a band of real editors |
+| `app/shell/harness/drive.mjs` | The editor shell, including the crash copy and the publish checklist |
+| `app/shell/site-harness/drive.mjs` | The whole-site navigation shell |
+| `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does |
+| `styles/verify-spacing.mjs` | "Space above" is a floor, in both places, at both widths |
+| `app/records/harness/drive.mjs` | The record editors |
+| `app/chrome/harness/run.mjs` | The nav and footer editor |
+| `app/guide/harness/run.mjs` | The welcome guide |
+| `app/library/harness/run.mjs` | The component library |
+| `app/canvas/harness/verify-browser.mjs` | The canvas, measured in a browser |
+| `preview/verify.ts` | The preview, every surface, every width |
+| `render/verify.ts` | Layout at 1440, 1100 and 390 |
+| `render/verify-sections.ts` | **Pixel-compared against jinhyuk.org as it is right now** |
+| `app/integration/verify.ts` | The wiring between workstreams |
+
+**End to end** (`npm run cms:check:e2e`) creates a throwaway branch, drives
+a real dev server against it, and deletes the branch in a `finally`. Never
+touches `main`.
+
+## Two things to know about the slow ones
+
+**`render/verify-sections.ts` compares against the live site**, so it is
+red in the window between a content change landing locally and the deploy
+finishing. That is the check working, not failing.
+
+**`site-e2e.mjs` has been seen to die partway once in several runs**, at
+around check 83, in a way that has not reproduced since. Logged rather than
+claimed fixed.
+
+## State
+
+All 31 suites passed on 2026-10-13: 14 offline, 15 browser, 2 end to end.

@@ -5,7 +5,8 @@ page: the page is static HTML styled by `doc.css`, and the surface is a React
 tree styled by `SHELL_CSS`, with a live ProseMirror instance in every block.
 So the question is always "where do the two disagree, and does it matter".
 
-Everything below was measured, not read off a stylesheet. The method is the
+Last updated 2026-10-13. Everything below was measured, not read off a
+stylesheet. The method is the
 one in `src/cms/app/shell/verify-typography.mjs`: render the same document
 twice in one browser, once as the page with `doc.css` and once inside
 `.cms-surface` with `SHELL_CSS`, then compare `getComputedStyle`. Declared CSS
@@ -68,82 +69,54 @@ The callout link was a plain specificity accident: `.doc-callout a` and
 last won. `CALLOUT_CSS` now names the surface itself, which puts the answer
 in the file that owns the callout.
 
-### An empty row is a blank line in the CMS and nothing at all on the page
+### An empty row: answered, and replaced
 
-Still true, and the one thing in this file that is not fixed: it is a feature,
-[`roadmap.md`](roadmap.md) F1, not a bug. Worth the whole table.
+This was the one that came up repeatedly. The measurements that settled it,
+for every pair of block kinds in an essay, with zero to three empty rows
+between them:
 
-| | Height of an empty paragraph block |
+| | |
 | --- | --- |
-| Editor | **35px** (a full line: ProseMirror gives every empty block a line box so you can put the caret in it) |
-| Published page | **0px** |
+| An empty paragraph in the editor | **35px** (ProseMirror gives every empty block a line box so the caret has somewhere to go) |
+| The same on the published page | **0px** (its margins adjoin its neighbours' and collapse) |
+| Pairings where it changes the page | **6 of 36**, all directly after a heading, never by more than 23px |
+| What a second or third one adds | **nothing** — they all collapse into one gap |
 
-And the gap it creates on the page, measured for every pair of neighbouring
-block kinds in an essay, with zero, one, two and three empty rows between
-them:
+So "press Enter twice for more air" was never available.
 
-```
-  first  -> second        none    one     two   three
-  p      -> p              27     27     27     27
-  p      -> h2             48     48     48     48
-  p      -> h3             32     32     32     32
-  p      -> quote          27     27     27     27
-  p      -> ul             27     27     27     27
-  p      -> callout        28     28     28     28
-  h2     -> p               8     27     27     27   <- moves
-  h2     -> h2             48     48     48     48
-  h2     -> h3             32     32     32     32
-  h2     -> quote           8     27     27     27   <- moves
-  h2     -> ul              8     27     27     27   <- moves
-  h2     -> callout        28     28     28     28
-  h3     -> p               4     27     27     27   <- moves
-  h3     -> h2             48     48     48     48
-  h3     -> h3             32     32     32     32
-  h3     -> quote           4     27     27     27   <- moves
-  h3     -> ul              4     27     27     27   <- moves
-  h3     -> callout        28     28     28     28
-  quote  -> p              27     27     27     27
-  quote  -> h2             48     48     48     48
-  quote  -> h3             32     32     32     32
-  quote  -> quote          27     27     27     27
-  quote  -> ul             27     27     27     27
-  quote  -> callout        28     28     28     28
-  ul     -> p              27     27     27     27
-  ul     -> h2             48     48     48     48
-  ul     -> h3             32     32     32     32
-  ul     -> quote          27     27     27     27
-  ul     -> ul             27     27     27     27
-  ul     -> callout        28     28     28     28
-  callout-> p              28     28     28     28
-  callout-> h2             48     48     48     48
-  callout-> h3             32     32     32     32
-  callout-> quote          28     28     28     28
-  callout-> ul             28     28     28     28
-  callout-> callout        28     28     28     28
-```
+**Both halves are fixed.** A block can ask for space above it (`meta`-level
+`space`: small 48px, medium 80, large 120, stepping to 32/52/76 below the
+breakpoint), and the editor marks an empty row with "empty row · adds
+nothing to the page" rather than drawing a convincing blank line. A band
+with empty rows in it offers to remove them.
 
-Three facts fall out of that grid:
+The control is a **floor, not an addition**: the rule is a `margin-top`, it
+adjoins the previous block's `margin-bottom`, and adjoining margins collapse
+to the larger of the two. So "small" after a paragraph (27px) and "small"
+after a heading (8px) both come out at 48. The inspector says so in those
+words, because "adds 48px" would be wrong and would have people stacking
+them again.
 
-1. **An empty row changes the page in 6 of 36 cases.** All six are directly
-   after a heading, where the gap goes from 8px (h2) or 4px (h3) up to 27px.
-2. **Everywhere else it does nothing at all**, because CSS margins between
-   siblings collapse and the margin already there is bigger than anything an
-   empty paragraph can contribute.
-3. **Three empty rows do exactly what one does.** They all collapse into the
-   same single gap. You cannot stack them to get more air.
+`styles/verify-spacing.mjs` checks every size against every pairing, at both
+widths, and checks the editor's gap equals the page's.
 
-So the behaviour is not "empty rows are ignored" and it is not "empty rows add
-space". It is "empty rows sometimes add up to 23px and you cannot tell which
-from looking at the CMS, where they always look like a full 35px line". That
-is why a real spacing control is worth building; it is [`roadmap.md`](roadmap.md)
-F1.
+### Dark mode: on the surface. Phone width: only in Preview, and that is correct
 
-### The editor is light-only and desktop-only
+The surface has a theme switch now (light / dark / system) that sets
+`data-theme` on `<html>`, exactly as the site's own pre-paint script does.
+It works because `.cms-surface` is `background: var(--paper)` and every
+colour in the drawn page comes from the same tokens the site uses, so the
+page in the middle pane becomes the dark page while the editor's own chrome,
+on a separate `--cms-*` scale, does not move.
 
-The surface has no theme switch and no width switch. Preview has both
-(`?theme=dark`, `?width=390`). Nothing is wrong here, but it means **dark mode
-and phone layout are only ever checked in Preview**, and nothing makes you go
-there. Worth knowing before changing a colour.
+**Width is deliberately not on the surface.** The mobile rules are VIEWPORT
+media queries — `@media (max-width: 900px)` in `doc.css` and again in
+`global.css` — and a viewport is a window or an iframe, never a scaled div.
+A narrowed surface would change the measure and change nothing else: the
+canvas would stay absolutely positioned where a phone stacks it into a
+column, and the type would stay at 17.5 where a phone steps to 14. That is a
+worse lie than not offering it. The "Phone" button beside Preview opens the
+preview at 390 in a real iframe, which is where it was already right.
 
 ---
 

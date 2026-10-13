@@ -47,8 +47,9 @@ Derived rules:
 - **Never build a content path by concatenation.** `contentPathFor(section,
   slug)` is also the path-traversal guard: it refuses anything that is not an
   id.
-- One known exception, and it is a bug, not a precedent: `SITE_ORIGIN` in
-  `src/cms/server/deploy.ts` is a literal. See [`bugs.md`](bugs.md) B20.
+  There are no exceptions left. `SITE_ORIGIN` was the last literal address
+  and now comes from `config.ts` with a `CMS_SITE_ORIGIN` override, read at
+  call time rather than frozen at module load.
 
 ---
 
@@ -76,12 +77,21 @@ surprise traces back to it:
   "cut this block in two" (`onSplit`), handled by the host.
 - Backspace at position 1 cannot delete the block, so it is intercepted and
   turned into "join onto the block above" (`onMergeUp`).
-- Anything that would need to cross a block boundary needs host help. That is
-  why arrow keys do not move between blocks today
-  ([`bugs.md`](bugs.md) B8).
+- Anything that would need to cross a block boundary needs host help: the
+  arrow keys, Delete at the end of a block, and Enter on an empty bullet all
+  go out to the host and come back through the `caretRequests` map. All five
+  were dead until they did.
 - **A split keeps the original block's id for the head.** An anchored
   connector stores a `blockId`, so the half that keeps the id is the half that
   keeps the connector.
+
+**`meta.hidden` means there is no page, not an unlisted one.** The filter
+lives in `src/lib/site-content.ts`, the single place every route and index
+reads through, so a hidden document produces no `getStaticPaths` entry, no
+row, and no `/writing/` redirect. Unlisted-but-reachable leaves the URL live
+for anyone holding a link and for a search engine that already has it, and
+the index looks correct, so nobody finds out. Do not add a route that globs
+`src/content/pages/` itself; `verify-hidden.ts` fails if one appears.
 
 **`normalizeProseContent` is a fixed point.** Applying it twice equals
 applying it once, and applying it to what ProseMirror emits changes nothing.
@@ -103,8 +113,10 @@ is worse than one bad paragraph rendering as nothing. `content` is
 
 **Everything that lands in the output goes through `escape.ts`.**
 `escapeText` between tags, `escapeAttr` inside an attribute, `safeUrl` for
-anything that becomes an `href` or a `src`. There is exactly one known call
-site that skips `safeUrl` and it is a bug ([`bugs.md`](bugs.md) B1).
+anything that becomes an `href` or a `src`. Every call site does; the one
+that did not published `javascript:` straight into an essay's masthead for
+months, because `z.string().url()` is `new URL()` in a try/catch and that
+accepts it.
 
 **There are two mastheads and they are genuinely different objects.**
 `renderProjectHead` for a project (13px nav face, hairline rule, arrow) and
@@ -145,9 +157,10 @@ seconds, so run it immediately after touching one of those files.
 `src/cms/app/shell/styles.ts`) and it has drifted from `doc.css` three times.
 `src/cms/app/shell/verify-typography.mjs` renders the same document twice in
 one browser and compares computed styles. Run it after any change to either
-file. It covers block kinds only; marks and the masthead are not covered yet
-([`roadmap.md`](roadmap.md) F9), which is how two more drifts survived this
-long.
+file. It covers block kinds, every mark and both mastheads: 34 checks. It covered
+block kinds ALONE for a while, which is how bold stayed 600 in the editor
+and 400 on the page, and how a link inside a callout stayed the wrong grey.
+`styles/verify-spacing.mjs` is its companion for the space control.
 
 The surface carries its section as a class (`cms-surface--essays`,
 `cms-surface--projects`) because an essay and a project really are set
@@ -200,7 +213,18 @@ The house style, and the reason most of this codebase is trustworthy.
 - **A check that compares against the live site must read what the live site
   reads.** `verify-sections.ts` rendered fixtures and pixel-compared them to
   jinhyuk.org, so editing the homepage copy showed up as a ten per cent
-  rendering failure. It reads `src/content/pages/**` now.
+  rendering failure. It reads `src/content/pages/**` now. It is therefore
+  red in the window between a content change landing locally and the deploy
+  finishing, which is the check working rather than failing.
+- **Ask the API what it can do; do not branch on a section name.** `can()`
+  tests whether the adapter HAS `deleteEntry` and `renameEntry`, which is
+  why both buttons sat disabled with an honest reason on them for months and
+  then lit up with no UI change at all when the methods arrived. A
+  `section.id === 'essays'` would have had to be found and edited.
+- **A popover anchored above a top toolbar opens off-screen.** The
+  pre-publish checklist used `bottom: calc(100% + 8px)`, which put it at a
+  negative y: in the DOM, impossible to click. The shell harness caught it
+  by pressing the button inside it and watching nothing happen.
 
 Every workstream ships two halves: a pure check that runs under bare `node`
 in under a second, and a browser harness that drives the real component. Add
@@ -267,8 +291,9 @@ edits are commits on `main` with messages like
 - **Before rebasing, check for file overlap.** If your branch and their
   commits touch the same file, take their version as the base and re-apply
   your change on top. Never resolve a content file in your own favour.
-- **A draft save is a commit too**, and it triggers a full site rebuild
-  ([`roadmap.md`](roadmap.md) F11). Expect `main` to move under you often.
+- **A draft save is a commit too**, though it no longer triggers a rebuild:
+  the Pages workflow ignores a push that only touches
+  `src/content/drafts/`. Expect `main` to move under you often.
 - **Prose written for the owner avoids em dashes.** They read as machine
   written. Colons, commas, brackets and full stops do the same work.
 

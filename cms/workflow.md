@@ -32,18 +32,21 @@ flowchart TD
     F1 --> G[Three panes:<br/>outline, page surface, inspector]
     G --> H1[Edit text in place<br/>TipTap, one editor per block]
     G --> H2[Drag, resize, rotate on a canvas band<br/>upload by drag-and-drop]
-    G --> H3[Edit title, date, summary, link,<br/>buttons, band settings in the inspector]
+    G --> H3[Edit title, date, summary, link,<br/>space above a block,<br/>hidden, buttons in the inspector]
 
-    H1 --> I[Save draft]
+    H1 --> I[Save draft<br/>⌘S, or the button]
     H2 --> I
     H3 --> I
     F2 --> I
 
     I --> J{Happy?}
-    J -- not yet --> K[Preview<br/>real renderer, real CSS,<br/>pick a width, pick a theme] --> G
+    J -- not yet --> K[Preview, or Phone<br/>real renderer, real CSS,<br/>a real iframe at 390] --> G
     J -- yes --> L[Publish]
+    L --> CL{Anything<br/>worth a look?}
+    CL -- yes --> CL2[The checklist: missing alt text,<br/>empty rows, dead links] --> L2[Publish anyway]
+    CL -- no --> L2
 
-    L --> M[Deploy chip starts watching]
+    L2 --> M[Deploy chip starts watching]
     M --> N{State}
     N -- queued / building --> M
     N -- live --> O([The page is on jinhyuk.org<br/>chip links to it])
@@ -57,11 +60,24 @@ flowchart TD
 Two things that are easy to miss from the picture:
 
 - **Save and Publish are different commits.** Save writes a working copy under
-  `src/content/drafts/`, which the site build ignores. Publish moves that file
-  into `src/content/pages/` and deletes the draft. You cannot publish something
-  you have not saved, and Publish saves for you if you forgot.
-- **Preview is the only place you can check dark mode and phone width.** The
-  editing surface is always light and always the desktop measure.
+  `src/content/drafts/`, which the site build ignores and which no longer
+  triggers a deploy. Publish moves that file into `src/content/pages/` and
+  deletes the draft. You cannot publish something you have not saved, and
+  Publish saves for you if you forgot.
+- **Publish asks once** when the page has something worth knowing about:
+  an image with no alt text, empty rows, a link into the editor. Warnings,
+  never a block; a clean page publishes on the first press.
+- **Unsaved work is copied into this browser** on a debounce and offered
+  back if the tab dies. It is never sent anywhere, and it is offered, never
+  applied.
+- **Dark mode is on the surface; phone width is only in Preview.** The mobile
+  rules are viewport media queries, so a narrowed surface cannot fire them.
+  The "Phone" button opens the preview at 390 in a real iframe.
+- **A page can be taken off the site without deleting it** (`hidden` in the
+  inspector): no page is built at its address, and it stays here, editable.
+- **A page can be renamed or deleted** from the entry list. A rename moves
+  the file, its draft and `meta.slug` in one commit, and leaves the old
+  address redirecting.
 
 ---
 
@@ -177,9 +193,10 @@ commit or from something after it. "Or after it" is what stops two quick
 publishes in a row reading as a failure, since the first run gets cancelled
 and its content rides along in the second.
 
-**A draft save also triggers a full rebuild and deploy.** The workflow has no
-path filter, so saving a working copy costs an Actions run that changes
-nothing on the site. See [`roadmap.md`](roadmap.md) F11.
+**A draft save no longer triggers a rebuild.** The workflow ignores a push
+that only touches `src/content/drafts/`, so saving a working copy costs
+nothing. Publishing touches the published tree in the same commit, so it
+still builds.
 
 ---
 
@@ -193,6 +210,7 @@ nothing on the site. See [`roadmap.md`](roadmap.md) F11.
 | Filmography | collection | records | `src/content/data/filmography.json` | same, under `drafts/` | `/filmography/` (no per-film page) |
 | Photography | collection | records | `src/content/data/photography.json` | same, under `drafts/` | `/photography/<slug>/` |
 | Nav and footer | one file | chrome panel, under Home | `src/content/data/site.json` | same, under `drafts/` | every page |
+| Old addresses | one file | written by a rename | `src/content/data/redirects.json` | n/a | the URLs it lists |
 
 Uploads go to `public/media/<section>/<key>/` and are served at
 `/media/<section>/<key>/<file>`.

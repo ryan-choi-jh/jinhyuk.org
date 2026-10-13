@@ -15,11 +15,9 @@ The rest of `cms/` is the documentation for that system:
 
 | File | What it is |
 | --- | --- |
-| [`cms/README.md`](cms/README.md) | Index, and how to run all 26 checks |
+| [`cms/README.md`](cms/README.md) | Index, what each of the 31 checks is for, and how to run them |
 | [`cms/workflow.md`](cms/workflow.md) | How the editor works, end to end, as flowcharts |
 | [`cms/consistency.md`](cms/consistency.md) | Where the editor and the published page disagree, measured |
-| [`cms/bugs.md`](cms/bugs.md) | Open findings, with evidence and fixes |
-| [`cms/roadmap.md`](cms/roadmap.md) | Edge cases worth turning into features |
 
 ## Hard rules
 

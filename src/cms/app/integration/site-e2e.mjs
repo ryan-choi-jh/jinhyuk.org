@@ -862,9 +862,17 @@ try {
   await deep.waitForSelector('[data-testid="cms-root"]', { timeout: 60_000 });
   check('Back returns to the essay, client side, with the editor remounted', true, deep.url());
 
-  // Delete, for a section whose API has no endpoint for it. WS-C ships none
-  // (docs/cms-contracts.md 11 lists none), so the button must be off with a
-  // reason rather than present and broken.
+  /*
+   * Delete and rename, for a document section.
+   *
+   * Both buttons were disabled-with-a-reason for as long as the API had no
+   * endpoint for either, and this asserted that. It now asserts the
+   * opposite, because `can()` tests whether the API HAS the method rather
+   * than branching on a section name, and the adapter gained both
+   * (src/cms/server/moves.ts). The point of the check is unchanged: the
+   * button's state must match what the API can actually do, in whichever
+   * direction that is.
+   */
   await deep.waitForSelector(`[data-testid="entry-delete-${ESSAY_SLUG}"]`, { timeout: 30_000 });
   const deleteBtn = await deep.evaluate((slug) => {
     const button = document.querySelector(`[data-testid="entry-delete-${slug}"]`);
@@ -872,11 +880,20 @@ try {
       ? null
       : { disabled: button.disabled, title: button.getAttribute('title') ?? '' };
   }, ESSAY_SLUG);
-  check('Delete is offered for an essay but disabled', deleteBtn?.disabled === true);
+  check('Delete is offered for an essay and enabled', deleteBtn?.disabled === false, JSON.stringify(deleteBtn));
   check(
-    '…and says why, rather than failing when pressed',
-    (deleteBtn?.title ?? '').includes('no endpoint'),
+    '…and says what it does rather than why it cannot',
+    (deleteBtn?.title ?? '').includes('Delete this essay'),
     deleteBtn?.title ?? '',
+  );
+  const renameBtn = await deep.evaluate((slug) => {
+    const button = document.querySelector(`[data-testid="entry-rename-${slug}"]`);
+    return button === null ? null : { title: button.getAttribute('title') ?? '' };
+  }, ESSAY_SLUG);
+  check(
+    'Rename is offered too, and says the old address survives',
+    (renameBtn?.title ?? '').includes('old address keeps working'),
+    JSON.stringify(renameBtn),
   );
 
   // The unsaved-changes guard, over a section change.
