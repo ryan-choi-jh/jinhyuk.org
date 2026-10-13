@@ -303,6 +303,9 @@ export const SITE_CSS = `
   text-transform: uppercase;
 }
 .cms-list__badge--new { background: #10243a; color: var(--cms-accent); }
+/* Deliberately off the site. Grey rather than a warning colour: it is a
+   choice, not a problem, and the row is otherwise exactly like any other. */
+.cms-list__badge--hidden { background: #262b32; color: #9aa4b0; }
 .cms-list__badge--invalid { background: #3a1513; color: #f0b3ae; }
 /* Overlaid, not in the flow: four 18px buttons in a column would set every
    row's height, and a list of films should be a list of films. */

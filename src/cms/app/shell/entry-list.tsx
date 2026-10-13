@@ -120,6 +120,15 @@ export function EntryList({
                   {entry.subtitle !== undefined && entry.subtitle !== '' && (
                     <span data-testid={`entry-subtitle-${entry.key}`}>{entry.subtitle}</span>
                   )}
+                  {entry.hidden === true && (
+                    <span
+                      className="cms-list__badge cms-list__badge--hidden"
+                      data-testid={`entry-hidden-${entry.key}`}
+                      title="Not on the site: no page is built at its address. Still here, still editable."
+                    >
+                      hidden
+                    </span>
+                  )}
                   {entry.hasDraft && !entry.hasPublished && (
                     <span
                       className="cms-list__badge cms-list__badge--new"

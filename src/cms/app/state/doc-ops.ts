@@ -765,6 +765,9 @@ export function updateMeta(doc: Doc, patch: Partial<DocMeta>): Doc {
   for (const key of OPTIONAL) {
     if (meta[key] === '' || meta[key] === undefined) meta = omit(meta, key);
   }
+  // `hidden: false` is the default and is stored as nothing, like every
+  // other optional field, so a page nobody has hidden carries no key.
+  if (meta.hidden === false) meta = omit(meta, 'hidden');
   // A label for a link that is not there is not a label. Clearing the URL used
   // to leave `urlLabel` behind in the file, invisible (the renderer drops the
   // whole row with the link) and waiting to reappear under a different URL

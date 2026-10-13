@@ -131,6 +131,12 @@ export type EntrySummary = {
   hasPublished: boolean;
   /** The file on disk does not validate. Opening the entry will show why. */
   invalid?: boolean;
+  /**
+   * `meta.hidden`: the page exists here and nowhere on the site. Listed so
+   * the entry list can say so, because a page that is deliberately off the
+   * site and a page that is simply unpublished look identical otherwise.
+   */
+  hidden?: boolean;
 };
 
 export type SectionSummary = {
@@ -268,8 +274,10 @@ export async function listEntries(ctx: Ctx, section: SectionDef): Promise<EntryS
     const file = await readText(ctx.token, path, ctx.branch);
     if (file === null) return summary;
     const parsed = parseDoc(file.text);
-    if (parsed.ok) summary.title = parsed.data.meta.title;
-    else summary.invalid = true;
+    if (parsed.ok) {
+      summary.title = parsed.data.meta.title;
+      if (parsed.data.meta.hidden === true) summary.hidden = true;
+    } else summary.invalid = true;
     return summary;
   });
 }

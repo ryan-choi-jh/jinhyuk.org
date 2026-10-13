@@ -71,6 +71,12 @@ export type EntrySummary = {
   invalid?: boolean;
   /** `Doc.meta.date`, for document sections. See above. */
   date?: string;
+  /**
+   * `meta.hidden`: the page is here and nowhere on the site. Shown in the
+   * list, because a page deliberately taken off the site and a page merely
+   * unpublished look the same otherwise.
+   */
+  hidden?: boolean;
 };
 
 /** `GET /api/cms/records/:section`. Both null means there is no file yet. */

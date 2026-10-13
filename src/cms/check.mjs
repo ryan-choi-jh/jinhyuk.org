@@ -39,6 +39,7 @@ const OFFLINE = [
   ['assets', 'src/cms/assets/verify.ts'],
   ['preview', 'src/cms/preview/selftest.ts'],
   ['pre-publish checklist', 'src/cms/verify-preflight.ts'],
+  ['hidden pages', 'src/cms/verify-hidden.ts'],
   ['server', 'src/cms/server/verify.ts', ['--offline']],
 ];
 

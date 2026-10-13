@@ -156,15 +156,42 @@ export const homeDoc = (): Doc => {
   return doc;
 };
 
+/**
+ * `meta.hidden` keeps a page off the site without deleting it.
+ *
+ * Filtered HERE, at the single place every page route and every index reads
+ * through, rather than at each of the five call sites. That is what makes
+ * "hidden" mean there is no page: `getStaticPaths` builds from these lists
+ * too, so a hidden document produces no route, no `/writing/` redirect and
+ * no row on its index. Unlisted-but-reachable would leave the address live
+ * for anyone holding a link, which is not what taking a page off the site
+ * means.
+ *
+ * The file is untouched, so the CMS still lists it, opens it and saves it,
+ * and the preview still renders it: the preview reads the repository
+ * directly rather than through this module, which is what lets you work on
+ * a hidden page and see it.
+ */
+const visible = (docs: Doc[]): Doc[] => docs.filter((doc) => doc.meta.hidden !== true);
+
 let essayCache: Doc[] | null = null;
-export const essayDocs = (): Doc[] => (essayCache ??= docsFrom(essayFiles, 'essays'));
+const allEssayDocs = (): Doc[] => (essayCache ??= docsFrom(essayFiles, 'essays'));
+export const essayDocs = (): Doc[] => visible(allEssayDocs());
 
 let projectCache: Doc[] | null = null;
-export const projectDocs = (): Doc[] => (projectCache ??= docsFrom(projectFiles, 'projects'));
+const allProjectDocs = (): Doc[] => (projectCache ??= docsFrom(projectFiles, 'projects'));
+export const projectDocs = (): Doc[] => visible(allProjectDocs());
 
 /** Just the metadata, which is all an index page needs. */
 export const essayMetas = (): DocMeta[] => essayDocs().map((doc) => doc.meta);
 export const projectMetas = (): DocMeta[] => projectDocs().map((doc) => doc.meta);
+
+/**
+ * Including the hidden ones. For anything that needs to know a document
+ * exists rather than whether a reader can reach it; nothing in `src/pages/`
+ * should use these.
+ */
+export const allDocsIncludingHidden = (): Doc[] => [...allEssayDocs(), ...allProjectDocs()];
 
 /* -------------------------------------------------------------------------- */
 /* Records                                                                    */

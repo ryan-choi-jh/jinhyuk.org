@@ -250,6 +250,28 @@ export const DocMetaSchema = z
     /** List thumbnail. */
     cover: SrcSchema.optional(),
     /**
+     * Keep this page off the site without deleting it.
+     *
+     * Hidden means hidden, not merely unlisted: `src/lib/site-content.ts`
+     * filters these out of the lists the index pages read AND out of the
+     * `getStaticPaths` that build the pages themselves, so no page exists at
+     * the address at all. Unlisted-but-reachable would leave the URL live
+     * for anyone who had it, and for a search engine that already did, which
+     * is not what "take it off the site" means.
+     *
+     * The file stays exactly where it is, so the CMS still lists it, still
+     * opens it, and still saves it. Flipping it back puts the page back.
+     *
+     * NOT called `draft`, though the markdown frontmatter it replaces was.
+     * This CMS already has drafts, and they are a different thing: a draft
+     * is an unpublished working copy under `src/content/drafts/`, and a
+     * hidden page is a published file that chooses not to appear. One word
+     * for both would make every sentence about either ambiguous.
+     *
+     * Absent means visible, so nothing already published changes.
+     */
+    hidden: z.boolean().optional(),
+    /**
      * Which surface of the site this document belongs to. Documents only, so
      * 'home' | 'projects' | 'essays'; DocSchema rejects a record section.
      * Optional, because a phase 1 project page written before this existed is

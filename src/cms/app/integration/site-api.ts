@@ -417,7 +417,7 @@ export function createSiteApi(options: SiteApiAdapterOptions = {}): SiteApiAdapt
           // `date` is WS-D's additive field; WS-C does not promise it, so it
           // is copied through when the server sends it and simply absent
           // otherwise, which is what WS-D's type says.
-          const extra = row as unknown as { date?: unknown };
+          const extra = row as unknown as { date?: unknown; hidden?: unknown };
           return {
             key: row.key,
             title: row.title,
@@ -427,6 +427,7 @@ export function createSiteApi(options: SiteApiAdapterOptions = {}): SiteApiAdapt
             hasPublished: row.hasPublished,
             ...(row.invalid === undefined ? {} : { invalid: row.invalid }),
             ...(typeof extra.date === 'string' ? { date: extra.date } : {}),
+            ...(extra.hidden === true ? { hidden: true } : {}),
           };
         });
       });

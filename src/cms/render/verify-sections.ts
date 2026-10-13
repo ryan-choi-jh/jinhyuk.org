@@ -191,6 +191,12 @@ function readSectionDocs(section: 'projects' | 'essays'): Front[] {
       throw new Error(`${section}/${file} does not validate:\n${formatIssues(result.issues)}`);
     }
     const { meta } = result.doc;
+    // `meta.hidden` takes a page off the site entirely: no page is built and
+    // it is not on its index (src/lib/site-content.ts). This surface is
+    // pixel-compared against the live index, so skipping them here is what
+    // keeps the comparison like for like; without it, hiding an essay would
+    // read as the renderer dropping a row.
+    if (meta.hidden === true) continue;
     const entry: Front = {
       title: meta.title,
       date: meta.date,

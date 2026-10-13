@@ -158,6 +158,17 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
           redirecting.
         </div>
         <DateField label="Date" testId="meta-date" value={meta.date} onChange={(date) => store.updateMeta({ date })} />
+        <CheckField
+          label="Hidden from the site"
+          testId="meta-hidden"
+          checked={meta.hidden === true}
+          onChange={(hidden) => store.updateMeta({ hidden })}
+        />
+        <div className="cms-hint">
+          {meta.hidden === true
+            ? 'There is no page at this address while this is on: not listed, and not built, so the URL returns a 404. The file stays here and you can keep editing it; turning this off puts the page back.'
+            : 'Take the page off the site without deleting it. It stays in this list and stays editable.'}
+        </div>
         <TextField
           label="Summary"
           wide
