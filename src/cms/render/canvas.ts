@@ -105,28 +105,36 @@ function itemBody(item: CanvasItem): string {
   if (src === null) return '';
 
   switch (item.kind) {
-    case 'image':
-      // Wrapped in a button so it can be enlarged. A diagram authored to fill
-      // the 1344px column is unreadable on a phone, where every canvas item
-      // becomes a full-width block; the overlay is the only way to see it.
+    case 'image': {
+      const picture = `<img${attr('src', src)}${attr('alt', item.alt ?? '')} loading="lazy" decoding="async" />`;
+      if (item.zoom !== true) return picture;
+      // Wrapped in a button so it can be enlarged, for the figures that ask
+      // for it. A real button, not a click handler on the <img>, because an
+      // image is not focusable and this has to work from a keyboard; the same
+      // shape the homepage hero uses. doc.css makes it a bare block and
+      // reaches through it for the sizing the frame applies.
       //
-      // A real button, not a click handler on the <img>, because an image is
-      // not focusable and this has to work from a keyboard. The same shape the
-      // homepage hero uses. doc.css makes it a bare block and reaches through
-      // it for the sizing the frame used to apply to the image directly.
+      // data-zoom-width is the width the figure was DRAWN at, in the same
+      // reference pixels as the rest of the geometry. The overlay opens it at
+      // that size, so the text inside a diagram is the size it was designed
+      // to be rather than fitted to a phone, which is how a 1344px flowchart
+      // ends up smaller in the overlay than it was on the page.
       return (
-        // The width the figure was DRAWN at, in the same reference pixels the
-        // rest of the geometry uses. The overlay opens it at that size so the
-        // text inside a diagram is the size it was designed to be, rather
-        // than fitted to a phone, which is how a 1344px flowchart ends up
-        // smaller in the overlay than it was on the page.
         `<button type="button" class="doc-zoom"${attr('data-zoom-width', String(Math.round(item.w)))} aria-label="Enlarge">` +
-        `<img${attr('src', src)}${attr('alt', item.alt ?? '')} loading="lazy" decoding="async" />` +
+        picture +
         '</button>'
       );
+    }
 
-    case 'video':
-      return `<video${attr('src', src)} controls playsinline preload="metadata"></video>`;
+    case 'video': {
+      // Through safeUrl like every other author-supplied address, so a poster
+      // cannot smuggle a javascript: URL into an attribute.
+      const poster = item.poster === undefined ? null : safeUrl(item.poster);
+      return (
+        `<video${attr('src', src)}${poster === null ? '' : attr('poster', poster)}` +
+        ' controls playsinline preload="metadata"></video>'
+      );
+    }
 
     case 'embed': {
       const embed = embedSrc(src) ?? src;

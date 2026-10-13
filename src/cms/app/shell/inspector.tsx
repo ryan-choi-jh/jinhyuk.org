@@ -531,6 +531,38 @@ function ItemPanel({
               }
             />
           )}
+          {item.kind === 'video' && (
+            <>
+              <TextField
+                label="poster"
+                wide
+                testId="item-poster"
+                value={item.poster ?? ''}
+                placeholder="/media/slug/poster.jpg"
+                onChange={(poster) => set({ poster: poster === '' ? undefined : poster })}
+              />
+              <div className="cms-hint">
+                The still shown before play. Without one the player is a black rectangle. Match the
+                video&rsquo;s aspect ratio, or it is cropped the same way the video is.
+              </div>
+            </>
+          )}
+          {item.kind === 'image' && (
+            <>
+              <CheckField
+                label="Click to enlarge"
+                testId="item-zoom"
+                checked={item.zoom === true}
+                // Off is stored as nothing, like `overlay`.
+                onChange={(zoom) => set({ zoom: zoom ? true : undefined })}
+              />
+              <div className="cms-hint">
+                For a figure that cannot be read where it sits: a diagram drawn for the full
+                column, which on a phone becomes a full-width block. Opens at the size it was
+                drawn at, so the reader pans rather than squints.
+              </div>
+            </>
+          )}
         </Section>
       )}
 

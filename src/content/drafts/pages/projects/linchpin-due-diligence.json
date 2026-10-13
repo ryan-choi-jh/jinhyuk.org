@@ -24,7 +24,8 @@
           "h": 594,
           "src": "/media/projects/linchpin-due-diligence/demo.mp4",
           "alt": "Linchpin demo",
-          "caption": ""
+          "caption": "",
+          "poster": "/media/projects/linchpin-due-diligence/demo-poster.jpg"
         }
       ]
     },
@@ -257,7 +258,8 @@
           "src": "/media/projects/linchpin-due-diligence/diligence-workflow.png",
           "alt": "Existing workflow for sell-side M&A due diligence management",
           "caption": "Existing workflow for sell-side M&A due diligence management",
-          "captionAlign": "center"
+          "captionAlign": "center",
+          "zoom": true
         }
       ]
     },
@@ -422,7 +424,8 @@
           "src": "/media/projects/linchpin-due-diligence/product-ux-map.png",
           "alt": "Product UX map",
           "caption": "Product UX map",
-          "captionAlign": "center"
+          "captionAlign": "center",
+          "zoom": true
         }
       ]
     },

@@ -383,6 +383,30 @@ const CanvasItemObject = z
      * default, so nothing already written moves.
      */
     captionAlign: z.enum(['left', 'center', 'right']).optional(),
+    /**
+     * Can the reader click this picture to see it full screen?
+     *
+     * Off unless asked for. Most pictures on a page are already as large as
+     * they need to be, and an enlarge button on every one of them is a
+     * cursor change and a tab stop that buys nothing. It is for the figure
+     * that cannot be read where it sits: a diagram drawn for the full column,
+     * which on a phone becomes a full-width block with six-point type in it.
+     *
+     * Images only. There is nothing to enlarge about a video, which has its
+     * own full-screen button, or a shape.
+     */
+    zoom: z.boolean().optional(),
+    /**
+     * The still a video shows before it is played.
+     *
+     * Without one the browser paints a black rectangle, because the video is
+     * `preload="metadata"` and has no frame to show yet. Videos only.
+     *
+     * Should match the video's own aspect ratio: the element is sized by the
+     * item's box, and a poster of a different shape is cropped by the same
+     * `object-fit: cover` the video gets.
+     */
+    poster: SrcSchema.optional(),
 
     // shape (kind: shape)
     shape: ShapeKindSchema.optional(),

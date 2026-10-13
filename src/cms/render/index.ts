@@ -235,7 +235,7 @@ export function renderDocBands(doc: Doc, bands: readonly Band[] = doc.bands): st
   // homepage and the albums use. Only when there is an image to enlarge: an
   // empty dialog is markup on every prose-only page for nothing.
   const zoomId = `doc-lightbox-${doc.meta.slug}`;
-  const zoomable = hasImage(bands);
+  const zoomable = hasZoomable(bands);
 
   return (
     `<div class="doc${sectionClass(doc)}${canvasClass(doc, bands)}"` +
@@ -246,10 +246,12 @@ export function renderDocBands(doc: Doc, bands: readonly Band[] = doc.bands): st
   );
 }
 
-/** Does any band hold a picture the reader might want to see larger? */
-function hasImage(bands: readonly Band[]): boolean {
+/** Is any figure on this page marked click-to-enlarge? */
+function hasZoomable(bands: readonly Band[]): boolean {
   return bands.some(
-    (band) => isCanvasBand(band) && band.items.some((item) => item.kind === 'image'),
+    (band) =>
+      isCanvasBand(band) &&
+      band.items.some((item) => item.kind === 'image' && item.zoom === true),
   );
 }
 

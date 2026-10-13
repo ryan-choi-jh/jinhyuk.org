@@ -320,6 +320,8 @@
    instead of squashing. The same hairline the album tiles and film posters
    carry (--media-edge), without which a screenshot that is white to its edges
    dissolves into the page. */
+/* Both shapes: a plain image, and one wrapped in its enlarge button. */
+.doc-item--image .doc-frame > img,
 .doc-item--image .doc-frame > .doc-zoom > img,
 .doc-item--video .doc-frame > video {
   object-fit: cover;
