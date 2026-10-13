@@ -1020,6 +1020,24 @@ async function run(): Promise<void> {
       box?.getAttribute('data-tone') ?? 'none',
     );
 
+    // The box has to be the size the published page makes it. It was 92px
+    // here against 60px there, because the editor puts a real paragraph
+    // inside and it arrived with a margin of its own on top of the box's
+    // padding. One line of 28px text in 16px of padding is 60px, and nothing
+    // inside the box may add to that.
+    const content = box?.querySelector('.pe-content') as HTMLElement | null;
+    const inner = content?.querySelector('p') ?? null;
+    check(
+      'the box is the height the page makes it, not taller',
+      content !== null && Math.round(content.getBoundingClientRect().height) === 60,
+      `${Math.round(content?.getBoundingClientRect().height ?? 0)}px`,
+    );
+    check(
+      'because nothing inside it adds a margin of its own',
+      inner !== null && getComputedStyle(inner).marginTop === '0px' && getComputedStyle(inner).marginBottom === '0px',
+      inner === null ? 'no paragraph' : `${getComputedStyle(inner).marginTop} / ${getComputedStyle(inner).marginBottom}`,
+    );
+
     // Converting away and back is how the kind buttons work, and a callout
     // must not lose its words on the way.
     const words = collectProseText(blockById('callout_guide').content);
