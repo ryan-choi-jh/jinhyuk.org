@@ -73,6 +73,11 @@ export function createDocFor(
       slug,
       date: todayIso(options.now),
       section: section.id as DocumentSectionId,
+      // A new page is called "New essay" and is therefore at /essays/new-essay/,
+      // which is nobody's intention — it is the name it has before it has a
+      // name. So the slug keeps up with the title until the page is published
+      // or the author renames it by hand. See `slugToFollow`.
+      slugFromTitle: true,
     },
     bands: [createProseBand()],
   };
@@ -95,6 +100,11 @@ export function duplicateDoc(
   copy.meta.title = title;
   copy.meta.slug = options.slug ?? uniqueSlug(title, options.taken ?? [doc.meta.slug]);
   copy.meta.date = todayIso(options.now);
+  // A copy is a new page too: unpublished, named after its title, and its
+  // address should follow if the author retitles it. Set rather than
+  // inherited, because the original may be a published page that long ago
+  // stopped following.
+  copy.meta.slugFromTitle = true;
   return copy;
 }
 

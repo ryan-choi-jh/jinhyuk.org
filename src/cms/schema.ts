@@ -123,6 +123,34 @@ export function slugProblem(value: string): string | null {
 }
 
 
+/**
+ * The slug this document should move to, or null to leave it alone.
+ *
+ * THE RULE, and every clause of it is load-bearing:
+ *
+ *  - `published` must be null. A page that has been live has a public
+ *    address, and an address that changes by itself is a broken link
+ *    somebody else is holding. Before the first publish there is no address
+ *    to break and the move costs nothing.
+ *  - `meta.slugFromTitle` must be true. Set at creation, cleared the moment
+ *    the author renames by hand, absent on every page that predates the
+ *    field.
+ *  - the title must make a legal, non-empty slug. "???" makes nothing, and
+ *    a page is not renamed to nothing.
+ *  - it must differ from the slug it already has, or there is no move.
+ *
+ * Pure, and tested as such: everything about this feature that could go
+ * wrong goes wrong HERE, so the browser only has to prove the wiring.
+ */
+export function slugToFollow(doc: Doc, published: Doc | null): string | null {
+  if (published !== null) return null;
+  if (doc.meta.slugFromTitle !== true) return null;
+  const wanted = slugify(doc.meta.title);
+  if (wanted === '' || slugProblem(wanted) !== null) return null;
+  if (wanted === doc.meta.slug) return null;
+  return wanted;
+}
+
 export const SrcSchema = z
   .string()
   .regex(SRC_RE, 'src must be a site-absolute path like "/media/slug/file.png" or an http(s) URL');
@@ -315,6 +343,24 @@ export const DocMetaSchema = z
      * Absent means visible, so nothing already published changes.
      */
     hidden: z.boolean().optional(),
+    /**
+     * The slug is still being taken from the title, and may move with it.
+     *
+     * Set when a page is created and cleared the moment the author renames
+     * it by hand. ABSENT MEANS NO — every page written before this existed
+     * keeps the address it has, which is the only safe default for a field
+     * whose job is to decide whether a URL may change.
+     *
+     * It is a fact about the document's address, like `hidden` is a fact
+     * about its visibility, which is why it lives here and not in the
+     * editor's own state: the answer has to survive a reload, and getting
+     * it wrong by forgetting means moving a published page's URL.
+     *
+     * The following only ever happens while the page has NEVER been
+     * published — see `slugToFollow` — so this flag being stale on a live
+     * page cannot move it.
+     */
+    slugFromTitle: z.boolean().optional(),
     /**
      * Which surface of the site this document belongs to. Documents only, so
      * 'home' | 'projects' | 'essays'; DocSchema rejects a record section.

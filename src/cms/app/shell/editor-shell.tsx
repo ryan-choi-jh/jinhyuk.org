@@ -29,6 +29,7 @@ import { useShellStyles } from './styles.ts';
 import { useTypeScale } from './use-type-scale.ts';
 import { Toolbar } from './toolbar.tsx';
 import { useShortcuts } from './use-shortcuts.ts';
+import { useSaveWithSlugFollow } from './use-slug-follow.ts';
 import { useLocalDraft } from './use-local-draft.ts';
 import { useUnsavedChangesGuard } from './use-unsaved-changes.ts';
 
@@ -88,7 +89,16 @@ export function EditorShell({
   const state = useDocStore(store);
   const [zoom, setZoom] = useState<Zoom>(initialZoom);
 
-  useShortcuts(store, keyboardShortcuts);
+  /*
+   * One save, used everywhere a save happens: the toolbar's button, ⌘S, and
+   * the publish picker's save-before-publish. A new page's address follows
+   * its title, and it has to follow it whichever of the three you used —
+   * wiring only the button would mean ⌘S quietly published a page at
+   * /essays/new-essay/.
+   */
+  const save = useSaveWithSlugFollow(store);
+
+  useShortcuts({ ...store, save }, keyboardShortcuts);
   useUnsavedChangesGuard(state.dirty, guardUnsavedChanges);
 
   /* A crash copy in this browser, offered back once. The guard above warns
@@ -133,6 +143,7 @@ export function EditorShell({
     <DocStoreProvider value={store}>
       <div className={className === undefined ? 'cms-root' : `cms-root ${className}`} data-testid="cms-root">
         <Toolbar
+          onSave={save}
           store={store}
           state={state}
           zoom={zoom}

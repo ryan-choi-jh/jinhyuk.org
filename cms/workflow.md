@@ -59,6 +59,12 @@ flowchart TD
 
 Two things that are easy to miss from the picture:
 
+- **A new page's address comes from its title.** Create one, give it a
+  title, save: it moves from `/essays/new-essay/` to the title's slug, and
+  keeps up until you publish. After that the address is public and frozen,
+  and changing it is the deliberate Rename in the inspector — which also
+  hands you the address for good. Renaming a live page leaves the old one
+  redirecting.
 - **The body size is a setting, under Home.** One number, applied to whichever
   sections you tick, with the scale and the affected pages shown before you
   apply. See section 4b.

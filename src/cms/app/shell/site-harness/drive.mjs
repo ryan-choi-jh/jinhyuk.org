@@ -936,6 +936,161 @@ section('renaming a page from the field that shows its slug');
   }
 
   /* ---------------------------------------------------------------------- */
+  section("a new page's address follows its title until it is published");
+  {
+    /*
+     * A page is called "New essay" before it has a name, so it is created
+     * at /essays/new-essay/ — which is nobody's intention. The slug keeps
+     * up with the title until the page is published or the author renames
+     * it. The rule itself is pure and checked offline in fixtures/verify.ts;
+     * this is the wiring.
+     *
+     * A slug is a file name, so the move is a commit. It therefore happens
+     * when a commit is being made anyway — on save — and never per
+     * keystroke.
+     */
+    const slugNow = () => page.value('meta-slug');
+    const titleField = 'meta-title';
+
+    check('it starts at the name it has before it has a name', (await slugNow()) === 'new-essay', await slugNow());
+    check(
+      'and the field says the address is following',
+      (await page.text('meta-slug-hint')).includes('Taken from the title'),
+      await page.text('meta-slug-hint'),
+    );
+
+    await page.fill(titleField, 'I Was Looking for a Startup Idea');
+    await page.quiet();
+    check(
+      'typing a title does NOT move anything — a slug is a file, not a field',
+      (await slugNow()) === 'new-essay',
+      await slugNow(),
+    );
+    check(
+      'but the field says where saving will put it',
+      (await page.text('meta-slug-hint')).includes('i-was-looking-for-a-startup-idea'),
+      await page.text('meta-slug-hint'),
+    );
+
+    await page.click('save');
+    await page.quiet();
+    await page.quiet();
+    const moved = await page.probe();
+    check(
+      'saving moves it to match the title',
+      (await slugNow()) === 'i-was-looking-for-a-startup-idea',
+      await slugNow(),
+    );
+    check(
+      'the route went with it',
+      moved.entryKey === 'i-was-looking-for-a-startup-idea',
+      String(moved.entryKey),
+    );
+    check(
+      'the old file is gone, not left behind',
+      moved.server.docs.essays['new-essay'] === undefined ||
+        (moved.server.docs.essays['new-essay']?.draft === null &&
+          moved.server.docs.essays['new-essay']?.published === null),
+      JSON.stringify(Object.keys(moved.server.docs.essays)),
+    );
+    check(
+      'and the writing survived the move',
+      moved.server.docs.essays['i-was-looking-for-a-startup-idea']?.draft?.meta.title ===
+        'I Was Looking for a Startup Idea',
+      String(moved.server.docs.essays['i-was-looking-for-a-startup-idea']?.draft?.meta.title),
+    );
+
+    /* Renaming by hand takes the address over for good. */
+    await page.fill('meta-slug', 'my-own-name');
+    await page.quiet();
+    await page.click('meta-slug-rename');
+    await page.quiet();
+    check('a hand rename moves it', (await page.probe()).entryKey === 'my-own-name', String((await page.probe()).entryKey));
+
+    await page.fill(titleField, 'A Completely Different Title');
+    await page.quiet();
+    await page.click('save');
+    await page.quiet();
+    await page.quiet();
+    check(
+      'and the title cannot move it again',
+      (await slugNow()) === 'my-own-name',
+      await slugNow(),
+    );
+    check(
+      'the field says so rather than leaving you guessing',
+      !(await page.text('meta-slug-hint')).includes('Taken from the title'),
+      await page.text('meta-slug-hint'),
+    );
+    console.log(`    shot  ${await page.shot('14-slug-follows-title')}`);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  section('and publishing freezes it, because an address is public');
+  {
+    /*
+     * The clause the whole feature rests on. Before the first publish there
+     * is no address, so moving costs nothing. Afterwards there is one, and
+     * an address that changes by itself is a broken link somebody else is
+     * holding. A page that is live must not move on a retitle, whatever its
+     * flag says — which is why `slugToFollow` checks `published` as well as
+     * the flag, and why this check exists on a page that still HAS the flag.
+     */
+    await page.click('section-row-essays');
+    await page.quiet();
+    await page.click('entry-create');
+    await page.quiet();
+
+    await page.fill('meta-title', 'Published Then Retitled');
+    await page.quiet();
+    await page.click('save');
+    await page.quiet();
+    await page.quiet();
+    check(
+      'it followed while it was a draft',
+      (await page.value('meta-slug')) === 'published-then-retitled',
+      await page.value('meta-slug'),
+    );
+
+    // Publish may stop to show the pre-publish warnings for this page (a
+    // fresh document has an empty row in it), so click through if it does.
+    await page.click('publish');
+    await page.quiet();
+    if (await page.exists('preflight-go')) {
+      await page.click('preflight-go');
+      await page.quiet();
+    }
+    await page.quiet();
+    const live = await page.probe();
+    check(
+      'and it is live at that address',
+      live.server.docs.essays['published-then-retitled']?.published !== null,
+      JSON.stringify(Object.keys(live.server.docs.essays)),
+    );
+
+    await page.fill('meta-title', 'Something Else Entirely');
+    await page.quiet();
+    await page.click('save');
+    await page.quiet();
+    await page.quiet();
+    check(
+      'retitling a LIVE page does not move its address',
+      (await page.value('meta-slug')) === 'published-then-retitled',
+      await page.value('meta-slug'),
+    );
+    check(
+      'and nothing was published at a new one',
+      live.server.docs.essays['something-else-entirely'] === undefined,
+      JSON.stringify(Object.keys((await page.probe()).server.docs.essays)),
+    );
+    check(
+      'the field stops offering to, too',
+      !(await page.text('meta-slug-hint')).includes('Taken from the title'),
+      await page.text('meta-slug-hint'),
+    );
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('the unsaved-changes guard refuses a section change');
   {
     // Dirty the open document, then try to leave.

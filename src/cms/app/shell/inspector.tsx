@@ -21,6 +21,7 @@ import {
   REFERENCE_WIDTH,
   SHAPE_KINDS,
   slugProblem,
+  slugToFollow,
 } from '../../schema.ts';
 import type { Anchor, BlockSpace, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
 import { SPACE_SCALE } from '../../styles/spacing.ts';
@@ -199,9 +200,33 @@ function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) 
   const problem = slugProblem(wanted);
   const legal = problem === null;
 
+  // Still taking its address from its title: a page that has never been
+  // published and that nobody has renamed. The same rule the save uses.
+  const following = meta.slugFromTitle === true && state.published === null;
+  const fromTitle = slugToFollow(state.doc, state.published);
+
   const rename = async (): Promise<void> => {
     if (siteStore === null || !changed || !legal || meta.section === undefined) return;
     setBusy(true);
+    /*
+     * Renaming by hand is how you take the address over: from here the slug
+     * is yours and the title cannot move it again. That has to be recorded
+     * on the DOCUMENT, so it survives a reload — getting it wrong by
+     * forgetting would mean a published page's URL moving by itself.
+     *
+     * And it has to be written BEFORE the move, not after. `renameEntry`
+     * throws this document's store away (it is keyed to a slug that no
+     * longer exists) and a fresh one is built from the file on disk, so
+     * anything set afterwards is set on a dead object. The first version
+     * did exactly that and the address kept following the title.
+     */
+    if (following) {
+      store.updateMeta({ slugFromTitle: false });
+      if (!(await store.save())) {
+        setBusy(false);
+        return;
+      }
+    }
     const ok = await siteStore.renameEntry(meta.section, meta.slug, wanted);
     setBusy(false);
     if (!ok) setTyped(meta.slug);
@@ -251,8 +276,12 @@ function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) 
                     state.published === null
                       ? 'This page has never been published, so nothing is redirecting anywhere.'
                       : `/${meta.section}/${meta.slug}/ will keep working, redirecting to the new address.`
-                  }`
-                : 'The last part of the address, and the file name under src/content/. Changing it is a move, not an edit, so it happens on the button.'}
+                  }${following ? ' It also stops the address following the title.' : ''}`
+                : following
+                  ? fromTitle === null
+                    ? 'Taken from the title, and it keeps up with it until this page is published. Rename to set it yourself.'
+                    : `Taken from the title: saving moves this page to /${meta.section}/${fromTitle}/. It keeps up until the page is published.`
+                  : 'The last part of the address, and the file name under src/content/. Changing it is a move, not an edit, so it happens on the button.'}
       </div>
     </>
   );

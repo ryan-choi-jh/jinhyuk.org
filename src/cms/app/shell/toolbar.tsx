@@ -29,6 +29,12 @@ export const ZOOM_CHOICES: { value: string; label: string; zoom: Zoom }[] = [
 ];
 
 export type ToolbarProps = {
+  /**
+   * The shell's save. Optional: a toolbar mounted without one falls back to
+   * `store.save()`, which is what the harnesses and the standalone editor
+   * get. See ./use-slug-follow.ts for what the shell's adds.
+   */
+  onSave?: () => Promise<boolean>;
   store: DocStore;
   state: DocStoreState;
   zoom: Zoom;
@@ -37,8 +43,11 @@ export type ToolbarProps = {
   slots: EditorShellSlots;
 };
 
-export function Toolbar({ store, state, zoom, onZoomChange, onPreview, slots }: ToolbarProps) {
+export function Toolbar({ store, state, zoom, onZoomChange, onPreview, onSave, slots }: ToolbarProps) {
   const busy = state.phase !== 'idle';
+  // The shell's save, which also moves a new page's address to match its
+  // title. Falls back to the store's own for a toolbar mounted without one.
+  const save = onSave ?? (() => store.save());
 
   return (
     <div className="cms-toolbar" data-testid="toolbar">
@@ -146,11 +155,11 @@ export function Toolbar({ store, state, zoom, onZoomChange, onPreview, slots }: 
           data-testid="save"
           disabled={busy || !state.dirty}
           title="Save draft (⌘S). Saved, but not on the live site until you publish."
-          onClick={() => void store.save()}
+          onClick={() => void save()}
         >
           {state.phase === 'saving' ? 'Saving…' : 'Save draft'}
         </button>
-        <PublishButton store={store} state={state} busy={busy} />
+        <PublishButton store={store} state={state} busy={busy} save={save} />
       </span>
     </div>
   );
@@ -258,10 +267,12 @@ function PublishButton({
   store,
   state,
   busy,
+  save,
 }: {
   store: DocStore;
   state: DocStoreState;
   busy: boolean;
+  save: () => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const findings = preflight(state.doc);
@@ -325,6 +336,15 @@ function PublishButton({
         ? {
             ...item,
             publish: async (): Promise<void> => {
+              /*
+               * Save through the shell's save FIRST, so a new page whose
+               * address is still following its title moves before it goes
+               * live rather than after. `store.publish()` saves internally
+               * too, but through the store's own save, which knows nothing
+               * about renaming — and the one moment the address matters
+               * most is the moment it becomes public.
+               */
+              if (state.dirty && !(await save())) throw new Error('see the message below');
               const ok = await store.publish();
               if (!ok) throw new Error('see the message below');
             },

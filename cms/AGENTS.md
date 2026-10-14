@@ -229,6 +229,35 @@ between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
 it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
 constant and breaks the loop.
 
+**A slug is a file name, so changing one is a move and a commit.** The
+server refuses a document whose `meta.slug` is not the slug in its path, so
+the slug cannot mirror the title as you type — that would be a commit per
+keystroke. A new page's address follows its title on SAVE, when a commit is
+being made anyway, and only while the move is free:
+
+    published === null      there is no address yet, so nothing can break
+    meta.slugFromTitle      the author has not taken the address over
+
+`slugToFollow` in schema.ts is that rule and it is pure; everything that
+could go wrong goes wrong there, so it is checked offline and the browser
+only proves the wiring. Three things that are not obvious:
+
+- **Save first, then move.** Renaming reloads the entry from the
+  repository, so anything unwritten is gone. Moving before saving loses
+  exactly the edit that prompted the move.
+- **A failed move must not fail the save.** The slug may be taken, the
+  branch may have moved. The writing landed under the name it had, and
+  that is a note, not an error.
+- **`renameEntry` throws the document's store away** — it is keyed to a
+  slug that no longer exists. Anything you set on that store afterwards is
+  set on a dead object, which is how the first version of "renaming by
+  hand stops the following" did nothing at all. Write it, save it, then
+  rename.
+
+`meta.slugFromTitle` is ABSENT on every page written before it existed, and
+absent means no. A field whose job is to decide whether a URL may change
+gets the safe default.
+
 **A client stricter than the server makes a legal value unreachable.** The
 rename field validated the slug with `IdSchema` — the rule for block and
 band IDS, `[A-Za-z0-9_-]{1,64}` — while the server's rule is

@@ -22,6 +22,7 @@ import {
   HIGHLIGHT_INKS,
   DocMetaSchema,
   slugProblem,
+  slugToFollow,
   MOBILE_BREAKPOINT,
   REFERENCE_WIDTH,
   SECTION_IDS,
@@ -71,6 +72,8 @@ import {
   slugFromFilename,
   toDraftPath,
 } from '../sections.ts';
+import type { DocumentSectionDef } from '../sections.ts';
+import { createDocFor, duplicateDoc } from '../app/state/entries.ts';
 import type { RecordsDef } from '../sections.ts';
 
 /**
@@ -959,6 +962,84 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
     slugProblem('🙂🙂') === 'Lowercase letters and numbers, separated by single hyphens.',
     String(slugProblem('🙂🙂')),
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* A new page's address follows its title                                      */
+/* -------------------------------------------------------------------------- */
+
+{
+  /*
+   * Every way this feature can go wrong, it goes wrong here: `slugToFollow`
+   * decides whether a URL is allowed to move. The browser check downstream
+   * only has to prove the wiring.
+   *
+   * The clause that matters most is `published !== null`. An address that
+   * changes by itself is a broken link somebody else is holding, and the
+   * only moment moving one is free is before it has ever existed.
+   */
+  const page = (over: Record<string, unknown> = {}): Doc => ({
+    version: 1,
+    meta: { title: 'New essay', slug: 'new-essay', date: '2026-10-14', section: 'essays', ...over },
+    bands: [],
+  }) as Doc;
+
+  const followed = (doc: Doc, published: Doc | null = null): string | null => slugToFollow(doc, published);
+
+  check(
+    'a new page with a real title moves to match it',
+    followed(page({ title: 'I Was Looking for a Startup Idea', slugFromTitle: true })) ===
+      'i-was-looking-for-a-startup-idea',
+    String(followed(page({ title: 'I Was Looking for a Startup Idea', slugFromTitle: true }))),
+  );
+  check(
+    'a page that has EVER been published does not move, whatever the flag says',
+    followed(page({ title: 'A New Title', slugFromTitle: true }), page()) === null,
+  );
+  check(
+    'a page nobody marked does not move — every page written before this field',
+    followed(page({ title: 'A New Title' })) === null,
+  );
+  check(
+    'a page whose author renamed it does not move',
+    followed(page({ title: 'A New Title', slugFromTitle: false })) === null,
+  );
+  check(
+    'a slug that already matches is not a move',
+    followed(page({ title: 'Already Right', slug: 'already-right', slugFromTitle: true })) === null,
+  );
+  check(
+    'a title that makes no slug at all is not a move to nothing',
+    followed(page({ title: '???', slugFromTitle: true })) === null,
+  );
+  check(
+    'and the slug it offers is always a legal one',
+    [
+      'A Title: With Punctuation!',
+      'Ünïcödé Títlé',
+      '  padded  ',
+      '2026 in review',
+      'Hyphen - Spaced',
+    ].every((title) => {
+      const next = followed(page({ title, slugFromTitle: true }));
+      return next !== null && slugProblem(next) === null;
+    }),
+  );
+
+  // The two creators both opt a new page in, and both produce a document
+  // the schema accepts.
+  const essays = requireSection('essays') as DocumentSectionDef;
+  const fresh = createDocFor(essays, { title: 'A Brand New Essay' });
+  check('a created page follows its title', fresh.meta.slugFromTitle === true);
+  check('and is created at that title’s slug', fresh.meta.slug === 'a-brand-new-essay', fresh.meta.slug);
+  check('…so it has nothing to move yet', slugToFollow(fresh, null) === null);
+  const freshResult = validateDoc(fresh);
+  check('and it validates', freshResult.ok, freshResult.ok ? '' : formatIssues(freshResult.issues));
+
+  const copy = duplicateDoc(page({ slugFromTitle: false }), { taken: ['new-essay'] });
+  check('a duplicate follows its title too, whatever it was copied from', copy.meta.slugFromTitle === true);
+  const copyResult = validateDoc(copy);
+  check('and it validates', copyResult.ok, copyResult.ok ? '' : formatIssues(copyResult.issues));
 }
 
 console.log('');
