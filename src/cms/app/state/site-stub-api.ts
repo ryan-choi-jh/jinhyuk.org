@@ -27,7 +27,7 @@
  * disabled state is verified.
  */
 
-import { formatIssues, validateDoc } from '../../schema.ts';
+import { DocMetaSchema, formatIssues, slugProblem, validateDoc } from '../../schema.ts';
 import type { Doc, RecordFile, SectionId } from '../../schema.ts';
 import { SECTIONS, isRecordSection, mediaSrcFor, requireSection } from '../../sections.ts';
 import type { DocumentSectionDef, RecordSectionDef, SectionDef } from '../../sections.ts';
@@ -440,6 +440,20 @@ export function createStubSiteApi(options: StubSiteApiOptions = {}): StubSiteApi
       const section = documentSection(id);
       if (section.shape === 'singleton') {
         throw new CmsApiError(`"${section.label}" is a singleton; it cannot be renamed`, { status: 400 });
+      }
+      /*
+       * The SAME rule the server applies, and that is the point of it
+       * being here. The stub used to accept any string, so a slug the real
+       * server refuses — one longer than a file name may be — renamed
+       * happily in every harness and failed in the editor. A stub more
+       * permissive than the thing it stands in for cannot catch the bug
+       * that matters.
+       */
+      const checked = DocMetaSchema.shape.slug.safeParse(to);
+      if (!checked.success) {
+        throw new CmsApiError(`"${to}" cannot be a page name: ${slugProblem(to) ?? 'it is not a slug'}`, {
+          status: 400,
+        });
       }
       const map = bucket(section);
       const entry = map.get(from);

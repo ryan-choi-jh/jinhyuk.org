@@ -107,8 +107,47 @@ export const IdSchema = z
  * asserts that over a list of cases. A client stricter than the server is
  * how a legal value becomes unreachable.
  */
+/**
+ * How long a document slug may be.
+ *
+ * NOT a style rule. A slug is a file name, and `fillSlug` — the one function
+ * that builds every content path — refuses anything outside
+ * `[A-Za-z0-9_-]{1,64}`. So a longer slug cannot be stored at all: not
+ * created, not renamed to, not saved.
+ *
+ * It lives here because it was enforced in three places and stated in none.
+ * `fillSlug` threw a TypeError about a path pattern; `renameEntry` answered
+ * `"…" is not a usable file name`; the field in the editor, which is where
+ * someone actually types one, did not know about it and offered a 69
+ * character slug that the server then refused. One rule, on the schema,
+ * and the message that explains it is `slugProblem`.
+ */
+export const MAX_SLUG_LENGTH = 64;
+
+/**
+ * A title as a slug that will fit, cut at a word boundary.
+ *
+ * Cutting mid-word gives "…a-different-questi", which looks like damage.
+ * Cutting back to the last hyphen gives "…a-different", which looks like a
+ * decision. A single word longer than the limit has no boundary to cut at
+ * and is simply trimmed.
+ */
+export function cappedSlug(text: string, limit = MAX_SLUG_LENGTH): string {
+  const full = slugify(text);
+  if (full.length <= limit) return full;
+  const cut = full.slice(0, limit);
+  const boundary = cut.lastIndexOf('-');
+  const trimmed = boundary > 0 ? cut.slice(0, boundary) : cut;
+  return trimmed.replace(/-+$/, '');
+}
+
 export function slugProblem(value: string): string | null {
   if (value === '') return 'A slug cannot be empty.';
+  if (value.length > MAX_SLUG_LENGTH && SLUG_RE.test(value)) {
+    // Reported before the shape, because a slug that is only too long is
+    // otherwise told it is the wrong shape, which it is not.
+    return `${value.length} characters is too long; the limit is ${MAX_SLUG_LENGTH}, because a slug is a file name. Try: ${cappedSlug(value)}`;
+  }
   if (SLUG_RE.test(value)) return null;
   // A suggestion beats naming a rule, and it beats naming the offending
   // character too: the answer to "Caps And Spaces" is "caps-and-spaces",
@@ -117,7 +156,7 @@ export function slugProblem(value: string): string | null {
   // `slugify` is declared further down this file and hoists. It is the one
   // the New-entry flow already uses to turn a title into a slug, so the
   // suggestion here is the same slug the CMS would have made itself.
-  const suggestion = slugify(value);
+  const suggestion = cappedSlug(value);
   if (suggestion !== '') return `Lowercase words joined by hyphens. Try: ${suggestion}`;
   return 'Lowercase letters and numbers, separated by single hyphens.';
 }
@@ -145,7 +184,9 @@ export function slugProblem(value: string): string | null {
 export function slugToFollow(doc: Doc, published: Doc | null): string | null {
   if (published !== null) return null;
   if (doc.meta.slugFromTitle !== true) return null;
-  const wanted = slugify(doc.meta.title);
+  // Capped, so a long title gives a slug that can actually be stored. An
+  // uncapped one would be refused by the rename on every single save.
+  const wanted = cappedSlug(doc.meta.title);
   if (wanted === '' || slugProblem(wanted) !== null) return null;
   if (wanted === doc.meta.slug) return null;
   return wanted;
@@ -288,7 +329,13 @@ export type DocButton = z.infer<typeof DocButtonSchema>;
 export const DocMetaSchema = z
   .object({
     title: z.string().min(1, 'title must not be empty'),
-    slug: z.string().regex(SLUG_RE, 'slug must be lowercase kebab-case'),
+    slug: z
+      .string()
+      .regex(SLUG_RE, 'slug must be lowercase kebab-case')
+      // A slug is a file name; `fillSlug` cannot build a path from a longer
+      // one. Stated here so one schema is the authority instead of three
+      // scattered guards.
+      .max(MAX_SLUG_LENGTH, `a slug is at most ${MAX_SLUG_LENGTH} characters`),
     date: DateSchema,
     summary: z.string().optional(),
     /**
@@ -1205,7 +1252,13 @@ const AlbumObject = z
   .object({
     id: IdSchema,
     /** The album page lives at /photography/<slug>/ (docs/cms-sections.md 3.4). */
-    slug: z.string().regex(SLUG_RE, 'slug must be lowercase kebab-case'),
+    slug: z
+      .string()
+      .regex(SLUG_RE, 'slug must be lowercase kebab-case')
+      // A slug is a file name; `fillSlug` cannot build a path from a longer
+      // one. Stated here so one schema is the authority instead of three
+      // scattered guards.
+      .max(MAX_SLUG_LENGTH, `a slug is at most ${MAX_SLUG_LENGTH} characters`),
     title: z.string().min(1, 'title must not be empty'),
     year: YearSchema,
     /** The id of one of this album's photos. Omitted means the first photo. */

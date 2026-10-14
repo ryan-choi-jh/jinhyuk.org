@@ -723,11 +723,38 @@ section('renaming a page from the field that shows its slug');
      * caps there — so a slug made from a real essay title could not be
      * entered at all, under a hint naming a rule it had not broken.
      */
+    /*
+     * A slug is a file name, and the path builder refuses anything over 64
+     * characters, so this one cannot be stored. The limit was real and
+     * enforced in three places while being stated in none: the field let
+     * you type it, the document schema took it, and the rename answered
+     * `"…" is not a usable file name.` with no mention of length.
+     */
     const LONG = 'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different-question';
     await page.fill('meta-slug', LONG);
     await page.quiet();
     check(
-      `a ${LONG.length}-character slug is allowed, as the server allows it`,
+      `a ${LONG.length}-character slug is refused HERE, not by the server`,
+      (await page.disabled('meta-slug-rename')) === true,
+      await page.text('meta-slug-hint'),
+    );
+    const lengthHint = await page.text('meta-slug-hint');
+    check(
+      'and the reason given is the length, with both numbers',
+      lengthHint.includes('69') && lengthHint.includes('64'),
+      lengthHint,
+    );
+    check(
+      'and one that fits is offered, cut at a word boundary',
+      lengthHint.includes('i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different') &&
+        !lengthHint.includes('-question'),
+      lengthHint,
+    );
+
+    await page.fill('meta-slug', 'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different');
+    await page.quiet();
+    check(
+      'and the offered one can actually be used',
       (await page.disabled('meta-slug-rename')) === false,
       await page.text('meta-slug-hint'),
     );

@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 import {
   HIGHLIGHT_INKS,
   DocMetaSchema,
+  MAX_SLUG_LENGTH,
+  cappedSlug,
   slugProblem,
   slugToFollow,
   MOBILE_BREAKPOINT,
@@ -73,7 +75,7 @@ import {
   toDraftPath,
 } from '../sections.ts';
 import type { DocumentSectionDef } from '../sections.ts';
-import { createDocFor, duplicateDoc } from '../app/state/entries.ts';
+import { createDocFor, duplicateDoc, uniqueSlug } from '../app/state/entries.ts';
 import type { RecordsDef } from '../sections.ts';
 
 /**
@@ -936,9 +938,69 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
     }
   }
 
-  // The specific regression: longer than an id may be, and still a slug.
+  /*
+   * THE LENGTH, which is a real limit and not a style rule: a slug is a
+   * file name and `fillSlug` — the one function that builds every content
+   * path — refuses anything over MAX_SLUG_LENGTH. It was enforced in three
+   * places and stated in none, so a 69-character slug made from a real
+   * essay title passed the editor's check, passed the document schema, and
+   * was refused by the rename with `"…" is not a usable file name.`
+   */
   const long = 'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different-question';
-  check('a slug may be longer than 64 characters', long.length > 64 && slugProblem(long) === null, `${long.length} characters`);
+  check('the limit is real: fillSlug cannot build a path past it', long.length > MAX_SLUG_LENGTH);
+  check('so a slug that long is refused', slugProblem(long) !== null, String(slugProblem(long)));
+  check(
+    'and the refusal says it is the LENGTH, with the number',
+    (slugProblem(long) ?? '').includes(String(long.length)) &&
+      (slugProblem(long) ?? '').includes(String(MAX_SLUG_LENGTH)),
+    String(slugProblem(long)),
+  );
+  check(
+    'and offers one that fits, cut at a word boundary',
+    (slugProblem(long) ?? '').includes(cappedSlug(long)) && !cappedSlug(long).endsWith('-'),
+    cappedSlug(long),
+  );
+  check('which is itself legal', slugProblem(cappedSlug(long)) === null);
+  check(
+    'the document schema agrees — one rule, not three',
+    DocMetaSchema.shape.slug.safeParse(long).success === false &&
+      DocMetaSchema.shape.slug.safeParse(cappedSlug(long)).success,
+  );
+  check(
+    'and the path builder, which is where the limit comes from, takes it',
+    (() => {
+      try {
+        // The real call path: contentPathFor -> fillSlug. Not `fillSlug`
+        // by name — the first version of this check called a function it
+        // had not imported, and the try/catch swallowed the ReferenceError
+        // and reported the cap as broken.
+        return contentPathFor(requireSection('essays'), cappedSlug(long)).endsWith(
+          `${cappedSlug(long)}.json`,
+        );
+      } catch {
+        return false;
+      }
+    })(),
+  );
+  check(
+    'and refuses the uncapped one, which is the whole reason for the cap',
+    throws(() => contentPathFor(requireSection('essays'), long)),
+  );
+
+  // Every slug the CMS generates itself must fit, suffix and all.
+  for (const title of [
+    long,
+    'A Title That Goes On And On And On And On And On And On And On And On And On',
+    'Supercalifragilisticexpialidociousandthensomemoreandmoreandmoreandmoreandmore',
+  ]) {
+    const made = uniqueSlug(title, []);
+    check(`uniqueSlug("${title.slice(0, 28)}…") fits`, made.length <= MAX_SLUG_LENGTH, `${made.length}: ${made}`);
+    check('…and is legal', slugProblem(made) === null, made);
+    const second = uniqueSlug(title, [made]);
+    check('…and so is the -2 it falls back to', second.length <= MAX_SLUG_LENGTH && slugProblem(second) === null, second);
+    check('…which is a different slug', second !== made, second);
+  }
+
 
   /*
    * And a refusal offers a slug that WORKS, rather than naming a rule.
@@ -1035,6 +1097,17 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
   check('…so it has nothing to move yet', slugToFollow(fresh, null) === null);
   const freshResult = validateDoc(fresh);
   check('and it validates', freshResult.ok, freshResult.ok ? '' : formatIssues(freshResult.issues));
+
+  // The follow can never propose a slug that cannot be stored: a title
+  // long enough to overflow a file name would otherwise be refused by the
+  // rename on every single save.
+  const tooLong = 'I Was Looking for a Startup Idea. I Needed to Ask a Different Question';
+  const next = slugToFollow(page({ title: tooLong, slugFromTitle: true }), null);
+  check(
+    'a very long title follows to a slug that fits',
+    next !== null && next.length <= MAX_SLUG_LENGTH && slugProblem(next) === null,
+    String(next),
+  );
 
   const copy = duplicateDoc(page({ slugFromTitle: false }), { taken: ['new-essay'] });
   check('a duplicate follows its title too, whatever it was copied from', copy.meta.slugFromTitle === true);

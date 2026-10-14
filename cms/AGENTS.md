@@ -258,15 +258,26 @@ only proves the wiring. Three things that are not obvious:
 absent means no. A field whose job is to decide whether a URL may change
 gets the safe default.
 
-**A client stricter than the server makes a legal value unreachable.** The
-rename field validated the slug with `IdSchema` — the rule for block and
-band IDS, `[A-Za-z0-9_-]{1,64}` — while the server's rule is
-`DocMetaSchema.shape.slug`, lowercase kebab-case with no length limit. A
-69-character slug made from a real essay title was refused by the editor,
-under a message naming a rule it had not broken, and the button could not
-be pressed. When a field guards a value the server will receive, validate
-with the server's schema; `fixtures/verify.ts` asserts `slugProblem` and
-that schema agree case by case.
+**A slug is a file name, and the rule for one lives in exactly one place.**
+It did not. `SLUG_RE` said kebab-case, `fillSlug` said
+`[A-Za-z0-9_-]{1,64}`, `renameEntry` said both — and no two of them agreed
+about length. A 69-character slug made from a real essay title passed the
+editor, passed `DocMetaSchema`, and was refused by the rename with
+`"…" is not a usable file name.`, which does not mention length at all.
+Before that it was refused by the editor under a message naming a rule it
+had not broken, because the field was validating with `IdSchema`, the rule
+for block and band IDS.
+
+`MAX_SLUG_LENGTH` is on `DocMetaSchema.shape.slug` now, and that schema is
+what the field, the server's rename and the stub API all ask.
+`fixtures/verify.ts` asserts `slugProblem` and the schema agree case by
+case, that the cap is the path builder's own, and that every slug the CMS
+generates fits inside it — `uniqueSlug`'s `-2` suffix included.
+
+**A stub more permissive than the server cannot catch the bug that
+matters.** `site-stub-api.ts`'s `renameEntry` accepted any string, so the
+69-character slug renamed happily in every harness and failed only in the
+editor. If a stub stands in for a gate, give it the gate.
 
 And a refusal should hand over something that WORKS. "Slugs are lowercase:
 caps and spaces" was the first attempt at a helpful message; the thing it

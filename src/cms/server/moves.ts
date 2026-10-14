@@ -56,7 +56,7 @@
  * nothing breaks either way.
  */
 
-import { IdSchema } from '../schema.ts';
+import { DocMetaSchema, slugProblem } from '../schema.ts';
 import type { Doc } from '../schema.ts';
 import { contentPathFor, draftPathFor, siteUrlFor } from '../sections.ts';
 import type { DocumentSectionDef } from '../sections.ts';
@@ -67,8 +67,6 @@ import { serialiseDoc } from './store.ts';
 
 /** Where the list of old addresses lives. */
 export const REDIRECTS_PATH = 'src/content/data/redirects.json';
-
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export type Redirect = { from: string; to: string };
 
@@ -150,14 +148,27 @@ export async function renameEntry(
   if (section.shape === 'singleton') {
     throw badRequest(`"${section.id}" is one page and has no slug to change.`, 'wrong_storage');
   }
-  if (!SLUG_RE.test(to)) {
+  /*
+   * ONE RULE, the document's own.
+   *
+   * This used to be two checks: `SLUG_RE`, and then `IdSchema` — the rule
+   * for block and band IDS — standing in for "is this a usable file name".
+   * They disagree about length, and the second one's refusal said nothing
+   * about which length. A 69-character slug made from a real essay title
+   * passed the first, failed the second, and the author was told
+   * `"…" is not a usable file name.` with no way to find out why.
+   *
+   * `DocMetaSchema.shape.slug` now carries the length, so the schema the
+   * document is validated against and the gate the rename applies are the
+   * same rule, and `slugProblem` is the sentence that explains it in the
+   * editor before anything is sent.
+   */
+  const checked = DocMetaSchema.shape.slug.safeParse(to);
+  if (!checked.success) {
     throw badRequest(
-      `"${to}" is not a page name. Use lowercase words joined by hyphens, like "a-second-look".`,
+      `"${to}" cannot be a page name: ${slugProblem(to) ?? 'it is not a slug'}`,
       'bad_slug',
     );
-  }
-  if (!IdSchema.safeParse(to).success) {
-    throw badRequest(`"${to}" is not a usable file name.`, 'bad_slug');
   }
   if (from === to) throw badRequest('That is already its name.', 'bad_slug');
 

@@ -15,7 +15,7 @@
  * `./doc-ops.ts`, so a new essay and a new project differ only in that id.
  */
 
-import { DOC_VERSION, slugify } from '../../schema.ts';
+import { DOC_VERSION, MAX_SLUG_LENGTH, cappedSlug, slugify } from '../../schema.ts';
 import type { Doc, DocumentSectionId } from '../../schema.ts';
 import type { DocumentSectionDef } from '../../sections.ts';
 import { cloneDoc, createProseBand } from './doc-ops.ts';
@@ -35,13 +35,20 @@ export function todayIso(now: Date = new Date()): string {
  */
 export function uniqueSlug(text: string, taken: Iterable<string>, fallback = 'untitled'): string {
   const used = new Set(taken);
-  const base = slugify(text) === '' ? slugify(fallback) || 'untitled' : slugify(text);
+  // Capped: a slug is a file name and `fillSlug` refuses anything over
+  // MAX_SLUG_LENGTH, so an uncapped one makes a document that cannot be
+  // written anywhere. The suffix has to fit INSIDE the cap too, which is
+  // why the base is re-cut for each candidate rather than once.
+  const made = cappedSlug(text);
+  const base = made === '' ? cappedSlug(fallback) || 'untitled' : made;
   if (!used.has(base)) return base;
   for (let n = 2; n < 1000; n += 1) {
-    const candidate = `${base}-${n}`;
+    const suffix = `-${n}`;
+    const candidate = `${cappedSlug(base, MAX_SLUG_LENGTH - suffix.length)}${suffix}`;
     if (!used.has(candidate)) return candidate;
   }
-  return `${base}-${Date.now()}`;
+  const stamp = `-${Date.now()}`;
+  return `${cappedSlug(base, MAX_SLUG_LENGTH - stamp.length)}${stamp}`;
 }
 
 /** 'Essay' -> 'Essay copy', 'Essay copy' -> 'Essay copy 2'. */
