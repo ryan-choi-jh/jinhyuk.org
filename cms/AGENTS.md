@@ -229,6 +229,21 @@ between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
 it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
 constant and breaks the loop.
 
+**A client stricter than the server makes a legal value unreachable.** The
+rename field validated the slug with `IdSchema` — the rule for block and
+band IDS, `[A-Za-z0-9_-]{1,64}` — while the server's rule is
+`DocMetaSchema.shape.slug`, lowercase kebab-case with no length limit. A
+69-character slug made from a real essay title was refused by the editor,
+under a message naming a rule it had not broken, and the button could not
+be pressed. When a field guards a value the server will receive, validate
+with the server's schema; `fixtures/verify.ts` asserts `slugProblem` and
+that schema agree case by case.
+
+And a refusal should hand over something that WORKS. "Slugs are lowercase:
+caps and spaces" was the first attempt at a helpful message; the thing it
+suggests is not a slug either. `slugProblem` offers `slugify(value)`, which
+is the same function the New-entry flow uses to turn a title into a slug.
+
 **Never signal intent with a header an intermediary has an opinion about.**
 "This file must not exist yet" was `If-None-Match: *`, which is a real
 conditional header. Publishing an essay that had never been published sent

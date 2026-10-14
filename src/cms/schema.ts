@@ -90,6 +90,39 @@ export const IdSchema = z
   .string()
   .regex(ID_RE, 'id must be 1-64 characters from A-Z a-z 0-9 _ -');
 
+/**
+ * Why this is not a slug, in a sentence, or null if it is one.
+ *
+ * `SLUG_RE` answers yes or no, which is all a schema owes anyone. A person
+ * typing into a field needs to know WHICH rule they broke, and the cost of
+ * not telling them is concrete: the first version of the rename field
+ * showed one fixed line — "lowercase letters, numbers and single hyphens,
+ * not starting or ending with one" — for every rejection, including the
+ * one it was actually making, which was a 64-character limit it had no
+ * business imposing. The owner read a rule they had not broken and could
+ * not press the button.
+ *
+ * SO THE RULE HERE IS THE SCHEMA'S RULE. Anything this function accepts,
+ * `DocMetaSchema.shape.slug` accepts, and the reverse; `fixtures/verify.ts`
+ * asserts that over a list of cases. A client stricter than the server is
+ * how a legal value becomes unreachable.
+ */
+export function slugProblem(value: string): string | null {
+  if (value === '') return 'A slug cannot be empty.';
+  if (SLUG_RE.test(value)) return null;
+  // A suggestion beats naming a rule, and it beats naming the offending
+  // character too: the answer to "Caps And Spaces" is "caps-and-spaces",
+  // not "slugs are lowercase" — which, followed literally, gives "caps and
+  // spaces" and is still not a slug. The first version did exactly that.
+  // `slugify` is declared further down this file and hoists. It is the one
+  // the New-entry flow already uses to turn a title into a slug, so the
+  // suggestion here is the same slug the CMS would have made itself.
+  const suggestion = slugify(value);
+  if (suggestion !== '') return `Lowercase words joined by hyphens. Try: ${suggestion}`;
+  return 'Lowercase letters and numbers, separated by single hyphens.';
+}
+
+
 export const SrcSchema = z
   .string()
   .regex(SRC_RE, 'src must be a site-absolute path like "/media/slug/file.png" or an http(s) URL');

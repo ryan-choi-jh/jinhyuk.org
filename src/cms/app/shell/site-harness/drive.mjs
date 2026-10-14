@@ -711,9 +711,32 @@ section('renaming a page from the field that shows its slug');
     await page.fill('meta-slug', 'not a slug');
     await page.quiet();
     check(
-      'an illegal slug is refused, with the rule',
+      'an illegal slug is refused, with a working suggestion',
       (await page.disabled('meta-slug-rename')) === true &&
-        (await page.text('meta-slug-hint')).includes('Lowercase letters'),
+        (await page.text('meta-slug-hint')).includes('Try: not-a-slug'),
+      await page.text('meta-slug-hint'),
+    );
+
+    /*
+     * Longer than 64 characters, which is the thing that broke. The field
+     * validated with `IdSchema` — the rule for block and band ids, which
+     * caps there — so a slug made from a real essay title could not be
+     * entered at all, under a hint naming a rule it had not broken.
+     */
+    const LONG = 'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different-question';
+    await page.fill('meta-slug', LONG);
+    await page.quiet();
+    check(
+      `a ${LONG.length}-character slug is allowed, as the server allows it`,
+      (await page.disabled('meta-slug-rename')) === false,
+      await page.text('meta-slug-hint'),
+    );
+
+    await page.fill('meta-slug', 'Caps And Spaces');
+    await page.quiet();
+    check(
+      'and a refusal offers a slug that works, not a rule to re-read',
+      (await page.text('meta-slug-hint')).includes('Try: caps-and-spaces'),
       await page.text('meta-slug-hint'),
     );
 

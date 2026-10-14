@@ -17,10 +17,10 @@ import {
   BLOCK_SPACES,
   CALLOUT_TONES,
   DEFAULT_CALLOUT_TONE,
-  IdSchema,
   PROSE_BLOCK_KINDS,
   REFERENCE_WIDTH,
   SHAPE_KINDS,
+  slugProblem,
 } from '../../schema.ts';
 import type { Anchor, BlockSpace, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
 import { SPACE_SCALE } from '../../styles/spacing.ts';
@@ -187,7 +187,17 @@ function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) 
     siteStore !== null && meta.section !== undefined && siteStore.can(meta.section).rename;
   const wanted = typed.trim();
   const changed = wanted !== meta.slug;
-  const legal = IdSchema.safeParse(wanted).success;
+  /*
+   * The DOCUMENT's slug rule, which is lowercase kebab-case and has no
+   * length limit. It was `IdSchema` — the rule for block and band ids,
+   * which caps at 64 characters and allows uppercase and underscores. A
+   * perfectly legal 69-character slug was therefore refused by the editor
+   * and would have been accepted by the server, under a hint naming a rule
+   * it had not broken. A client stricter than the server is how a legal
+   * value becomes unreachable.
+   */
+  const problem = slugProblem(wanted);
+  const legal = problem === null;
 
   const rename = async (): Promise<void> => {
     if (siteStore === null || !changed || !legal || meta.section === undefined) return;
@@ -234,8 +244,8 @@ function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) 
           ? 'The homepage is at / and has no slug to change.'
           : !canRename
             ? 'The slug is the file name under src/content/, and the last part of the address.'
-            : changed && !legal
-              ? 'Lowercase letters, numbers and single hyphens, not starting or ending with one.'
+            : changed && problem !== null
+              ? problem
               : changed
                 ? `Renaming moves the file and the address in one commit. ${
                     state.published === null

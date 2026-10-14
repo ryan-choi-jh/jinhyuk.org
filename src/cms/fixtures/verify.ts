@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import {
   HIGHLIGHT_INKS,
   DocMetaSchema,
+  slugProblem,
   MOBILE_BREAKPOINT,
   REFERENCE_WIDTH,
   SECTION_IDS,
@@ -878,6 +879,85 @@ check('youtubeIdFromInput takes an m. URL', youtubeIdFromInput('https://m.youtub
   check(
     'an EMPTY canvas has no content height, so it keeps the height it was given',
     canvasContentHeight(band([])) === null,
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* The slug rule, and the sentence that explains it                            */
+/* -------------------------------------------------------------------------- */
+
+{
+  /*
+   * `slugProblem` is what the rename field in the inspector shows when it
+   * will not let you press the button. If it and the schema ever disagree,
+   * one of two things happens and both are bad: a slug the server would
+   * take is unreachable in the editor, or a slug the editor offers is
+   * refused on save.
+   *
+   * That first one is not hypothetical. The field validated with
+   * `IdSchema` — the rule for block and band IDS, which caps at 64
+   * characters — so a legal 69-character slug could not be entered, under
+   * a message naming a rule it had not broken. The owner's words were
+   * "i cant press Rename".
+   */
+  const cases = [
+    // Legal, including one longer than IdSchema's 64-character cap.
+    'a',
+    'ok-slug',
+    'track-daily-habit-tracker',
+    'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different-question',
+    '2026-in-review',
+    // Not.
+    '',
+    'Has-Caps',
+    'has space',
+    '-leading',
+    'trailing-',
+    'double--hyphen',
+    'dot.dot',
+    'under_score',
+    'slash/es',
+    'emoji-🙂',
+  ];
+
+  for (const value of cases) {
+    const schemaOk = DocMetaSchema.shape.slug.safeParse(value).success;
+    const problem = slugProblem(value);
+    check(
+      `slug "${value}": the explanation agrees with the schema`,
+      schemaOk === (problem === null),
+      schemaOk ? `the schema takes it, but the field says "${problem}"` : 'the schema refuses it, and the field does not',
+    );
+    if (!schemaOk) {
+      check(`slug "${value}": and the reason is a sentence`, (problem ?? '').endsWith('.') || (problem ?? '').includes(':'), String(problem));
+    }
+  }
+
+  // The specific regression: longer than an id may be, and still a slug.
+  const long = 'i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different-question';
+  check('a slug may be longer than 64 characters', long.length > 64 && slugProblem(long) === null, `${long.length} characters`);
+
+  /*
+   * And a refusal offers a slug that WORKS, rather than naming a rule.
+   * "Slugs are lowercase: caps and spaces" was the first attempt, and the
+   * thing it suggested is not a slug either.
+   */
+  for (const [bad, expected] of [
+    ['Caps And Spaces', 'caps-and-spaces'],
+    ['dot.dot', 'dot-dot'],
+    ['Has-Caps', 'has-caps'],
+    ['under_score', 'under-score'],
+    ['  padded  ', 'padded'],
+    ['emoji-🙂', 'emoji'],
+  ] as const) {
+    const message = slugProblem(bad) ?? '';
+    check(`"${bad}" is answered with "${expected}"`, message.includes(expected), message);
+    check(`…and "${expected}" is itself legal`, slugProblem(expected) === null);
+  }
+  check(
+    'something with nothing to build a slug from gets the rule instead',
+    slugProblem('🙂🙂') === 'Lowercase letters and numbers, separated by single hyphens.',
+    String(slugProblem('🙂🙂')),
   );
 }
 
