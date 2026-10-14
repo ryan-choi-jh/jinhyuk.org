@@ -42,9 +42,9 @@ flowchart TD
     I --> J{Happy?}
     J -- not yet --> K[Preview, or Phone<br/>real renderer, real CSS,<br/>a real iframe at 390] --> G
     J -- yes --> L[Publish]
-    L --> CL{Anything<br/>worth a look?}
-    CL -- yes --> CL2[The checklist: missing alt text,<br/>empty rows, dead links] --> L2[Publish anyway]
-    CL -- no --> L2
+    L --> CL[Everything saved but not live,<br/>grouped by section:<br/>this page, other pages,<br/>record lists, site settings]
+    CL --> CL2[Tick what should go live<br/>the open page is ticked,<br/>nothing else is]
+    CL2 --> L2[Publish N things<br/>unticked drafts stay drafts]
 
     L2 --> M[Deploy chip starts watching]
     M --> N{State}
@@ -73,9 +73,16 @@ Two things that are easy to miss from the picture:
   triggers a deploy. Publish moves that file into `src/content/pages/` and
   deletes the draft. You cannot publish something you have not saved, and
   Publish saves for you if you forgot.
-- **Publish asks once** when the page has something worth knowing about:
-  an image with no alt text, empty rows, a link into the editor. Warnings,
-  never a block; a clean page publishes on the first press.
+- **Publish shows you everything that is waiting and lets you choose.** Not
+  just the open page: other pages' drafts, a record list, and the site
+  settings (nav, footer, body size) are all listed, grouped, each saying
+  whether it is a new address or a change to a live one. The open page is
+  ticked; nothing else is. Unticked drafts stay drafts, and nothing is
+  deleted. Warnings about the open page sit above the list — never a block.
+  This replaced three separate Publish buttons that each owned a different
+  kind of draft, which is how a body-size change and an unfinished essay
+  could both be waiting and the big blue button could answer "there is no
+  draft of home to publish".
 - **Unsaved work is copied into this browser** on a debounce and offered
   back if the tab dies. It is never sent anywhere, and it is offered, never
   applied.

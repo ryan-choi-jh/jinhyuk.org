@@ -89,6 +89,24 @@ export type SiteChromeStore = SiteChromeState & {
   dismiss: () => void;
 };
 
+/**
+ * The server's refusal to overwrite a draft it was told would not be there.
+ *
+ * Matched on the words because that is what crosses the wire: the API
+ * answers with a message, and giving this one failure a machine-readable
+ * code would mean a change at every layer between here and `github.ts` for
+ * one string. The phrase is asserted in
+ * `src/cms/app/chrome/harness/run.mjs`, so it cannot drift away from the
+ * server's wording without a check going red.
+ */
+export const ALREADY_EXISTS = 'It was expected to be a new file';
+
+function isAlreadyExists(error: unknown): boolean {
+  return messageOf(error).includes(ALREADY_EXISTS);
+}
+
+type SaveAck = { commit: string; sha: string; data: SiteChrome };
+
 const SiteChromeContext = createContext<SiteChromeStore | null>(null);
 
 /** The store, or null where no provider is mounted (a harness, a stub host). */
@@ -171,6 +189,14 @@ export function SiteChromeProvider({
     published: undefined,
   });
 
+  /**
+   * The latest state, for `save`, which may have waited on an earlier save
+   * before reading the working copy and must not use the one it closed over
+   * when it was created.
+   */
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   const absorb = useCallback(
     (snapshot: SiteChromeSnapshot, seed: SiteChrome | null) => {
       shas.current = { draft: snapshot.draftSha, published: snapshot.publishedSha };
@@ -230,8 +256,35 @@ export function SiteChromeProvider({
     setState((prev) => ({ ...prev, chrome: next, notice: null }));
   }, []);
 
+  /**
+   * The save currently in the air, if any.
+   *
+   * SAVES ARE SERIALISED, and that is not tidiness. Every save quotes
+   * `shas.current.draft` as its expectation, and that ref is only updated
+   * when a save RETURNS. Two saves started before either returned therefore
+   * quote the same thing — and when there is no draft yet, the thing they
+   * both quote is "this file does not exist". The first creates it; the
+   * second is refused with
+   *
+   *   src/content/drafts/data/site.json already exists. It was expected to
+   *   be a new file; refusing to overwrite it.
+   *
+   * and the panel is left saying "unsaved" over a draft that is on disk and
+   * that it will not write to again. A dead end, reached by double-clicking
+   * Save on a slow connection, which is a thing people do to a button that
+   * has not visibly responded yet. The button disables on the first click,
+   * but not before the second one has already landed in the same frame.
+   *
+   * Waiting makes the second save quote the sha the first one returned,
+   * which is what it meant all along.
+   */
+  const inFlight = useRef<Promise<unknown> | null>(null);
+
   const save = useCallback(async () => {
-    const working = state.chrome;
+    const earlier = inFlight.current;
+    if (earlier !== null) await earlier.catch(() => undefined);
+
+    const working = stateRef.current.chrome;
     if (working === null) return false;
     const problem = chromeProblem(working);
     if (problem !== null) {
@@ -239,27 +292,64 @@ export function SiteChromeProvider({
       return false;
     }
     setState((prev) => ({ ...prev, phase: 'saving', notice: null }));
+
+    const run = (async (): Promise<boolean> => {
+      /**
+       * Write it, and if the server says the draft already exists, find out
+       * what is actually there and write it again on top.
+       *
+       * That refusal can only mean this client's view is stale: it believed
+       * there was no draft and there is one. Serialising the saves above
+       * removes the way this client could have caused that itself, so what
+       * is left is a draft made somewhere else — another tab, an earlier
+       * session, a save whose response was lost. In every one of those the
+       * thing to do is the same, and it is the thing a person would do by
+       * hand: read the current sha and save over it. The notice says so
+       * rather than reporting success quietly, and Discard still puts the
+       * published file back.
+       */
+      const attempt = async (expect: ShaExpectation): Promise<{ ack: SaveAck; recovered: boolean }> => {
+        try {
+          return { ack: await api.save(working, expect), recovered: false };
+        } catch (error) {
+          if (!isAlreadyExists(error)) throw error;
+          const snapshot = await api.read();
+          shas.current = { draft: snapshot.draftSha, published: snapshot.publishedSha };
+          return { ack: await api.save(working, snapshot.draftSha), recovered: true };
+        }
+      };
+
+      try {
+        const { ack, recovered } = await attempt(shas.current.draft);
+        shas.current = { ...shas.current, draft: ack.sha };
+        setState((prev) => ({
+          ...prev,
+          chrome: ack.data,
+          base: ack.data,
+          hasDraft: true,
+          loaded: true,
+          phase: 'idle',
+          notice: {
+            kind: 'ok',
+            message: recovered
+              ? 'A draft was already there, so this was saved on top of it. Publish puts it on the site; Discard puts the published version back.'
+              : 'Saved as a draft. Publish puts it on the site.',
+          },
+        }));
+        return true;
+      } catch (error) {
+        failed(error);
+        return false;
+      }
+    })();
+
+    inFlight.current = run;
     try {
-      const ack = await api.save(working, shas.current.draft);
-      shas.current = { ...shas.current, draft: ack.sha };
-      setState((prev) => ({
-        ...prev,
-        chrome: ack.data,
-        base: ack.data,
-        hasDraft: true,
-        loaded: true,
-        phase: 'idle',
-        notice: {
-          kind: 'ok',
-          message: 'Saved as a draft. Publish puts it on the site.',
-        },
-      }));
-      return true;
-    } catch (error) {
-      failed(error);
-      return false;
+      return await run;
+    } finally {
+      if (inFlight.current === run) inFlight.current = null;
     }
-  }, [api, failed, state.chrome]);
+  }, [api, failed]);
 
   const publish = useCallback(async () => {
     setState((prev) => ({ ...prev, phase: 'publishing', notice: null }));

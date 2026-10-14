@@ -46,7 +46,7 @@ const published = ((): SiteChrome => {
 
 type Log = { call: string; at: number };
 
-function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown } {
+function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown; forget: () => void } {
   const log: Log[] = [];
   let publishedChrome: SiteChrome | null = published;
   let draftChrome: SiteChrome | null = null;
@@ -57,6 +57,25 @@ function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown } {
   const note = (call: string): void => {
     log.push({ call, at: Date.now() });
   };
+
+  /**
+   * A round trip takes time, and that is the whole point of one of the
+   * checks below.
+   *
+   * With an API that resolves immediately, two clicks on Save are not
+   * concurrent: React commits the first one's result before the second
+   * fires, so the second quotes the sha the first returned and everything
+   * works. Over a real network it does not — the second click lands while
+   * the first request is still in the air, both quote the same stale
+   * expectation, and the loser is refused. The driver turns this on to
+   * reproduce that.
+   */
+  const latency = (): Promise<void> =>
+    new Promise((resolve) => {
+      const ms = (window as unknown as { __chrLatency?: number }).__chrLatency ?? 0;
+      if (ms === 0) resolve();
+      else setTimeout(resolve, ms);
+    });
 
   const api: SiteChromeApi = {
     async read() {
@@ -72,6 +91,14 @@ function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown } {
     },
     async save(chrome, expect) {
       note(`save(expect=${String(expect)})`);
+      await latency();
+      if (expect === null && draftSha !== null) {
+        // The real server's words, because the point is to reproduce the
+        // real dead end and not a paraphrase of it.
+        throw new Error(
+          'src/content/drafts/data/site.json already exists. It was expected to be a new file; refusing to overwrite it.',
+        );
+      }
       if (expect !== undefined && expect !== draftSha) {
         throw new Error('The draft changed since you loaded it.');
       }
@@ -107,6 +134,21 @@ function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown } {
     api,
     log,
     state: () => ({ published: publishedChrome, draft: draftChrome, draftSha, publishedSha }),
+    /**
+     * Put a draft on the server without the client hearing about it.
+     *
+     * This is "somebody else saved a draft" — another tab, an earlier
+     * session, a save whose response was lost on the way back. The client
+     * still believes there is none, so its next save will tell the server
+     * to refuse if there is, and the server will. That is the dead end,
+     * and there is no way to reach it through the UI, which is why the
+     * driver needs a door.
+     */
+    forget: () => {
+      draftChrome = publishedChrome;
+      counter += 1;
+      draftSha = `sha-elsewhere-${counter}`;
+    },
   };
 }
 
@@ -129,6 +171,17 @@ function Expose() {
   (window as unknown as { __chr: { chrome?: () => unknown } }).__chr.chrome = () => store.chrome;
   return null;
 }
+
+/**
+ * Make the panel forget that a draft exists, without telling the server.
+ *
+ * That is the state the owner's editor was in when it dead-ended: a draft
+ * on disk, and a client that believed there was none and therefore told the
+ * server to refuse if there was. Reachable in real life by a lost response,
+ * a second tab, or the race above before it was fixed. There is no way to
+ * produce it through the UI, which is exactly why the driver needs a door.
+ */
+(window as unknown as { __chrForget: () => void }).__chrForget = () => wire.forget();
 
 function Harness() {
   const [{ store }] = useState(() => ({

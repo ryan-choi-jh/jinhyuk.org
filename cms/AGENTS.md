@@ -229,6 +229,45 @@ between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
 it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
 constant and breaks the loop.
 
+**Publishing is one list, not one button per kind of draft.** There were
+three — the toolbar's for the open document, the nav-and-footer panel's for
+`site.json`, a third for a record collection — and each was right on its own
+while the set of them was not. The owner had a body-size change in
+`site.json` and an unfinished essay saved as a page draft, pressed the big
+blue Publish, and got "There is no draft of \"home\" to publish": true,
+useless, and silent about both of the things that really were waiting.
+
+`src/cms/app/shell/publish-queue.ts` is the contract. The panel is handed a
+list of items each carrying its own `publish`, and does not know there are
+three endpoints behind them; `PublishQueueBridge` in `src/cms/app/index.tsx`
+is the only place that does, because it is the only place that can see the
+site API and the chrome store at once. Two rules:
+
+- **The open page publishes through the DOCUMENT store**, not the queue.
+  Both reach the same endpoint, but the doc store holds that page's draft
+  state and its blob shas, and publishing around it leaves the toolbar
+  saying "draft saved" over a page that is live.
+- **Sequential, and it stops at the first failure.** Each item is a commit
+  on the same branch; several at once race for the branch head and lose to
+  each other's conflict detection. A partial run says how far it got,
+  because "nothing happened" and "two of four are live" need different
+  next moves.
+
+**A draft save that quotes a sha must be serialised.** Every save quotes
+`shas.current.draft`, which is only updated when a save RETURNS, so two
+saves started before either returned quote the same thing — and when there
+is no draft yet, the thing they both quote is "this file does not exist".
+The first creates it; the second is refused with *"already exists. It was
+expected to be a new file"*, and the panel is left saying "unsaved" over a
+draft on disk that it will not write to again. A dead end, reached by
+double-clicking Save on a slow connection. The chrome store waits for an
+in-flight save before starting the next, and recovers from that one
+conflict by re-reading and writing on top — but NOT from "the draft changed
+since you loaded it", which means there is work in it this client has never
+seen. The harness reproduces both by giving its stub API a latency knob;
+with an API that answers instantly the race cannot happen and the check
+passes on the broken build.
+
 **The body size is generated, not edited into the stylesheets.**
 `src/cms/styles/type-scale.ts` holds the base size of every kind of running
 text and emits an ADDITIVE stylesheet that restates them scaled, scoped by

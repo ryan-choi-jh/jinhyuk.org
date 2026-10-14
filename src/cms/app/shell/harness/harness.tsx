@@ -18,6 +18,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { PublishQueueProvider } from '../publish-queue.ts';
+import type { PublishQueue } from '../publish-queue.ts';
+
 import { formatIssues, validateDoc, validateDocJson } from '../../../schema.ts';
 import type { Doc } from '../../../schema.ts';
 import { canvasContentHeight, docsEqual } from '../../state/doc-ops.ts';
@@ -57,16 +60,59 @@ function resolveMediaSrc(src: string): string {
   return src;
 }
 
+/* -------------------------------------------------------------------------- */
+/* What is saved and not live                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A stand-in for the real publish queue.
+ *
+ * The real one (`PublishQueueBridge` in src/cms/app/index.tsx) asks the site
+ * API for every section's drafts and the chrome store for `site.json`.
+ * Neither exists here, and neither needs to: what the toolbar's panel is
+ * responsible for is showing a list, letting you tick some of it, and
+ * publishing EXACTLY what was ticked. That is testable against any list,
+ * and a stub is the only way to assert the last part — that the unticked
+ * ones are still pending afterwards.
+ */
+const PENDING_SEED: { id: string; group: string; label: string; detail: string; current: boolean }[] = [
+  { id: 'page:home:home', group: 'Home', label: 'Ryan Choi', detail: 'replaces the live version', current: true },
+  { id: 'page:essays:new-essay', group: 'Essays', label: 'An unfinished essay', detail: 'new page, not on the site yet', current: false },
+  { id: 'page:projects:track', group: 'Projects', label: 'Track', detail: 'replaces the live version', current: false },
+  { id: 'chrome', group: 'Site settings', label: 'Nav, footer and body size', detail: 'changes every page', current: false },
+];
+
+let pending = [...PENDING_SEED];
+const publishedIds: string[] = [];
+
+const queue: PublishQueue = {
+  async list() {
+    return pending.map((item) => ({
+      ...item,
+      section: null,
+      publish: async () => {
+        if ((window as unknown as { __failPublish?: string }).__failPublish === item.id) {
+          throw new Error('the branch moved under it');
+        }
+        publishedIds.push(item.id);
+        pending = pending.filter((other) => other.id !== item.id);
+      },
+    }));
+  },
+};
+
 const container = document.getElementById('root');
 if (container === null) throw new Error('no #root in the harness page');
 
 createRoot(container).render(
   <StrictMode>
-    <EditorShell
-      store={store}
-      resolveMediaSrc={resolveMediaSrc}
-      onPreview={(context) => previews.push(context)}
-    />
+    <PublishQueueProvider value={queue}>
+      <EditorShell
+        store={store}
+        resolveMediaSrc={resolveMediaSrc}
+        onPreview={(context) => previews.push(context)}
+      />
+    </PublishQueueProvider>
   </StrictMode>,
 );
 
@@ -118,6 +164,11 @@ const seam = {
       calls: api.calls.map((call) => call.method),
     };
   },
+  /** Which pending items the panel actually published, in order. */
+  publishedIds,
+  /** What is still waiting. */
+  stillPending: () => pending.map((item) => item.id),
+
   /** JSON of the current document, for exact before/after comparison. */
   docJson(): string {
     return JSON.stringify(store.getState().doc);

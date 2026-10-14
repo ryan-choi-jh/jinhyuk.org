@@ -1109,6 +1109,121 @@ async function run(page) {
   }
 
   /* ---------------------------------------------------------------------- */
+  section('Publish asks which of the waiting things should go live');
+  {
+    /*
+     * Publishing used to be three unrelated buttons: this one for the open
+     * document, one in the nav-and-footer panel for site.json, one more for
+     * a record collection. Pressing the big blue one with a body-size change
+     * in site.json and an unfinished essay saved as a draft answered "There
+     * is no draft of home to publish", which is true and tells you nothing
+     * about either of the two things that really were waiting.
+     *
+     * So it lists them, and publishes EXACTLY what is ticked. The last part
+     * is the one worth measuring: an unticked draft must still be a draft
+     * afterwards.
+     */
+    await page.setViewport(WIDE);
+    await page.click('publish');
+    await sleep(250);
+
+    const rows = await page.evaluate(
+      `[...document.querySelectorAll('[data-testid="pending"] .cms-pending__label')].map((el) => el.textContent.trim())`,
+    );
+    check('the panel lists everything that is waiting', rows.length === 4, rows.join(' | '));
+    check(
+      'the open page is first and is marked',
+      rows[0]?.includes('Ryan Choi') && rows[0]?.includes('open now'),
+      rows[0],
+    );
+    check(
+      'and a page that is not on the site yet says so',
+      (await page.evaluate(
+        `[...document.querySelectorAll('[data-testid="pending"] .cms-pending__detail')].map((el) => el.textContent.trim()).join(' | ')`,
+      )).includes('new page, not on the site yet'),
+    );
+
+    const ticked = () =>
+      page.evaluate(
+        `[...document.querySelectorAll('[data-testid="pending"] input')].filter((el) => el.checked).length`,
+      );
+    check('only the open page is ticked to begin with', (await ticked()) === 1);
+    check(
+      'and the button says what it would do',
+      (await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').textContent.trim()`)) ===
+        'Publish 1 thing',
+    );
+
+    // Tick the site settings, leave the unfinished essay alone. This is the
+    // owner's actual case: publish the body size, not the half-written essay.
+    await page.evaluate(`document.querySelector('[data-testid="pending-chrome"]').click()`);
+    await sleep(80);
+    await page.evaluate(`document.querySelector('[data-testid="pending-page:home:home"]').click()`);
+    await sleep(80);
+    check('ticking and unticking moves the count', (await ticked()) === 1);
+    check(
+      'the button follows',
+      (await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').textContent.trim()`)) ===
+        'Publish 1 thing',
+    );
+    console.log(`    shot  ${await page.shot('11-publish-picker')}`);
+
+    await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').click()`);
+    await sleep(500);
+
+    const published = await page.evaluate('window.__ws3.publishedIds');
+    const left = await page.evaluate('window.__ws3.stillPending()');
+    check('exactly the ticked one went live', published.join(',') === 'chrome', published.join(','));
+    check(
+      'and the unticked drafts are still drafts',
+      left.includes('page:essays:new-essay') && left.includes('page:home:home') && left.length === 3,
+      left.join(','),
+    );
+    check(
+      'the panel closed',
+      (await page.evaluate(`document.querySelector('[data-testid="preflight"]') === null`)) === true,
+    );
+
+    /* Nothing ticked is not a publish. */
+    await page.click('publish');
+    await sleep(250);
+    await page.evaluate(`[...document.querySelectorAll('[data-testid="pending"] input')].forEach((el) => { if (el.checked) el.click(); })`);
+    await sleep(100);
+    check(
+      'with nothing ticked the button is disabled and says so',
+      (await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').disabled`)) === true,
+    );
+    check(
+      'it does not pretend otherwise',
+      (await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').textContent.trim()`)) ===
+        'Nothing ticked',
+    );
+
+    /* A failure part-way says how far it got. */
+    await page.evaluate(`window.__failPublish = 'page:projects:track'`);
+    await page.evaluate(`document.querySelector('[data-testid="pending-page:essays:new-essay"]').click()`);
+    await page.evaluate(`document.querySelector('[data-testid="pending-page:projects:track"]').click()`);
+    await sleep(80);
+    await page.evaluate(`document.querySelector('[data-testid="preflight-go"]').click()`);
+    await sleep(600);
+    const problem = await page.evaluate(
+      `document.querySelector('[data-testid="preflight-problem"]')?.textContent.trim() ?? null`,
+    );
+    check(
+      'a failure part-way through says what did go live and what stopped it',
+      problem !== null && problem.includes('1 thing went live') && problem.includes('Track'),
+      String(problem),
+    );
+    check(
+      'and the panel stays open over the ones that are left',
+      (await page.evaluate(`document.querySelector('[data-testid="pending"]') !== null`)) === true,
+    );
+    await page.evaluate(`window.__failPublish = undefined`);
+    await page.evaluate(`document.querySelector('[data-testid="preflight-cancel"]').click()`);
+    await sleep(150);
+  }
+
+  /* ---------------------------------------------------------------------- */
   section('Fit does not fight the scrollbar');
   {
     /*

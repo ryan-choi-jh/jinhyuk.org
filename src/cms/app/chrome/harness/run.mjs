@@ -750,7 +750,138 @@ async function main() {
     );
 
     /* ------------------------------------------------------------------ */
-    section('hygiene');
+section('saving twice in a row');
+    {
+      /*
+       * The first save CREATES the draft and must say so ("expect: this file
+       * does not exist"); the second must UPDATE it, quoting the sha the
+       * first one returned. Getting that wrong gives
+       *
+       *   src/content/drafts/data/site.json already exists. It was expected
+       *   to be a new file; refusing to overwrite it.
+       *
+       * which is a dead end: the draft is on disk, the panel will not write
+       * to it, and nothing in the UI says to reload.
+       */
+      await page.type(t('chrome-copyright'), '© {year} Twice');
+      await page.click(t('chrome-save'));
+      await page.waitFor(
+        `document.querySelector('${t('chrome-state')}')?.textContent.trim() === 'draft saved'`,
+        'the first save',
+      );
+      await page.type(t('chrome-copyright'), '© {year} Three times');
+      await page.click(t('chrome-save'));
+      await page.settle();
+      await sleep(150);
+      const notice = await page.text(t('chrome-notice'));
+      check(
+        'the second save does not claim the draft is a new file',
+        notice === null || !notice.includes('already exists'),
+        String(notice),
+      );
+      equal('and it landed', await page.text(t('chrome-state')), 'draft saved');
+      const calls = await page.evaluate('window.__chr.log.map((e) => e.call).filter((c) => c.startsWith("save"))');
+      check(
+        'the first save expected a new file and the second expected its sha',
+        calls.length >= 2 && calls[calls.length - 2].includes('null') && !calls[calls.length - 1].includes('null'),
+        calls.join(' | '),
+      );
+
+      /*
+       * And the case that actually happened: two saves in flight at once.
+       *
+       * Both are created from the same `shas.current.draft`, so if the draft
+       * does not exist yet BOTH claim it is a new file. The first creates
+       * it; the second is refused, and the panel is left saying "unsaved"
+       * over a draft that is on disk and that it will not write to again.
+       *
+       * Reproduced by clicking twice inside one frame, which is a
+       * double-click, which is a thing people do to a button that has not
+       * visibly responded yet.
+       */
+      await page.click(t('chrome-discard'));
+      await page.waitFor(
+        `document.querySelector('${t('chrome-state')}')?.textContent.trim() === 'published'`,
+        'the draft to be discarded',
+      );
+      await page.type(t('chrome-copyright'), '© {year} Raced');
+      await page.evaluate('window.__chrLatency = 250');
+      await page.evaluate(`(() => {
+        const button = document.querySelector('${t('chrome-save')}');
+        button.click();
+        button.click();
+        return true;
+      })()`);
+      await page.settle();
+      await sleep(1200);
+      await page.evaluate('window.__chrLatency = 0');
+      const raced = await page.text(t('chrome-notice'));
+      check(
+        'two saves at once do not leave the panel refusing to write its own draft',
+        raced === null || !raced.includes('already exists'),
+        String(raced),
+      );
+      equal('and the draft is saved', await page.text(t('chrome-state')), 'draft saved');
+      const racedCalls = await page.evaluate(
+        'window.__chr.log.map((e) => e.call).filter((c) => c.startsWith("save")).slice(-2)',
+      );
+      check(
+        'because the second save waited and quoted the first one’s sha',
+        racedCalls.length === 2 && racedCalls[0].includes('null') && !racedCalls[1].includes('null'),
+        racedCalls.join(' | '),
+      );
+
+      /*
+       * And the state this leaves behind when it has ALREADY happened —
+       * which is where the owner was when they reported it: a draft on disk
+       * and a panel that believes there is none. Simulated by telling the
+       * panel the draft is gone without telling the server.
+       */
+      await page.click(t('chrome-discard'));
+      await page.waitFor(
+        `document.querySelector('${t('chrome-state')}')?.textContent.trim() === 'published'`,
+        'the draft to be discarded again',
+      );
+      await page.evaluate('window.__chrForget()');
+      await page.type(t('chrome-copyright'), '© {year} Recovered');
+      await page.click(t('chrome-save'));
+      await page.settle();
+      await sleep(300);
+      const recovered = await page.text(t('chrome-notice'));
+      check(
+        'a panel whose view is already stale recovers instead of dead-ending',
+        recovered !== null && recovered.includes('already there'),
+        String(recovered),
+      );
+      equal('and the edit landed', await page.text(t('chrome-state')), 'draft saved');
+      const server = await page.evaluate('window.__chr.server()');
+      check(
+        'on the server, not just in the panel',
+        server.draft.footer.copyright === '© {year} Recovered',
+        server.draft.footer.copyright,
+      );
+
+      /*
+       * The OTHER conflict is deliberately not recovered from. "The draft
+       * changed since you loaded it" means there is work in it that this
+       * panel has never seen, and writing over that is a real loss rather
+       * than a stale-view annoyance. It still says reload, and it should.
+       */
+      await page.evaluate('window.__chrForget()');
+      await page.type(t('chrome-copyright'), '© {year} Clobber');
+      await page.click(t('chrome-save'));
+      await page.settle();
+      await sleep(300);
+      const moved = await page.text(t('chrome-notice'));
+      check(
+        'a draft that moved under us is reported, not overwritten',
+        moved !== null && moved.includes('changed since you loaded it'),
+        String(moved),
+      );
+    }
+
+    /* ------------------------------------------------------------------ */
+        section('hygiene');
 
     const offsite = page.requests.filter(
       (url) => !url.startsWith('file:') && !url.startsWith('data:') && !url.includes('fonts.g'),

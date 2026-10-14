@@ -1012,6 +1012,61 @@ export const SHELL_CSS = `
   .cms-narrow h1 { margin: 0; font-size: 15px; }
   .cms-narrow p { margin: 0; color: var(--cms-muted); font-size: 12px; }
 }
+
+/* ---------- the publish picker ----------
+   The panel that opens from Publish. It used to be a list of warnings about
+   the open page; it is now the list of everything saved and not live, with
+   a tick beside each, because "which of these do I actually want on the
+   site" is the question people had and three separate Publish buttons in
+   three places was the answer they were getting. */
+.cms-preflight__note {
+  padding: 2px 0 6px;
+  color: var(--cms-muted);
+}
+.cms-preflight__problem {
+  margin: 4px 0 6px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--cms-danger);
+  background: rgba(229, 83, 75, 0.08);
+  color: var(--cms-text);
+}
+.cms-pending {
+  max-height: 46vh;
+  overflow: auto;
+  margin: 2px 0 6px;
+}
+.cms-pending__group + .cms-pending__group { margin-top: 8px; }
+.cms-pending__group-head {
+  margin-bottom: 2px;
+  color: var(--cms-muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* A grid, not a flex row, for the same reason the body-size rows are: the
+   detail wraps at this width and a wrapped row must not drag the column
+   beside it out of line. */
+.cms-pending__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'box label'
+    '.   detail';
+  column-gap: 7px;
+  align-items: baseline;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.cms-pending__row > input { grid-area: box; }
+.cms-pending__label { grid-area: label; color: var(--cms-text); }
+.cms-pending__here { color: var(--cms-accent); }
+.cms-pending__detail { grid-area: detail; color: var(--cms-muted); font-size: 11px; }
+.cms-pending__foot {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--cms-line);
+  color: var(--cms-muted);
+}
 `;
 
 /**

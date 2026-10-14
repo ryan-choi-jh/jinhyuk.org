@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 
 import { preflight, preflightSummary } from '../../preflight.ts';
+import { countLabel, publishEach, usePublishQueue } from './publish-queue.ts';
+import type { PendingItem } from './publish-queue.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
 import type { Zoom } from './page-surface.tsx';
 import type { EditorShellSlots } from './slots.ts';
@@ -265,29 +267,197 @@ function PublishButton({
   const findings = preflight(state.doc);
   const summary = preflightSummary(findings);
 
-  const go = (): void => {
+  const queue = usePublishQueue();
+  const [pending, setPending] = useState<PendingItem[] | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [running, setRunning] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  /**
+   * What is waiting, read when the panel opens.
+   *
+   * Not held in state between openings: a draft saved in another tab is
+   * waiting too, and a cached list would describe the moment the editor
+   * booted. The open entry is ticked and nothing else is, because the thing
+   * in front of you is what Publish has always meant and the rest is an
+   * offer, not a default.
+   */
+  const show = async (): Promise<void> => {
+    setProblem(null);
+    setOpen(true);
+    if (queue === null) return;
+    setPending(null);
+    try {
+      const items = await queue.list();
+      setPending(items);
+      setPicked(new Set(items.filter((item) => item.current).map((item) => item.id)));
+    } catch (error) {
+      setPending([]);
+      setProblem(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  /** The old behaviour, for a toolbar with no queue behind it. */
+  const publishThisPage = (): void => {
     setOpen(false);
     void store.publish();
   };
+
+  const chosen = (pending ?? []).filter((item) => picked.has(item.id));
+
+  const go = async (): Promise<void> => {
+    if (queue === null) {
+      publishThisPage();
+      return;
+    }
+    if (chosen.length === 0) return;
+    setRunning(true);
+    setProblem(null);
+    /*
+     * The open page goes through the DOCUMENT store's own publish, not the
+     * queue's. Both reach the same endpoint, but the doc store is the thing
+     * holding this page's draft state and its blob shas, and publishing
+     * around it would leave the toolbar still saying "draft saved" over a
+     * page that is live.
+     */
+    const toRun = chosen.map((item) =>
+      item.current
+        ? {
+            ...item,
+            publish: async (): Promise<void> => {
+              const ok = await store.publish();
+              if (!ok) throw new Error('see the message below');
+            },
+          }
+        : item,
+    );
+    const { done, failed } = await publishEach(toRun);
+    setRunning(false);
+    if (failed === null) {
+      setOpen(false);
+      store.notify(
+        'success',
+        done.length === 1
+          ? `Published ${done[0]?.label}.`
+          : `Published ${countLabel(done.length)}.`,
+      );
+      return;
+    }
+    // Stopped partway: say exactly how far it got, because the difference
+    // between "nothing happened" and "two of four are live" decides what to
+    // do next.
+    setProblem(
+      `${done.length === 0 ? 'Nothing was published. ' : `${countLabel(done.length)} went live, then `}` +
+        `${failed.item.label} failed: ${failed.message}`,
+    );
+    const items = await queue.list().catch(() => null);
+    if (items !== null) {
+      setPending(items);
+      setPicked(new Set(items.map((item) => item.id).filter((id) => picked.has(id))));
+    }
+  };
+
+  const groups = [...new Set((pending ?? []).map((item) => item.group))];
+  const nothingPending = pending !== null && pending.length === 0;
 
   return (
     <span className="cms-publish">
       {open && (
         <div className="cms-preflight" data-testid="preflight" role="group" aria-label="Before publishing">
-          <div className="cms-preflight__head">Before publishing</div>
-          <ul className="cms-preflight__list">
-            {findings.map((finding, index) => (
-              <li key={index} data-level={finding.level}>
-                {finding.message}
-              </li>
-            ))}
-          </ul>
+          <div className="cms-preflight__head">
+            {queue === null ? 'Before publishing' : 'Choose what goes live'}
+          </div>
+
+          {findings.length > 0 && (
+            <ul className="cms-preflight__list">
+              {findings.map((finding, index) => (
+                <li key={index} data-level={finding.level}>
+                  {finding.message}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {queue !== null && pending === null && (
+            <div className="cms-preflight__note" data-testid="preflight-loading">
+              Looking for anything saved but not live…
+            </div>
+          )}
+
+          {nothingPending && (
+            <div className="cms-preflight__note" data-testid="preflight-empty">
+              Nothing is waiting. Everything saved is already on the site.
+            </div>
+          )}
+
+          {queue !== null && pending !== null && pending.length > 0 && (
+            <div className="cms-pending" data-testid="pending">
+              {groups.map((group) => (
+                <div className="cms-pending__group" key={group}>
+                  <div className="cms-pending__group-head">{group}</div>
+                  {(pending ?? [])
+                    .filter((item) => item.group === group)
+                    .map((item) => (
+                      <label className="cms-pending__row" key={item.id}>
+                        <input
+                          type="checkbox"
+                          data-testid={`pending-${item.id}`}
+                          checked={picked.has(item.id)}
+                          disabled={running}
+                          onChange={() =>
+                            setPicked((before) => {
+                              const next = new Set(before);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              return next;
+                            })
+                          }
+                        />
+                        <span className="cms-pending__label">
+                          {item.label}
+                          {item.current ? <span className="cms-pending__here"> open now</span> : null}
+                        </span>
+                        <span className="cms-pending__detail">{item.detail}</span>
+                      </label>
+                    ))}
+                </div>
+              ))}
+              <div className="cms-pending__foot">
+                Unticked drafts stay drafts. Nothing is deleted.
+              </div>
+            </div>
+          )}
+
+          {problem !== null && (
+            <div className="cms-preflight__problem" data-testid="preflight-problem">
+              {problem}
+            </div>
+          )}
+
           <div className="cms-preflight__actions">
-            <button type="button" className="cms-btn cms-btn--primary cms-btn--tiny" data-testid="preflight-go" onClick={go}>
-              Publish anyway
+            <button
+              type="button"
+              className="cms-btn cms-btn--primary cms-btn--tiny"
+              data-testid="preflight-go"
+              disabled={running || (queue !== null && chosen.length === 0)}
+              onClick={() => void go()}
+            >
+              {running
+                ? 'Publishing…'
+                : queue === null
+                  ? 'Publish anyway'
+                  : chosen.length === 0
+                    ? 'Nothing ticked'
+                    : `Publish ${countLabel(chosen.length)}`}
             </button>
-            <button type="button" className="cms-btn cms-btn--tiny" data-testid="preflight-cancel" onClick={() => setOpen(false)}>
-              Let me fix them
+            <button
+              type="button"
+              className="cms-btn cms-btn--tiny"
+              data-testid="preflight-cancel"
+              disabled={running}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
             </button>
           </div>
         </div>
@@ -298,17 +468,24 @@ function PublishButton({
         data-testid="publish"
         disabled={busy}
         title={
-          summary === null
-            ? 'Copy the draft over the published page'
-            : `Copy the draft over the published page. ${summary}.`
+          queue === null
+            ? summary === null
+              ? 'Copy the draft over the published page'
+              : `Copy the draft over the published page. ${summary}.`
+            : 'See everything saved but not live, and choose what goes on the site'
         }
         onClick={() => {
-          // Nothing to say, or the list is already open: just publish.
-          if (summary === null || open) go();
-          else setOpen(true);
+          if (open) {
+            setOpen(false);
+            return;
+          }
+          // With no queue behind it this is still phase 1's button: publish
+          // the open page, asking first only if there is something to say.
+          if (queue === null && summary === null) publishThisPage();
+          else void show();
         }}
       >
-        {state.phase === 'publishing' ? 'Publishing…' : 'Publish'}
+        {state.phase === 'publishing' || running ? 'Publishing…' : 'Publish'}
         {summary === null || open ? '' : ' ⚠'}
       </button>
     </span>

@@ -80,7 +80,7 @@ import type { MediaUpload } from '../server/client.ts';
 import { CanvasEditor } from './canvas/index.ts';
 // The nav bar and the footer: one copy for the whole editor, edited under Home,
 // drawn around every page in the middle pane. See SEAM 9 below.
-import { SiteChromePanel, SiteChromeProvider } from './chrome/index.ts';
+import { SiteChromePanel, SiteChromeProvider, useSiteChromeOptional } from './chrome/index.ts';
 import {
   ProseEditor,
   SINGLE_LINE_KINDS,
@@ -89,6 +89,8 @@ import {
 } from './prose/index.ts';
 import type { CaretAt, CaretRequest, PasteResult, ProseNode } from './prose/index.ts';
 import { EditorShell, SiteShell } from './shell/index.ts';
+import { PublishQueueProvider } from './shell/publish-queue.ts';
+import type { PendingItem, PublishQueue } from './shell/publish-queue.ts';
 import type {
   CanvasBandSlotProps,
   InspectorSlotProps,
@@ -1378,6 +1380,7 @@ export function CmsApp(props: CmsAppProps) {
           {...(props.fetchImpl === undefined ? {} : { fetchImpl: props.fetchImpl })}
           fallback={props.chrome ?? null}
         >
+          <PublishQueueBridge api={api} store={store}>
           <SiteShell
             store={store}
             resolveMediaSrc={resolveMediaSrc}
@@ -1390,10 +1393,118 @@ export function CmsApp(props: CmsAppProps) {
             renderRecordEditor={renderRecordEditor}
             renderRecordToolbarExtra={renderRecordToolbarExtra}
           />
+          </PublishQueueBridge>
         </SiteChromeProvider>
       </IntegrationContext.Provider>
     </SiteApiContext.Provider>
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* What is saved and not live                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Builds the publish queue the toolbar's Publish panel offers.
+ *
+ * Here, and not in the shell, because this is the only place that can see
+ * all three kinds at once: the site API for pages and record collections,
+ * and the site chrome's own store for `site.json`. The shell is handed a
+ * list of things with a `publish` on each and does not know there are three
+ * endpoints behind them.
+ *
+ * INSIDE `SiteChromeProvider`, because it reads that store. Outside it, the
+ * nav, the footer and the body size would be missing from the list of what
+ * is about to go live — which is exactly the gap that made this necessary.
+ */
+/** Which entry an open editor is showing, whichever kind it is. */
+function entryKeyOf(binding: { entryKey?: string | null; recordId?: string | null }): string | null {
+  return binding.entryKey ?? null;
+}
+
+function PublishQueueBridge({
+  api,
+  store,
+  children,
+}: {
+  api: SiteApiAdapter;
+  store: SiteStore;
+  children: ReactNode;
+}) {
+  const chrome = useSiteChromeOptional();
+
+  const queue = useMemo<PublishQueue>(
+    () => ({
+      async list(): Promise<PendingItem[]> {
+        const open = store.getState().editor;
+        const sections = await api.listSections();
+        const items: PendingItem[] = [];
+
+        for (const summary of sections) {
+          if (summary.storage === 'records') {
+            // One file, so one thing to publish, however many records moved.
+            if (!summary.hasDraft) continue;
+            items.push({
+              id: `records:${summary.id}`,
+              group: summary.label,
+              label: `All ${summary.label.toLowerCase()}`,
+              detail: 'the whole list, edited',
+              current: open !== null && open.section.id === summary.id,
+              section: summary.id,
+              publish: async () => {
+                await api.publish(summary.id, null);
+              },
+            });
+            continue;
+          }
+
+          const entries = await api.listEntries(summary.id);
+          for (const entry of entries) {
+            if (!entry.hasDraft) continue;
+            const slug = summary.shape === 'singleton' ? null : entry.key;
+            items.push({
+              id: `page:${summary.id}:${entry.key}`,
+              group: summary.label,
+              label: entry.title === '' ? entry.key : entry.title,
+              // The difference people need: one of these puts a new address
+              // on the site, the other changes a page that is already there.
+              detail: entry.hasPublished ? 'replaces the live version' : 'new page, not on the site yet',
+              current:
+                open !== null &&
+                open.section.id === summary.id &&
+                (summary.shape === 'singleton' || entryKeyOf(open) === entry.key),
+              section: summary.id,
+              publish: async () => {
+                await api.publish(summary.id, slug);
+              },
+            });
+          }
+        }
+
+        if (chrome !== null && chrome.hasDraft) {
+          items.push({
+            id: 'chrome',
+            group: 'Site settings',
+            label: 'Nav, footer and body size',
+            detail: 'changes every page',
+            current: false,
+            section: null,
+            publish: async () => {
+              const ok = await chrome.publish();
+              if (!ok) throw new Error('the site settings could not be published');
+            },
+          });
+        }
+
+        // What you are looking at first. Everything else keeps the order the
+        // sections are registered in, which is the order of the sidebar.
+        return [...items].sort((a, b) => Number(b.current) - Number(a.current));
+      },
+    }),
+    [api, store, chrome],
+  );
+
+  return <PublishQueueProvider value={queue}>{children}</PublishQueueProvider>;
 }
 
 /* -------------------------------------------------------------------------- */
