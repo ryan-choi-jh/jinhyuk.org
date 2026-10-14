@@ -229,6 +229,34 @@ between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
 it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
 constant and breaks the loop.
 
+**Never signal intent with a header an intermediary has an opinion about.**
+"This file must not exist yet" was `If-None-Match: *`, which is a real
+conditional header. Publishing an essay that had never been published sent
+it; the server published the essay and answered 200; the edge turned that
+into a **304 Not Modified** on the way back, and the editor reported
+
+    Publish failed: Request failed with 304.
+
+over a page that was, at that moment, live. A false failure is worse than a
+real one: the next thing you do is try again, and the thing you are trying
+again has already happened. It is `X-CMS-Expect: absent` now. `If-Match`
+with a real sha is fine — it carries a value nothing in the middle can
+match against anything of its own.
+
+The check that matters is on the CLIENT (`server/verify.ts`, "the client
+does not send a conditional header any more"): the server reading the new
+header fixes nothing on its own, because the 304 was produced by an
+intermediary reacting to what went out.
+
+**A harness must not assert against content the owner edits.** The
+nav-and-footer harness bakes in the real `src/content/data/site.json`,
+deliberately, so one of its checks can be "the scenery is the real nav, not
+placeholders". When the body-size setting was added to that same file,
+publishing 15px for essays turned eight passing checks red without a line of
+code changing. The build now strips `type` from the fixture. Before you bake
+a real content file into a harness, ask which parts of it are the owner's to
+change.
+
 **Publishing is one list, not one button per kind of draft.** There were
 three — the toolbar's for the open document, the nav-and-footer panel's for
 `site.json`, a third for a record collection — and each was right on its own

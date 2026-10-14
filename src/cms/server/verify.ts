@@ -64,6 +64,7 @@ import {
 import {
   failFrom,
   ifMatchSha,
+  requiresAbsent,
   ok,
   requireDocumentKey,
   requireId,
@@ -626,6 +627,67 @@ async function offlineChecks(): Promise<void> {
     assert.equal(at('W/"abc123"'), 'abc123');
     assert.equal(at('*'), undefined);
     assert.equal(at(null), undefined);
+  });
+
+  await check('"must not exist yet" is a header nothing else interprets', () => {
+    /*
+     * This used to be `If-None-Match: *`, which is a real conditional
+     * header, and everything between the browser and the function honours
+     * it. Publishing an essay that had never been published sent it, the
+     * server published the essay, and the 200 came back through the edge as
+     * a 304 — so the editor reported a publish that had just succeeded as
+     * "Request failed with 304".
+     *
+     * Both are read, because a tab loaded before the change is still
+     * sending the old one; only the new one is sent.
+     */
+    const withHeaders = (headers: Record<string, string>): boolean =>
+      requiresAbsent(new Request(ORIGIN, { headers }));
+    assert.equal(withHeaders({ 'X-CMS-Expect': 'absent' }), true);
+    assert.equal(withHeaders({ 'x-cms-expect': 'ABSENT' }), true);
+    assert.equal(withHeaders({ 'X-CMS-Expect': 'present' }), false);
+    assert.equal(withHeaders({ 'If-None-Match': '*' }), true, 'the old header still works');
+    assert.equal(withHeaders({}), false);
+  });
+
+  await check('and the client does not send a conditional header any more', async () => {
+    /*
+     * The half that matters. The server reading the new header fixes
+     * nothing on its own: the 304 was produced on the way BACK, by an
+     * intermediary reacting to what the client sent. So this asserts what
+     * goes out, by giving the client a fetch that records it.
+     */
+    const seen: { url: string; headers: Record<string, string> }[] = [];
+    const recordingFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      const headers: Record<string, string> = {};
+      new Headers(init?.headers).forEach((value, key) => {
+        headers[key.toLowerCase()] = value;
+      });
+      seen.push({ url: String(input), headers });
+      return new Response(JSON.stringify({ ok: true, commit: 'c', sha: 's' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    const realChrome = JSON.parse(
+      readFileSync(new URL('../../content/data/site.json', import.meta.url), 'utf8'),
+    ) as Parameters<ReturnType<typeof createCmsClient>['saveSiteChrome']>[0];
+    const client = createCmsClient({ baseUrl: ORIGIN, fetch: recordingFetch });
+    // `null` is "I expect this file not to be there", which is what every
+    // first save and every first publish of a page sends.
+    await client.publishEntry('essays', 'brand-new', null);
+    await client.saveSiteChrome(realChrome, null);
+
+    assert.equal(seen.length, 2);
+    for (const call of seen) {
+      assert.equal(
+        call.headers['if-none-match'],
+        undefined,
+        `${call.url} still sends If-None-Match, which an edge can answer 304 to`,
+      );
+      assert.equal(call.headers['x-cms-expect'], 'absent', call.url);
+    }
   });
 
   await check('a success body is { ok: true, ... } and is never cached', async () => {
@@ -1545,7 +1607,24 @@ async function liveChecks(token: string): Promise<void> {
       assert.equal(await headSha(token, pagePath(slug), branch), null);
     });
 
-    await check('If-None-Match: * refuses to overwrite an existing draft', async () => {
+    await check('X-CMS-Expect: absent refuses to overwrite an existing draft', async () => {
+      const result = await callRoute(draftRoute.PUT as Handler, {
+        path: `/api/cms/draft/${slug}`,
+        method: 'PUT',
+        params: { slug },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CMS-Expect': 'absent',
+        },
+        body: JSON.stringify(fixtureAs('simple.json', slug)),
+        jar,
+      });
+      assert.equal(result.status, 409);
+      assert.match(String(result.body.error), /already exists/);
+    });
+
+    // Still honoured, for a tab loaded before the client stopped sending it.
+    await check('If-None-Match: * still refuses to overwrite an existing draft', async () => {
       const result = await callRoute(draftRoute.PUT as Handler, {
         path: `/api/cms/draft/${slug}`,
         method: 'PUT',

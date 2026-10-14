@@ -54,6 +54,8 @@ export type StubSiteApiOptions = {
   auth?: AuthStatus;
   /** Dimensions `uploadMedia` reports when it cannot measure the file. */
   mediaSize?: { w: number; h: number };
+  /** Omit the optional `renameEntry` method. Default true, i.e. it exists. */
+  canRenameEntry?: boolean;
   /** Omit the optional `deleteEntry` method. Default true, i.e. it exists. */
   canDeleteEntry?: boolean;
 };
@@ -422,6 +424,41 @@ export function createStubSiteApi(options: StubSiteApiOptions = {}): StubSiteApi
       }
       map.delete(slug);
       return { ok: true };
+    };
+  }
+
+  /**
+   * Also optional, and for the same reason: the shell asks with
+   * `canRenameEntry(api)` before offering it. Added here so the inspector's
+   * Rename field and the entry list's pencil can both be driven in a
+   * harness — without it the capability is always false and the control
+   * under test never appears.
+   */
+  if (options.canRenameEntry !== false) {
+    api.renameEntry = async (id: SectionId, from: string, to: string) => {
+      await enter('renameEntry', id, from);
+      const section = documentSection(id);
+      if (section.shape === 'singleton') {
+        throw new CmsApiError(`"${section.label}" is a singleton; it cannot be renamed`, { status: 400 });
+      }
+      const map = bucket(section);
+      const entry = map.get(from);
+      if (entry === undefined) throw new CmsApiError(`no ${section.noun} "${from}"`, { status: 404 });
+      if (map.has(to)) throw new CmsApiError(`"${to}" is taken`, { status: 409 });
+      const moved = {
+        published: entry.published === null ? null : { ...clone(entry.published), meta: { ...entry.published.meta, slug: to } },
+        draft: entry.draft === null ? null : { ...clone(entry.draft), meta: { ...entry.draft.meta, slug: to } },
+      };
+      map.delete(from);
+      map.set(to, moved);
+      return {
+        commit: `stub-rename-${from}-${to}`,
+        from,
+        to,
+        redirectFrom: entry.published === null ? null : `/${section.id}/${from}/`,
+        siteUrl: `/${section.id}/${to}/`,
+        cmsUrl: `/cms/${section.id}/${to}`,
+      };
     };
   }
 

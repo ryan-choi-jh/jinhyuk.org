@@ -11,10 +11,13 @@
  */
 
 
+import { useRef, useState } from 'react';
+
 import {
   BLOCK_SPACES,
   CALLOUT_TONES,
   DEFAULT_CALLOUT_TONE,
+  IdSchema,
   PROSE_BLOCK_KINDS,
   REFERENCE_WIDTH,
   SHAPE_KINDS,
@@ -26,6 +29,7 @@ import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
 import type { DocStore, DocStoreState } from '../state/store.ts';
 import { CheckField, DateField, Field, NumberField, Section, SelectField, TextField } from './fields.tsx';
+import { useOptionalSiteStore } from '../state/use-site-store.ts';
 import type { EditorShellSlots } from './slots.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -142,21 +146,115 @@ function titleFor(kind: 'band' | 'block' | 'item'): string {
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The slug, and renaming it.
+ *
+ * It used to be a read-only box with a note saying renaming happens "in the
+ * entry list on the left (the ✎ beside this page)". That is true and it is
+ * not findable: the rail is collapsed most of the time, the pencil is small,
+ * and the field you are looking at when you want to change the address is
+ * this one. So the field does it.
+ *
+ * A RENAME IS NOT AN EDIT, and the button keeps saying so. Typing in the box
+ * changes nothing; the move happens on the button, in one commit, and leaves
+ * the old address redirecting if there was ever a page at it. That is why
+ * this is not simply `onChange` into `updateMeta` — a slug typed one
+ * character at a time would be five renames and five redirects.
+ *
+ * Offered only where the shell can do it: the site store is absent in the
+ * standalone editor and in the harnesses, and `home` is a singleton whose
+ * address is its section and cannot move.
+ */
+function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) {
+  const siteStore = useOptionalSiteStore();
+  const meta = state.doc.meta;
+  const [typed, setTyped] = useState(meta.slug);
+  const [busy, setBusy] = useState(false);
+
+  // Follow the document when it changes underneath — switching entries, or
+  // the rename landing and the store reporting the new slug.
+  const seen = useRef(meta.slug);
+  if (seen.current !== meta.slug) {
+    seen.current = meta.slug;
+    if (typed !== meta.slug) setTyped(meta.slug);
+  }
+
+  // The store's own answer, not a guess from the section id: whether a
+  // rename is possible depends on the API behind it having the method at
+  // all, which `can()` already decides for the entry list's pencil.
+  const singleton = meta.section === 'home';
+  const canRename =
+    siteStore !== null && meta.section !== undefined && siteStore.can(meta.section).rename;
+  const wanted = typed.trim();
+  const changed = wanted !== meta.slug;
+  const legal = IdSchema.safeParse(wanted).success;
+
+  const rename = async (): Promise<void> => {
+    if (siteStore === null || !changed || !legal || meta.section === undefined) return;
+    setBusy(true);
+    const ok = await siteStore.renameEntry(meta.section, meta.slug, wanted);
+    setBusy(false);
+    if (!ok) setTyped(meta.slug);
+  };
+
+  return (
+    <>
+      <Field label="Slug">
+        <div className="cms-slug">
+          <input
+            className="cms-input"
+            value={typed}
+            readOnly={!canRename}
+            disabled={busy}
+            data-testid="meta-slug"
+            aria-label="Slug"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event) => setTyped(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && changed && legal) void rename();
+              if (event.key === 'Escape') setTyped(meta.slug);
+            }}
+          />
+          {canRename && (
+            <button
+              type="button"
+              className="cms-btn cms-btn--tiny"
+              data-testid="meta-slug-rename"
+              disabled={busy || !changed || !legal}
+              onClick={() => void rename()}
+            >
+              {busy ? 'Renaming…' : 'Rename'}
+            </button>
+          )}
+        </div>
+      </Field>
+      <div className="cms-hint" data-testid="meta-slug-hint">
+        {singleton
+          ? 'The homepage is at / and has no slug to change.'
+          : !canRename
+            ? 'The slug is the file name under src/content/, and the last part of the address.'
+            : changed && !legal
+              ? 'Lowercase letters, numbers and single hyphens, not starting or ending with one.'
+              : changed
+                ? `Renaming moves the file and the address in one commit. ${
+                    state.published === null
+                      ? 'This page has never been published, so nothing is redirecting anywhere.'
+                      : `/${meta.section}/${meta.slug}/ will keep working, redirecting to the new address.`
+                  }`
+                : 'The last part of the address, and the file name under src/content/. Changing it is a move, not an edit, so it happens on the button.'}
+      </div>
+    </>
+  );
+}
+
 function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) {
   const meta = state.doc.meta;
   return (
     <>
       <Section title="Page">
         <TextField label="Title" testId="meta-title" value={meta.title} onChange={(title) => store.updateMeta({ title })} />
-        <Field label="Slug">
-          <input className="cms-input" value={meta.slug} readOnly data-testid="meta-slug" />
-        </Field>
-        <div className="cms-hint">
-          The slug is the file name under <code>src/content/</code>, and the last part of the
-          address. Renaming is a move rather than an edit, so it happens in the entry list on the
-          left (the ✎ beside this page) and takes effect in one commit, leaving the old address
-          redirecting.
-        </div>
+        <SlugField store={store} state={state} />
         <DateField label="Date" testId="meta-date" value={meta.date} onChange={(date) => store.updateMeta({ date })} />
         <CheckField
           label="Hidden from the site"
@@ -220,7 +318,7 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
             type="button"
             className="cms-btn cms-btn--tiny"
             data-testid="validate"
-            onClick={() => store.validate()}
+            onClick={() => store.validateAloud()}
           >
             Validate
           </button>

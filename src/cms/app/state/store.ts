@@ -174,6 +174,8 @@ export type DocStore = {
   notify(kind: Notice['kind'], message: string, undoable?: boolean): void;
   dismissNotice(): void;
   validate(): { ok: boolean; issues: ValidationIssue[] };
+  /** The same, and a notice when there is nothing wrong. For the button. */
+  validateAloud(): { ok: boolean; issues: ValidationIssue[] };
 
   /* api */
   loadPage(slug: string): Promise<boolean>;
@@ -432,6 +434,28 @@ export function createDocStore(options: DocStoreOptions): DocStore {
     return { ok: result.ok, issues };
   }
 
+  /**
+   * Validate, and SAY SO EITHER WAY.
+   *
+   * `validate()` is also the first thing `save()` does, where silence on
+   * success is right. Pressed as a button it is not: a button that does
+   * nothing visible when everything is fine is a button you stop trusting,
+   * and the only report was a list that stays empty.
+   */
+  function validateAloud(): { ok: boolean; issues: ValidationIssue[] } {
+    const result = validate();
+    if (result.ok) {
+      set({
+        notice: makeNotice(
+          'success',
+          'This page is valid: every band, block and field is a shape the site can build.',
+          false,
+        ),
+      });
+    }
+    return result;
+  }
+
   function reset(doc: Doc, resetOptions: { published?: Doc | null; hasDraft?: boolean } = {}): void {
     baseline = doc;
     history = hist.emptyHistory<Snapshot>();
@@ -658,6 +682,7 @@ export function createDocStore(options: DocStoreOptions): DocStore {
     },
 
     validate,
+    validateAloud,
     loadPage,
     save,
     saveIfDirty,

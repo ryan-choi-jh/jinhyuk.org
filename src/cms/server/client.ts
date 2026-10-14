@@ -322,10 +322,30 @@ export function createCmsClient(options: CmsClientOptions = {}): CmsClient {
 
   const url = (path: string): string => `${base}/api/cms${path}`;
 
-  /** If-Match / If-None-Match from a sha expectation. */
+  /**
+   * A sha expectation, as headers.
+   *
+   * "THIS FILE MUST NOT EXIST YET" IS NOT `If-None-Match: *` ANY MORE, and
+   * that is not a style preference. `If-None-Match` is a real conditional
+   * header with real semantics, and everything between this code and the
+   * function honours them. Publishing an essay that had never been
+   * published sent it, the server published the essay, and the 200 came
+   * back through Vercel's edge as a **304 Not Modified** — so the editor
+   * said
+   *
+   *   Publish failed: Request failed with 304.
+   *
+   * over a page that was, at that moment, live. A false failure is worse
+   * than a real one: the next thing you do is try again, and the thing you
+   * are trying again has already happened.
+   *
+   * A header nothing else has an opinion about cannot be reinterpreted on
+   * the way past. `If-Match` with a real sha stays, because it carries a
+   * value an intermediary cannot match against anything of its own.
+   */
   const concurrencyHeaders = (expect: ShaExpectation): Record<string, string> => {
     if (expect === undefined) return {};
-    if (expect === null) return { 'If-None-Match': '*' };
+    if (expect === null) return { 'X-CMS-Expect': 'absent' };
     return { 'If-Match': expect };
   };
 

@@ -24,7 +24,23 @@ const repoRoot = new URL('../../../../../', import.meta.url);
 export const OUT_DIR = process.env.CMS_CHROME_OUT ?? fileURLToPath(new URL('.out', here));
 
 const home = readFileSync(new URL('src/cms/fixtures/home.json', repoRoot), 'utf8');
-const site = readFileSync(new URL('src/content/data/site.json', repoRoot), 'utf8');
+/**
+ * The real nav and footer, with the body-size setting taken out.
+ *
+ * The real file is used on purpose — one of this harness's checks is that
+ * the scenery around the page is the site's own labels and icons rather
+ * than placeholders. But `type` is a DESIGN DECISION the owner changes from
+ * this very panel, and baking it in made the body-size checks assert
+ * against whatever size the site happened to be set at. Publishing 15px for
+ * essays turned eight passing checks red without a line of code changing,
+ * which is a harness reporting on content instead of on behaviour.
+ *
+ * Removed rather than overwritten with a default, because "no type key" is
+ * the resting state the panel is specified against.
+ */
+const siteFile = JSON.parse(readFileSync(new URL('src/content/data/site.json', repoRoot), 'utf8'));
+delete siteFile.type;
+const site = JSON.stringify(siteFile);
 
 mkdirSync(OUT_DIR, { recursive: true });
 

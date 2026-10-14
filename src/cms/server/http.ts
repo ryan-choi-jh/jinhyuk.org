@@ -249,8 +249,19 @@ export function ifMatchSha(request: Request): string | undefined {
   return cleaned;
 }
 
-/** `If-None-Match: *` means "only create, never overwrite". */
+/**
+ * "Only create, never overwrite."
+ *
+ * `X-CMS-Expect: absent` is the one that matters. `If-None-Match: *` is
+ * still read, for a tab that was loaded before this changed, but it is no
+ * longer sent: an intermediary that honours conditional requests can turn
+ * the 200 this produces into a 304 on the way back, and the editor then
+ * reports a publish that succeeded as "Request failed with 304". See the
+ * comment on `concurrencyHeaders` in ./client.ts.
+ */
 export function requiresAbsent(request: Request): boolean {
+  const expect = request.headers.get('x-cms-expect');
+  if (expect !== null && expect.trim().toLowerCase() === 'absent') return true;
   const raw = request.headers.get('if-none-match');
   return raw !== null && raw.trim() === '*';
 }

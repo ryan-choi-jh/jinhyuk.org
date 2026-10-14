@@ -129,6 +129,12 @@ function fakeServer(initial: { published?: Doc; draft?: Doc } = {}) {
     });
 
   function expectationOf(headers: Headers): string | null | undefined {
+    // The client's "this file must not exist yet". It used to be
+    // `If-None-Match: *`; that is a real conditional header and an edge
+    // answered 304 to the response it produced, so a publish that had
+    // succeeded was reported as a failure. Both are accepted here because
+    // the server accepts both.
+    if (headers.get('X-CMS-Expect') === 'absent') return null;
     if (headers.get('If-None-Match') === '*') return null;
     const match = headers.get('If-Match');
     return match === null ? undefined : match;
@@ -316,7 +322,15 @@ async function checkAdapter(): Promise<void> {
   // First save: there is no draft, so the expectation is "nothing there yet".
   server.calls.length = 0;
   const first = await api.putDraft('fixture-canvas', page.published as Doc);
-  equal('a first save sends If-None-Match: *', server.calls[0]?.headers['if-none-match'], '*');
+  equal(
+    'a first save says the file must not exist yet',
+    server.calls[0]?.headers['x-cms-expect'],
+    'absent',
+  );
+  check(
+    '…without a conditional header an edge could answer 304 to',
+    server.calls[0]?.headers['if-none-match'] === undefined,
+  );
   check('a first save has no If-Match', server.calls[0]?.headers['if-match'] === undefined);
   check('putDraft resolves with a commit', typeof first.commit === 'string' && first.ok);
   const savedSha = api.shasFor('fixture-canvas')?.draftSha;
@@ -330,7 +344,11 @@ async function checkAdapter(): Promise<void> {
   server.calls.length = 0;
   await api.putDraft('fixture-canvas', page.published as Doc);
   equal('a later save sends If-Match', server.calls[0]?.headers['if-match'], savedSha);
-  check('a later save has no If-None-Match', server.calls[0]?.headers['if-none-match'] === undefined);
+  check(
+    'a later save does not, because the file is there now',
+    server.calls[0]?.headers['x-cms-expect'] === undefined &&
+      server.calls[0]?.headers['if-none-match'] === undefined,
+  );
 
   // Somebody else commits. The next save must be refused, not merged.
   const beforeBump = api.shasFor('fixture-canvas')?.draftSha ?? null;
@@ -827,9 +845,9 @@ async function checkStorePath(): Promise<void> {
   store.updateMeta({ title: 'After publishing' });
   equal('a save after publishing works', await store.save(), true);
   equal(
-    '…sending If-None-Match, because publish deleted the draft',
-    server.calls.find((call) => call.method === 'PUT')?.headers['if-none-match'],
-    '*',
+    '…saying the draft must not exist, because publish deleted it',
+    server.calls.find((call) => call.method === 'PUT')?.headers['x-cms-expect'],
+    'absent',
   );
 }
 

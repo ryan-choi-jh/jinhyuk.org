@@ -269,6 +269,44 @@ class Page {
     return this.evaluate(`document.querySelector('[data-testid="${testId}"]') !== null`);
   }
 
+  value(testId) {
+    return this.evaluate(
+      `document.querySelector('[data-testid="${testId}"]')?.value ?? null`,
+    );
+  }
+
+  text(testId) {
+    return this.evaluate(
+      `document.querySelector('[data-testid="${testId}"]')?.textContent.trim() ?? null`,
+    );
+  }
+
+  disabled(testId) {
+    return this.evaluate(
+      `document.querySelector('[data-testid="${testId}"]')?.disabled ?? null`,
+    );
+  }
+
+  /**
+   * Set a controlled input's value the way a person would, not the way
+   * assignment does.
+   *
+   * `el.value = x` does not notify React, so the component re-renders from
+   * its own state and the typing is undone. The native setter plus an
+   * `input` event is what React's synthetic layer listens for.
+   */
+  async fill(testId, value) {
+    await this.evaluate(`(() => {
+      const el = document.querySelector('[data-testid="${testId}"]');
+      if (el === null) return false;
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(el, ${JSON.stringify(value)});
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await this.settle();
+  }
+
   async setViewport({ width, height }) {
     await this.cdp.send('Emulation.setDeviceMetricsOverride', {
       width,
@@ -644,7 +682,77 @@ async function run(page) {
   }
 
   /* ---------------------------------------------------------------------- */
-  section('the record editor slot contract, both ways');
+section('renaming a page from the field that shows its slug');
+  {
+    /*
+     * The slug box used to be read-only under a note saying renaming
+     * happens "in the entry list on the left (the ✎ beside this page)".
+     * True, and not findable: the rail is collapsed most of the time, the
+     * pencil is small, and the field you are looking at when you want to
+     * change the address is this one. The owner's words were "i can't
+     * change the slug for this new essay i want to publish".
+     *
+     * A rename is still not an edit — typing changes nothing until the
+     * button, because a slug typed one character at a time would be a
+     * dozen moves and a dozen redirects.
+     */
+    await page.click('section-row-essays');
+    await page.quiet();
+    await page.click(`entry-open-${ESSAY}`);
+    await page.quiet();
+
+    check('the slug field shows the slug', (await page.value('meta-slug')) === ESSAY, await page.value('meta-slug'));
+    check('and offers a rename', (await page.exists('meta-slug-rename')) === true);
+    check(
+      'which does nothing until there is something to do',
+      (await page.disabled('meta-slug-rename')) === true,
+    );
+
+    await page.fill('meta-slug', 'not a slug');
+    await page.quiet();
+    check(
+      'an illegal slug is refused, with the rule',
+      (await page.disabled('meta-slug-rename')) === true &&
+        (await page.text('meta-slug-hint')).includes('Lowercase letters'),
+      await page.text('meta-slug-hint'),
+    );
+
+    await page.fill('meta-slug', 'a-better-name');
+    await page.quiet();
+    check('a legal one is offered', (await page.disabled('meta-slug-rename')) === false);
+    check(
+      'and the hint says what will happen to the old address',
+      (await page.text('meta-slug-hint')).includes('redirecting') ||
+        (await page.text('meta-slug-hint')).includes('never been published'),
+      await page.text('meta-slug-hint'),
+    );
+    check('typing alone has not moved anything', (await page.probe()).entryKey === ESSAY);
+
+    await page.click('meta-slug-rename');
+    await page.quiet();
+    const after = await page.probe();
+    check('the button moves it', after.entryKey === 'a-better-name', String(after.entryKey));
+    check('and the field follows', (await page.value('meta-slug')) === 'a-better-name', await page.value('meta-slug'));
+
+    // Put it back, so the sections after this one see the fixture they expect.
+    await page.fill('meta-slug', ESSAY);
+    await page.quiet();
+    await page.click('meta-slug-rename');
+    await page.quiet();
+    check('and back again', (await page.probe()).entryKey === ESSAY, String((await page.probe()).entryKey));
+
+    // Put the shell back where the section before this one left it. The
+    // checks that follow open a record editor and expect the album that the
+    // loop above finished on; wandering off and not coming back made four
+    // of them fail on a change that had nothing to do with them.
+    await page.click('section-row-photography');
+    await page.quiet();
+    await page.click(`entry-open-${ALBUM}`);
+    await page.quiet();
+  }
+
+  /* -------------------------------------------------------------------- */
+    section('the record editor slot contract, both ways');
   {
     // Still on photography/first-build from the loop above.
     await page.evaluate('window.__wsd.setRecordSlot(true)');
