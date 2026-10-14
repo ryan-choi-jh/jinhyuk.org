@@ -25,6 +25,7 @@ import { Node as PMNode } from '@tiptap/pm/model';
 
 import {
   PROSE_MARKS,
+  PROSE_NODE_TYPE,
   formatIssues,
   isProseBand,
   validateDocJson,
@@ -53,6 +54,8 @@ import {
   topNodeTypeOf,
 } from './block.ts';
 import { PROSE_KINDS, SINGLE_LINE_KINDS, getProseSchema } from './extensions.ts';
+import { blocksFromParsedDoc, blocksFromText, pasteSchema } from './paste.ts';
+import type { PasteResult } from './paste.ts';
 import { PROSE_EDITOR_CSS } from './css.ts';
 import {
   COLOR_TOKEN_CSS,
@@ -672,6 +675,110 @@ section("Shift-Enter's line break stays inside the paragraph");
 /* -------------------------------------------------------------------------- */
 /* The chrome stylesheet does not style the page                               */
 /* -------------------------------------------------------------------------- */
+
+section('pasting more than one block');
+{
+  /*
+   * The parse step needs a DOM and lives in blocksFromHtml; everything
+   * downstream of it is this, which is why it is a separate function. The
+   * browser half, with real clipboard HTML out of Notion, is in
+   * src/cms/app/shell/harness/drive.mjs.
+   */
+  const run = (nodes: unknown[]): PasteResult =>
+    blocksFromParsedDoc({ type: 'doc', content: nodes });
+
+  const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+  const heading = (level: number, text: string) => ({
+    type: 'heading',
+    attrs: { level },
+    content: [{ type: 'text', text }],
+  });
+
+  const essay = run([
+    heading(1, 'Title'),
+    para('First.'),
+    heading(2, 'A section'),
+    heading(4, 'Deeper'),
+    { type: 'blockquote', content: [para('Quoted.')] },
+    {
+      type: 'bulletList',
+      content: [
+        { type: 'listItem', content: [para('One')] },
+        { type: 'listItem', content: [para('Two')] },
+      ],
+    },
+    { type: 'orderedList', content: [{ type: 'listItem', content: [para('Step')] }] },
+  ]);
+
+  check('every top-level node becomes a block', essay.blocks.length === 7, String(essay.blocks.length));
+  check(
+    'and the kinds are the document\'s own',
+    essay.blocks.map((b) => b.kind).join(' ') === 'h2 p h2 h3 quote ul ol',
+    essay.blocks.map((b) => b.kind).join(' '),
+  );
+  // There is no h1 block: an h1 is the page title, which is a field.
+  check('an h1 lands on h2, an h4 on h3', essay.blocks[0].kind === 'h2' && essay.blocks[3].kind === 'h3');
+  check(
+    'a list keeps its items',
+    JSON.stringify(essay.blocks[5].content).includes('One') &&
+      JSON.stringify(essay.blocks[5].content).includes('Two'),
+  );
+  check('nothing was dropped', essay.dropped === 0, String(essay.dropped));
+
+  // The blank paragraphs every editor emits between and after real ones.
+  const padded = run([para('Real.'), { type: 'paragraph' }, para(''), para('Also real.')]);
+  check('empty paragraphs are not pasted as empty blocks', padded.blocks.length === 2, String(padded.blocks.length));
+
+  const mixed = run([
+    para('Text.'),
+    { type: 'image', attrs: { src: 'x.png' } },
+    { type: 'table', content: [] },
+    para('More text.'),
+  ]);
+  check('what the model cannot hold is counted, not kept', mixed.dropped === 2, String(mixed.dropped));
+  check('and the rest still arrives', mixed.blocks.length === 2, String(mixed.blocks.length));
+
+  // Marks go through normalizeProseContent, the same path as typing, so an
+  // unknown one cannot ride in on a paste.
+  const marked = run([
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', marks: [{ type: 'bold' }], text: 'bold' },
+        { type: 'text', marks: [{ type: 'strike' }], text: ' struck' },
+      ],
+    },
+  ]);
+  const json = JSON.stringify(marked.blocks[0]?.content ?? []);
+  check('a mark the document has survives a paste', json.includes('"bold"'));
+  check('a mark it does not have does not', !json.includes('strike'), json);
+
+  const text = blocksFromText('One line\n\nAnother\n   \nThird');
+  check('plain text is one paragraph per non-blank line', text.blocks.length === 3, String(text.blocks.length));
+  check(
+    'and the text is the line',
+    text.blocks.map((b) => collectProseText(b.content)).join('|') === 'One line|Another|Third',
+    text.blocks.map((b) => collectProseText(b.content)).join('|'),
+  );
+
+  check('nothing to paste is no blocks', run([]).blocks.length === 0);
+
+  /*
+   * The schema the paste parses with must be the editor's, with the one-node
+   * pin removed and NOTHING else different. Checked rather than asserted in
+   * a comment, because a second definition of "what a document may contain"
+   * is exactly the drift this codebase keeps getting caught by.
+   */
+  const paste = pasteSchema();
+  check('the paste schema takes many top-level nodes', paste.topNodeType.spec.content === 'block+');
+  for (const kind of PROSE_KINDS) {
+    const node = PROSE_NODE_TYPE[kind];
+    check(`the paste schema has ${kind} (${node})`, paste.nodes[node] !== undefined);
+  }
+  const pasteMarks = Object.keys(paste.marks).sort().join(' ');
+  const editorMarks = Object.keys(getProseSchema('p').marks).sort().join(' ');
+  check('and exactly the marks the editor has', pasteMarks === editorMarks, `${pasteMarks} vs ${editorMarks}`);
+}
 
 section('chrome CSS styles the toolbar and nothing else');
 {

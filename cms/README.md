@@ -71,8 +71,8 @@ the Xcode licence is accepted.
 | Suite | What it proves |
 | --- | --- |
 | `app/prose/harness/run.mjs` | The live prose component |
-| `app/prose/harness/keys.mjs` | The block-boundary keys, in a band of real editors |
-| `app/shell/harness/drive.mjs` | The editor shell: the crash copy, the publish checklist, that the toolbar fits at six widths, and that Theme actually repaints the sheet |
+| `app/prose/harness/keys.mjs` | The block-boundary keys, and pasting a whole essay, in a band of real editors |
+| `app/shell/harness/drive.mjs` | The editor shell: the crash copy, the publish checklist, that the toolbar fits at six widths, that Theme actually repaints the sheet, and that Fit does not fight the scrollbar |
 | `app/shell/site-harness/drive.mjs` | The whole-site navigation shell |
 | `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does, in light and in dark |
 | `styles/verify-spacing.mjs` | "Space above" is a floor, in both places, at both widths |

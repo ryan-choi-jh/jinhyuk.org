@@ -87,7 +87,7 @@ import {
   inlineLength,
   joinInlineContent,
 } from './prose/index.ts';
-import type { CaretAt, CaretRequest, ProseNode } from './prose/index.ts';
+import type { CaretAt, CaretRequest, PasteResult, ProseNode } from './prose/index.ts';
 import { EditorShell, SiteShell } from './shell/index.ts';
 import type {
   CanvasBandSlotProps,
@@ -525,6 +525,42 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
     [store, band.id, band.blocks, block.id],
   );
 
+  /**
+   * A paste of more than one block: put them in the band.
+   *
+   * WHERE THEY LAND. An empty block is replaced — that is the case this
+   * exists for, dropping a whole essay into a fresh text block. A block with
+   * text in it keeps its text and the pasted blocks follow it. Not split at
+   * the caret: every kind would need its own answer to "where exactly",
+   * a list most of all, and "after the paragraph you were in" is both
+   * predictable and incapable of losing a word of what was already there.
+   *
+   * One `store.update`, so twenty pasted blocks are one undo.
+   */
+  const handlePasteBlocks = useCallback(
+    (result: PasteResult): boolean => {
+      const made = result.blocks.map((pasted) => createProseBlock(pasted.kind, pasted.content));
+      if (made.length === 0) return false;
+      const empty = inlineLength(block.content) === 0 && block.content.length === 0;
+      const replacement = empty ? made : [block, ...made];
+      const last = made[made.length - 1] as ProseBlock;
+      store.update((doc) => replaceProseBlockWith(doc, band.id, block.id, replacement), {
+        label: 'paste blocks',
+        selection: selectBlock(band.id, last.id),
+      });
+      requestCaret(last.id, 'end');
+      store.notify(
+        'success',
+        result.dropped === 0
+          ? `Pasted ${made.length} blocks.`
+          : `Pasted ${made.length} blocks. ${result.dropped} ${result.dropped === 1 ? 'thing' : 'things'} the page cannot hold in text — an image, a table, a code block — ${result.dropped === 1 ? 'was' : 'were'} left out.`,
+        true,
+      );
+      return true;
+    },
+    [store, band.id, block],
+  );
+
   const caret = useCaretRequest(block.id);
 
   return (
@@ -536,6 +572,7 @@ function ProseSlot({ store, band, block, onSelect }: ProseBlockSlotProps) {
       onMergeDown={handleMergeDown}
       onSplitList={handleSplitList}
       onLeaveEdge={handleLeaveEdge}
+      onPasteBlocks={handlePasteBlocks}
       caret={caret}
       onFocusChange={handleFocus}
       // WS-5's toolbar owns kind, and `handleChange` writes kind and content

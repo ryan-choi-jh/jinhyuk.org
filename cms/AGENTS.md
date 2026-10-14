@@ -84,6 +84,18 @@ surprise traces back to it:
 - **A split keeps the original block's id for the head.** An anchored
   connector stores a `blockId`, so the half that keeps the id is the half that
   keeps the connector.
+- **A paste of more than one block is a BAND operation, not a block one.**
+  ProseMirror has nowhere to put the second paragraph of a twenty-paragraph
+  paste, so it kept what fitted and dropped the rest, and moving an essay in
+  from Notion meant pasting it a paragraph at a time. The clipboard is read
+  in `src/cms/app/prose/paste.ts` before the editor sees it, parsed with
+  `pasteExtensions()` — which is the editor's own extension set with the
+  one-node pin removed and nothing else changed — and handed to the host as
+  blocks. **A paste that comes to a single block is left entirely to
+  ProseMirror**, which already does it correctly and knows where the caret
+  is; re-implementing that is how paste gets subtly wrong.
+  If you add a node kind, add it to `pasteExtensions` too, or it will be
+  typeable and unpasteable.
 
 **`meta.hidden` means there is no page, not an unlisted one.** The filter
 lives in `src/lib/site-content.ts`, the single place every route and index
@@ -205,6 +217,24 @@ Two lessons worth more than the fix:
   its test document by concatenating `global.css` itself. It was measuring a
   page that loads the tokens, which the editor is not. When a harness
   assembles its own document, ask what the real route assembles.
+
+**Zoom "Fit" must not depend on anything that depends on Zoom.** The scale is
+the measured width of `.cms-surface-measure` over 1440, and that element sits
+inside the scrolling box. With a classic scrollbar — macOS "Show scroll bars:
+Always", and any Mac with a mouse attached under the default setting — the
+width drops 15px the moment the page is tall enough to scroll, which lowers
+the scale, which shortens the page, which may remove the scrollbar. On a page
+whose scaled height lands within a scrollbar of the pane it oscillated
+between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
+it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
+constant and breaks the loop.
+
+**The editor shell harness ran with `--hide-scrollbars` and therefore could
+not see that, or any other scrollbar bug.** The flag was there to keep the
+screenshots tidy. It is gone. A browser flag that simplifies the thing you
+are measuring is not a convenience, it is a blind spot — and this one covered
+a configuration a lot of people are actually in. If you add a Chrome flag to
+a harness, say what it hides.
 
 ---
 

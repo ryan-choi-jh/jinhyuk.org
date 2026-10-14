@@ -59,6 +59,12 @@ flowchart TD
 
 Two things that are easy to miss from the picture:
 
+- **A whole essay can be pasted in at once.** Copy from Notion, Docs or a
+  web page and paste into a text block: headings, paragraphs, lists and
+  quotes arrive as separate blocks, in order, with bold, italics, colour and
+  links intact. An empty block is replaced; a block with text in it keeps its
+  text and the pasted blocks follow. Images, tables and code blocks have no
+  home in a text band, so they are left out and the editor says how many.
 - **Save and Publish are different commits.** Save writes a working copy under
   `src/content/drafts/`, which the site build ignores and which no longer
   triggers a deploy. Publish moves that file into `src/content/pages/` and

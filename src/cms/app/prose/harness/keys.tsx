@@ -31,7 +31,7 @@ import {
   inlineLength,
   joinInlineContent,
 } from '../index.ts';
-import type { ProseNode } from '../index.ts';
+import type { PasteResult, ProseNode } from '../index.ts';
 import { newId } from '../../../schema.ts';
 import type { ProseBlock, ProseBlockKind } from '../../../schema.ts';
 import { SHELL_CSS } from '../../shell/styles.ts';
@@ -152,6 +152,31 @@ function Slot({
     return true;
   };
 
+  /**
+   * The same rule as ProseSlot's handlePasteBlocks: an empty block is
+   * replaced, a block with text in it keeps its text and the pasted blocks
+   * follow it.
+   */
+  const onPasteBlocks = (result: PasteResult): boolean => {
+    const made: ProseBlock[] = result.blocks.map((pasted) => ({
+      id: newId('p'),
+      kind: pasted.kind,
+      content: pasted.content,
+    }));
+    if (made.length === 0) return false;
+    const empty = inlineLength(block.content) === 0 && block.content.length === 0;
+    (window as unknown as { lastPaste: PasteResult }).lastPaste = result;
+    setBlocks((all) => {
+      const i = all.findIndex((b) => b.id === block.id);
+      if (i < 0) return all;
+      const copy = [...all];
+      copy.splice(i, 1, ...(empty ? made : [all[i]!, ...made]));
+      return copy;
+    });
+    requestCaret(made[made.length - 1]!.id, 'end');
+    return true;
+  };
+
   const onLeaveEdge = (direction: 'up' | 'down' | 'left' | 'right'): boolean => {
     const back = direction === 'up' || direction === 'left';
     const i = blocks.findIndex((b) => b.id === block.id);
@@ -174,6 +199,7 @@ function Slot({
         onMergeDown={onMergeDown}
         onSplitList={onSplitList}
         onLeaveEdge={onLeaveEdge}
+        onPasteBlocks={onPasteBlocks}
         caret={caret}
         showKindControls
       />

@@ -275,7 +275,12 @@ async function launchChrome() {
       `--window-size=${WIDE.width},${WIDE.height}`,
       // The page is a file:// URL and so are the images it draws.
       '--allow-file-access-from-files',
-      '--hide-scrollbars',
+      // NOT --hide-scrollbars. It was here to keep the screenshots clean,
+      // and it made every scrollbar in the editor zero pixels wide, which
+      // is a configuration no reader has. It also made this harness
+      // structurally incapable of seeing the "Fit fights the scrollbar"
+      // loop below, which is the one that made the editor jitter. The
+      // screenshots are a little less tidy and a lot more honest.
       '--disable-gpu',
       '--no-first-run',
       '--no-default-browser-check',
@@ -1101,6 +1106,147 @@ async function run(page) {
       check(`${width}px: one or two rows`, bar.height <= 80, `${bar.height}px`);
     }
     await page.setViewport(WIDE);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  section('Fit does not fight the scrollbar');
+  {
+    /*
+     * A feedback loop, and the reason the editor "spazzes out".
+     *
+     *   .cms-surface-scroll is overflow:auto
+     *   .cms-surface-measure is width:100% inside it, and a ResizeObserver
+     *     on it sets `available`
+     *   scale = available / 1440
+     *   the frame's height is surfaceHeight * scale
+     *
+     * So the scrollbar takes ~15px out of `available`, which lowers the
+     * scale, which lowers the height, which can take the content back under
+     * the pane height, which removes the scrollbar, which gives the 15px
+     * back. On a page whose scaled height lands within a scrollbar's width
+     * of the pane, that oscillates every frame: the sheet visibly jitters
+     * and every line in it rewraps.
+     *
+     * Measured as the dependency rather than as the jitter, because the
+     * jitter needs a document of exactly the wrong height and the
+     * dependency does not: at one width, the fit scale must be the same
+     * whether or not the page is tall enough to scroll.
+     */
+    /*
+     * CLASSIC SCROLLBARS, ON PURPOSE. Headless Chrome draws overlay
+     * scrollbars, which float above the content and take no width, so the
+     * loop cannot happen here and this check passed on the broken build.
+     * macOS "Show scroll bars: Always" — and any Mac with a mouse plugged
+     * in, under the default setting — draws the old kind, which takes 15px
+     * out of the layout. That is the configuration the bug lives in, so the
+     * test makes it, rather than hoping for it.
+     */
+    await page.evaluate(`(() => {
+      const style = document.createElement('style');
+      style.id = 'harness-classic-scrollbars';
+      style.textContent =
+        '.cms-surface-scroll::-webkit-scrollbar { width: 15px; height: 15px; }' +
+        '.cms-surface-scroll::-webkit-scrollbar-thumb { background: #888; }' +
+        '.cms-surface-scroll::-webkit-scrollbar-track { background: #ddd; }';
+      document.head.append(style);
+      const select = document.querySelector('[data-testid="zoom"]');
+      if (select === null) return false;
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      setter.call(select, 'fit');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`);
+
+    const readFit = async (height) => {
+      await page.setViewport({ width: 1400, height });
+      await sleep(260);
+      return page.evaluate(`(() => {
+        const surface = document.querySelector('[data-testid="page-surface"]');
+        const measure = document.querySelector('.cms-surface-measure');
+        return {
+          scale: Number(surface.dataset.scale),
+          scrolls: surface.scrollHeight > surface.clientHeight,
+          lost: surface.offsetWidth - surface.clientWidth,
+          measured: Math.round(measure.getBoundingClientRect().width),
+        };
+      })()`);
+    };
+
+    // Short enough that the fixture page cannot fit, and tall enough that it
+    // comfortably can. Same width in both, so the fit scale must not move.
+    const scrolling = await readFit(700);
+    const roomy = await readFit(4000);
+
+    check('the short pane does scroll', scrolling.scrolls, `scale ${scrolling.scale}`);
+    check('the tall pane does not', !roomy.scrolls, `scale ${roomy.scale}`);
+    check(
+      'and the fit scale is the same either way',
+      scrolling.scale === roomy.scale,
+      `scrolling ${scrolling.scale} (measured ${scrolling.measured}px) vs roomy ${roomy.scale} (measured ${roomy.measured}px)`,
+    );
+    check(
+      'because the scrollbar gutter is reserved, not taken from the page',
+      scrolling.measured === roomy.measured,
+      `${scrolling.measured}px vs ${roomy.measured}px`,
+    );
+    console.log(
+      `    note  scrollbar took ${scrolling.lost}px when scrolling, ${roomy.lost}px when not`,
+    );
+
+    /*
+     * And the symptom itself: at the height where the scaled page is within
+     * a scrollbar's width of the pane, the loop never settles. Sampled over
+     * half a second rather than read once, because one read of an
+     * oscillation looks exactly like a stable value.
+     */
+    /*
+     * And the symptom itself. The loop only shows at the pane height where
+     * the scaled page is within a scrollbar's width of fitting, so find
+     * that height rather than hope a round number lands on it: measure the
+     * content and the chrome around the pane, then sweep the neighbourhood.
+     *
+     * Sampled over time, not read once. One read of an oscillation looks
+     * exactly like a stable value.
+     */
+    await page.setViewport({ width: 1400, height: 700 });
+    await sleep(260);
+    const geometry = await page.evaluate(`(() => {
+      const surface = document.querySelector('[data-testid="page-surface"]');
+      return {
+        content: surface.scrollHeight,
+        pane: surface.clientHeight,
+        viewport: window.innerHeight,
+      };
+    })()`);
+    const edge = geometry.content + (geometry.viewport - geometry.pane);
+    console.log(`    note  the page only just fits at a viewport of about ${edge}px`);
+
+    const unstable = [];
+    for (let height = edge - 40; height <= edge + 40; height += 4) {
+      await page.setViewport({ width: 1400, height });
+      await sleep(320);
+      const samples = await page.evaluate(`(async () => {
+        const surface = document.querySelector('[data-testid="page-surface"]');
+        const seen = [];
+        for (let i = 0; i < 10; i += 1) {
+          seen.push(surface.dataset.scale);
+          await new Promise((r) => setTimeout(r, 40));
+        }
+        return [...new Set(seen)];
+      })()`);
+      if (samples.length > 1) unstable.push(`${height}px: ${samples.join(' <-> ')}`);
+    }
+    check(
+      'and the fit settles at every pane height around the edge',
+      unstable.length === 0,
+      unstable.slice(0, 3).join('; '),
+    );
+
+    await page.evaluate(
+      `document.getElementById('harness-classic-scrollbars')?.remove()`,
+    );
+    await page.setViewport(WIDE);
+    await sleep(120);
   }
 
   /* ---------------------------------------------------------------------- */

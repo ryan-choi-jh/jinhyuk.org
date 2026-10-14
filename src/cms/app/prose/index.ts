@@ -107,3 +107,12 @@ export {
 export type { ColorTheme, PaletteSwatch, PaletteSwatchId, TokenColor } from './palette.ts';
 
 export { PROSE_EDITOR_CSS, PROSE_EDITOR_STYLE_ID, injectProseEditorStyles } from './css.ts';
+
+export {
+  blocksFromClipboard,
+  blocksFromHtml,
+  blocksFromParsedDoc,
+  blocksFromText,
+  pasteSchema,
+} from './paste.ts';
+export type { PasteResult, PastedBlock } from './paste.ts';

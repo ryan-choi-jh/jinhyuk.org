@@ -586,6 +586,57 @@ export function proseExtensions(
   return extensions;
 }
 
+/**
+ * The same extensions, with the one-node pin pulled out: a document that
+ * takes MANY top-level nodes, and every node kind a prose band can hold.
+ *
+ * This exists for one thing, and only exists here so that it cannot drift
+ * from the editor: parsing a paste. A paste of twenty paragraphs has to be
+ * read before any block editor sees it (see ./paste.ts), and reading it
+ * needs a schema that can hold twenty paragraphs — which, by design, no
+ * block editor's schema can.
+ *
+ * Everything else is identical: the same StarterKit with the same things
+ * switched off, the same link options, the same three mark extensions, the
+ * same list item pinned to one paragraph. So what survives a paste is
+ * exactly what survives typing, which is the only property that matters.
+ *
+ * TWO DELIBERATE DIFFERENCES.
+ *
+ *  - Headings take every level, not just 2 and 3. The document has only h2
+ *    and h3, but the clipboard has h1 and h4; parsing them as headings and
+ *    then mapping them down (./paste.ts, kindOf) keeps a document's shape,
+ *    where refusing them turns every h1 into a paragraph and loses it.
+ *  - No ProseKeymap. Nothing is typed into this schema; it parses and is
+ *    thrown away, and the keymap's handlers all call back into a live
+ *    editor that does not exist here.
+ */
+export function pasteExtensions(): Extensions {
+  return [
+    Node.create({ name: 'doc', topNode: true, content: 'block+' }),
+    StarterKit.configure({
+      document: false,
+      code: false,
+      codeBlock: false,
+      strike: false,
+      underline: false,
+      horizontalRule: false,
+      trailingNode: false,
+      listItem: false,
+      heading: { levels: [1, 2, 3, 4, 5, 6] },
+      blockquote: {},
+      bulletList: {},
+      orderedList: {},
+      listKeymap: {},
+      link: linkOptions(),
+    }),
+    TextStyle,
+    Color,
+    ProseHighlight,
+    ProseListItem,
+  ];
+}
+
 /** The real ProseMirror schema for a kind. Used by the verification harness. */
 export function getProseSchema(kind: ProseBlockKind): Schema {
   return getSchema(proseExtensions(kind)) as Schema;

@@ -58,6 +58,8 @@ import { injectProseEditorStyles } from './css.ts';
 import { injectHighlightStyles } from '../../styles/highlight.ts';
 import { injectCalloutStyles } from '../../styles/callout.ts';
 import { injectSpacingStyles } from '../../styles/spacing.ts';
+import { blocksFromClipboard } from './paste.ts';
+import type { PasteResult } from './paste.ts';
 import { ProseToolbar } from './Toolbar.tsx';
 
 /** Where to put the caret: an end of the block, or a character offset into it. */
@@ -114,6 +116,16 @@ export type ProseEditorProps = {
    * 'right' fire from the very first and very last position.
    */
   onLeaveEdge?: (direction: 'up' | 'down' | 'left' | 'right') => boolean;
+  /**
+   * Several blocks were pasted at once. Return true if the host took them.
+   *
+   * One ProseBlock is one top-level node, so a paste of twenty paragraphs
+   * has nowhere to go inside this editor: it is a change to the BAND. The
+   * clipboard is therefore read here, before ProseMirror sees it, and handed
+   * up as blocks. A paste that comes to a SINGLE block never reaches this —
+   * ProseMirror already does that correctly and knows where the caret is.
+   */
+  onPasteBlocks?: (result: PasteResult) => boolean;
   /** Move the caret and take focus. Bump `nonce` to fire it again. */
   caret?: CaretRequest | null;
 
@@ -174,6 +186,7 @@ function ProseEditorInstance({
   onMergeDown,
   onSplitList,
   onLeaveEdge,
+  onPasteBlocks,
   caret = null,
   readOnly = false,
   autoFocus = false,
@@ -201,6 +214,8 @@ function ProseEditorInstance({
   onSplitListRef.current = onSplitList;
   const onLeaveEdgeRef = useRef(onLeaveEdge);
   onLeaveEdgeRef.current = onLeaveEdge;
+  const onPasteBlocksRef = useRef(onPasteBlocks);
+  onPasteBlocksRef.current = onPasteBlocks;
   const onFocusChangeRef = useRef(onFocusChange);
   onFocusChangeRef.current = onFocusChange;
   const onReadyRef = useRef(onReady);
@@ -271,6 +286,24 @@ function ProseEditorInstance({
       onLeaveEdgeRef.current?.(direction) ?? false,
   );
 
+  /**
+   * A paste. Read the clipboard before ProseMirror does, and take it over
+   * only when it is more than one block.
+   *
+   * ONE BLOCK IS LEFT ALONE, deliberately. ProseMirror's own paste puts the
+   * content at the caret, replaces the selection, and merges the marks the
+   * way every other editor does. Re-implementing that to no purpose is how
+   * paste gets subtly wrong. This only takes over the case ProseMirror
+   * cannot express at all: more top-level nodes than this block can hold.
+   */
+  const handlePaste = useRef((event: ClipboardEvent): boolean => {
+    const receive = onPasteBlocksRef.current;
+    if (receive === undefined) return false;
+    const result = blocksFromClipboard(event.clipboardData);
+    if (result.blocks.length < 2) return false;
+    return receive(result);
+  });
+
   useEffect(() => {
     injectProseEditorStyles();
     // The highlighter's own rules. Separate stylesheet, shared with the
@@ -305,6 +338,9 @@ function ProseEditorInstance({
           'aria-label': PROSE_KIND_TITLE[kind],
           'data-prose-kind': kind,
         },
+        // ProseMirror calls this before it parses the clipboard itself, so
+        // returning true means it never sees the paste at all.
+        handlePaste: (_view, event) => handlePaste.current(event),
       },
       onCreate: ({ editor: instance }) => {
         editorRef.current = instance as Editor;

@@ -367,7 +367,31 @@ export const SHELL_CSS = `
 
 /* ---------- centre pane: the page ---------- */
 
-.cms-surface-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 18px 18px 72px; }
+/* scrollbar-gutter: stable is not tidiness. It breaks a feedback loop.
+
+   Fit scales the page by the width of .cms-surface-measure, which is 100%
+   of this box's CONTENT width. With a classic scrollbar — macOS "Show
+   scroll bars: Always", and any Mac with a mouse attached under the default
+   setting — that content width drops by 15px the moment the page is tall
+   enough to scroll. A narrower box means a smaller scale, a smaller scale
+   means a shorter page, and a shorter page may no longer need to scroll, at
+   which point the 15px comes back and it starts again. On a page whose
+   scaled height lands within a scrollbar of the pane, the scale oscillated
+   between 0.5500 and 0.5396 every frame: the sheet visibly jittered and
+   every line in it rewrapped, continuously.
+
+   Reserving the gutter makes the width a constant, so the scale cannot
+   depend on the height. Same property and same reason as the html rule in
+   src/styles/global.css, where a scrollbar appearing used to shift the
+   centred page sideways. It does nothing at all where scrollbars overlay,
+   which is also where the loop does not exist. */
+.cms-surface-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 18px 18px 72px;
+}
 .cms-surface-measure { width: 100%; }
 .cms-surface-frame { position: relative; margin: 0 auto; }
 .cms-slot-host--canvas { position: absolute; inset: 0; }
