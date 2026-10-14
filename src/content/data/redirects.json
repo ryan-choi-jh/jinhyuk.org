@@ -1,3 +1,8 @@
 {
-  "redirects": []
+  "redirects": [
+    {
+      "from": "/essays/new-essay/",
+      "to": "/essays/i-was-looking-for-a-startup-idea-i-needed-to-ask-a-different/"
+    }
+  ]
 }
