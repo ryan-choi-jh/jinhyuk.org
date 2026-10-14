@@ -54,5 +54,12 @@
         "icon": "email"
       }
     ]
+  },
+  "type": {
+    "size": 17.5,
+    "sections": {
+      "projects": 15,
+      "essays": 15
+    }
   }
 }
