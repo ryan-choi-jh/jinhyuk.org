@@ -14,7 +14,132 @@
         {
           "id": "p_4e2308190b",
           "kind": "p",
-          "content": []
+          "content": [
+            {
+              "type": "text",
+              "text": "In March, I left "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://app.notion.com/p/Artie-320c461b420380d88c16cdcc0d612ca3?pvs=21",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "Artie (YC S23)"
+            },
+            {
+              "type": "text",
+              "text": ", where I’d helped build the company from seed through Series A, to start something of my own. A couple of months later, I found myself working on an idea I wasn’t particularly excited about."
+            }
+          ]
+        },
+        {
+          "id": "p_3ecc1b453e",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The idea was in investment banking, an industry I’d spent several years in before joining Artie. I knew the users, understood their problems, and could get meetings with the right decision-makers. I spoke with 18 banks, built prototypes, and even had a potential pivot in mind. (I wrote more about the project "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "link",
+                  "attrs": {
+                    "href": "https://jinhyuk.org/projects/linchpin-due-diligence/",
+                    "target": "_blank",
+                    "rel": "noopener noreferrer"
+                  }
+                }
+              ],
+              "text": "here"
+            },
+            {
+              "type": "text",
+              "text": ")"
+            }
+          ]
+        },
+        {
+          "id": "p_f6fb0d65cb",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "But I hadn’t stopped to ask myself a more basic question: "
+            },
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "did I actually want to spend the next several years working on this problem or this space?"
+            }
+          ]
+        },
+        {
+          "id": "p_59208b7b89",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "After leaving Artie, I’d spent about two weeks exploring ideas before I started feeling anxious about the lack of progress. I’d wanted to start a company for a decade. Now that I’d finally taken the leap, I wanted to get going. Finding a problem in an industry I knew felt better than continuing to search for something I couldn’t yet articulate."
+            }
+          ]
+        },
+        {
+          "id": "p_5ed1304801",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "So I ran with it. I could explain why the idea made sense, and a handful of people around me agreed it was worth pursuing. That was enough to convince myself to get started."
+            }
+          ]
+        },
+        {
+          "id": "p_49f682294c",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Looking back, I had a good reason to pursue the idea. I just hadn’t established that I wanted to."
+            }
+          ]
+        },
+        {
+          "id": "p_715343b565",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "I’ve always worked toward something"
+            }
+          ]
+        },
+        {
+          "id": "p_1b4cb4c72a",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I’ve spent much of my life taking on difficult things because I could see what they might lead to."
+            }
+          ]
         }
       ]
     }
