@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "New essay",
+    "slug": "new-essay",
+    "date": "2026-10-14",
+    "section": "essays"
+  },
+  "bands": [
+    {
+      "id": "b_c4614fb091",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_4e2308190b",
+          "kind": "p",
+          "content": []
+        }
+      ]
+    }
+  ]
+}
