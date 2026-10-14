@@ -41,6 +41,7 @@ const OFFLINE = [
   ['pre-publish checklist', 'src/cms/verify-preflight.ts'],
   ['hidden pages', 'src/cms/verify-hidden.ts'],
   ['css strings', 'src/cms/styles/verify-css-strings.ts'],
+  ['theme tokens', 'src/cms/styles/verify-tokens.ts'],
   ['server', 'src/cms/server/verify.ts', ['--offline']],
 ];
 

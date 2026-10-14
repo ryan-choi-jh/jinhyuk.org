@@ -18,7 +18,7 @@ Where those two and these files disagree, the code wins.
 Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
-npm run cms:check           # 15 offline suites, about two seconds
+npm run cms:check           # 16 offline suites, about two seconds
 npm run cms:check:browser   # 15 that open a browser, about seven minutes
 npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
 ```
@@ -63,6 +63,7 @@ the Xcode licence is accepted.
 | `verify-preflight.ts` | The pre-publish checklist finds what it should and stays quiet otherwise |
 | `verify-hidden.ts` | `meta.hidden` makes a page absent, not merely unlisted |
 | `styles/verify-css-strings.ts` | No backtick inside a CSS comment, and the braces balance |
+| `styles/verify-tokens.ts` | The editor's copy of the site's design tokens still matches `global.css`, both ways |
 | `server/verify.ts --offline` | Header parsers, HTTP helpers, route refusals |
 
 **Browser** (`npm run cms:check:browser`)
@@ -71,9 +72,9 @@ the Xcode licence is accepted.
 | --- | --- |
 | `app/prose/harness/run.mjs` | The live prose component |
 | `app/prose/harness/keys.mjs` | The block-boundary keys, in a band of real editors |
-| `app/shell/harness/drive.mjs` | The editor shell: the crash copy, the publish checklist, and that the toolbar fits at six widths |
+| `app/shell/harness/drive.mjs` | The editor shell: the crash copy, the publish checklist, that the toolbar fits at six widths, and that Theme actually repaints the sheet |
 | `app/shell/site-harness/drive.mjs` | The whole-site navigation shell |
-| `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does |
+| `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does, in light and in dark |
 | `styles/verify-spacing.mjs` | "Space above" is a floor, in both places, at both widths |
 | `app/records/harness/drive.mjs` | The record editors |
 | `app/chrome/harness/run.mjs` | The nav and footer editor |
@@ -101,4 +102,5 @@ claimed fixed.
 
 ## State
 
-All 32 suites passed on 2026-10-13: 15 offline, 15 browser, 2 end to end.
+All 31 non-e2e suites passed on 2026-10-13: 16 offline, 15 browser. With
+the two end-to-end suites that is 33.

@@ -1103,6 +1103,72 @@ async function run(page) {
     await page.setViewport(WIDE);
   }
 
+  /* ---------------------------------------------------------------------- */
+  section('Theme draws the page in the theme');
+  {
+    /*
+     * The control set `data-theme` on <html> and nothing happened, because
+     * nothing in the editor DEFINED the tokens it flips. `--paper`, `--ink`
+     * and the rest live in src/styles/global.css, which the published page
+     * loads and the CMS route does not; every `var(--paper, #fff)` in the
+     * editor was therefore resolving to its light fallback, in both themes,
+     * forever. The attribute was right and the page stayed white.
+     *
+     * So this measures the SURFACE, not the attribute. An attribute check
+     * would have passed on the broken build.
+     */
+    const read = (theme) => page.evaluate(`(async () => {
+      const select = document.querySelector('[data-testid="surface-theme"]');
+      if (select === null) return null;
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      setter.call(select, ${JSON.stringify(theme)});
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const surface = getComputedStyle(document.querySelector('.cms-surface'));
+      const root = getComputedStyle(document.documentElement);
+      return {
+        attr: document.documentElement.getAttribute('data-theme'),
+        bg: surface.backgroundColor,
+        fg: surface.color,
+        paper: root.getPropertyValue('--paper').trim(),
+        ink: root.getPropertyValue('--ink').trim(),
+        rule: root.getPropertyValue('--rule').trim(),
+        accent: root.getPropertyValue('--accent').trim(),
+      };
+    })()`);
+
+    const dark = await read('dark');
+    if (dark === null) {
+      check('the Theme control is in the toolbar', false, 'no [data-testid="surface-theme"]');
+    } else {
+      check('Dark sets data-theme on <html>', dark.attr === 'dark', String(dark.attr));
+      // global.css: --paper #0f0f0f, --ink #f2f2f2 under [data-theme='dark'].
+      check('and the sheet goes dark', dark.bg === 'rgb(15, 15, 15)', dark.bg);
+      check('and the text goes light', dark.fg === 'rgb(242, 242, 242)', dark.fg);
+      check('--rule is the dark hairline', dark.rule === '#2a2a2a', dark.rule || '(undefined)');
+      check('--accent is the dark accent', dark.accent === '#f5a623', dark.accent || '(undefined)');
+    }
+
+    const light = await read('light');
+    if (light !== null) {
+      check('Light puts it back', light.attr === 'light', String(light.attr));
+      check('and the sheet is paper again', light.bg === 'rgb(255, 255, 255)', light.bg);
+      check('and the text is ink again', light.fg === 'rgb(17, 17, 17)', light.fg);
+      check('--rule is the light hairline', light.rule === '#e4e4e4', light.rule || '(undefined)');
+      check('--accent is the light accent', light.accent === '#ff5722', light.accent || '(undefined)');
+    }
+
+    // The chrome is on its own scale and must not move with the page.
+    const chrome = await page.evaluate(
+      `getComputedStyle(document.querySelector('.cms-root')).backgroundColor`,
+    );
+    check('the editor’s own chrome stays dark', chrome === 'rgb(21, 23, 26)', chrome);
+
+    await read('dark');
+    console.log(`    shot  ${await page.shot('10-theme-dark')}`);
+    await read('light');
+  }
+
   await page.setViewport(NARROW);
   const narrow = await page.evaluate(`({
     notice: getComputedStyle(document.querySelector('[data-testid="narrow-notice"]')).display,

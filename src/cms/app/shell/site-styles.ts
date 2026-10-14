@@ -21,6 +21,7 @@ import { useInsertionEffect } from 'react';
 
 import { MOBILE_BREAKPOINT } from '../../schema.ts';
 import { SHELL_CSS, SHELL_STYLE_ID } from './styles.ts';
+import { injectSiteTokens } from '../../styles/tokens.ts';
 
 export const SITE_STYLE_ID = 'cms-site-styles';
 
@@ -441,6 +442,10 @@ export const SITE_CSS = `
 export function useSiteStyles(): void {
   useInsertionEffect(() => {
     if (typeof document === 'undefined') return;
+    // The site's design tokens, which the CMS route has no other way to get.
+    // Also done by `useShellStyles`, and idempotent, because the entry lists
+    // and the record editors mount this hook without ever mounting that one.
+    injectSiteTokens();
     if (document.getElementById(SHELL_STYLE_ID) === null) {
       const shell = document.createElement('style');
       shell.id = SHELL_STYLE_ID;

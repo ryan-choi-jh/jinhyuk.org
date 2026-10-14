@@ -187,8 +187,26 @@ function check(label, okay, detail = '') {
 
 const browser = await chromium.launch(CHROME === undefined ? {} : { executablePath: CHROME });
 
+/**
+ * Both themes.
+ *
+ * `color` and `borderLeftColor` are in PROPERTIES, and until the theme
+ * control existed there was only one theme to read them in. Now there are
+ * two, and a rule in SHELL_CSS that hardcodes a light colour where doc.css
+ * uses a token would be invisible in light and wrong in dark.
+ *
+ * This still loads global.css for BOTH sides, so it is not a check that the
+ * editor can get at the tokens at all — the real route cannot load that file
+ * and gets them from src/cms/styles/tokens.ts instead. That is checked by
+ * styles/verify-tokens.ts (the table matches global.css) and by the editor
+ * shell harness (the real surface really does repaint). This one is about
+ * drift between the two stylesheets, in each theme.
+ */
+const THEMES = ['light', 'dark'];
+
 for (const [section, doc] of SUBJECTS) {
-  console.log(`\n${section}`);
+ for (const theme of THEMES) {
+  console.log(`\n${section} · ${theme}`);
   // The masthead too. The page draws it above the body and the editing
   // surface draws it inside `.cms-surface__head`, from the same function, so
   // it belongs in the comparison; it is not part of `.doc`, so nothing else
@@ -201,7 +219,7 @@ for (const [section, doc] of SUBJECTS) {
         : '';
   const body = render.renderDoc(doc);
 
-  const html = `<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">
+  const html = `<!doctype html><html lang="en" data-theme="${theme}"><head><meta charset="utf-8">
 <style>${globalCss}\n${docCss}\n${SHELL_CSS}</style>
 <style>
   .rig { display: flex; gap: 40px; align-items: flex-start; }
@@ -269,6 +287,7 @@ for (const [section, doc] of SUBJECTS) {
 
   await page.close();
   server.close();
+ }
 }
 
 await browser.close();

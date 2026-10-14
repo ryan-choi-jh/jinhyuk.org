@@ -38,6 +38,7 @@ const FILES = [
   'src/cms/styles/highlight.ts',
   'src/cms/styles/callout.ts',
   'src/cms/styles/spacing.ts',
+  'src/cms/styles/tokens.ts',
   'src/cms/app/shell/styles.ts',
   'src/cms/app/shell/site-styles.ts',
   'src/cms/app/prose/css.ts',

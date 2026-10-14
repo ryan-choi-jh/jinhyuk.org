@@ -23,6 +23,7 @@
 import { useInsertionEffect } from 'react';
 
 import { MOBILE_BREAKPOINT, PAGE_GUTTER, PAGE_WIDTH, REFERENCE_WIDTH } from '../../schema.ts';
+import { injectSiteTokens } from '../../styles/tokens.ts';
 
 export const SHELL_STYLE_ID = 'cms-shell-styles';
 
@@ -1002,6 +1003,12 @@ export const SHELL_CSS = `
 export function useShellStyles(): void {
   useInsertionEffect(() => {
     if (typeof document === 'undefined') return;
+    // The site's tokens first. Every colour on the page surface below is
+    // written as var(--paper) / var(--ink) / var(--rule), and those live in
+    // src/styles/global.css, which the CMS route does not load; without this
+    // they all resolve to their light fallbacks and the Theme control has
+    // nothing to switch. See src/cms/styles/tokens.ts.
+    injectSiteTokens();
     if (document.getElementById(SHELL_STYLE_ID) !== null) return;
     const style = document.createElement('style');
     style.id = SHELL_STYLE_ID;

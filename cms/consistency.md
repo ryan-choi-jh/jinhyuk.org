@@ -107,7 +107,18 @@ The surface has a theme switch now (light / dark / system) that sets
 It works because `.cms-surface` is `background: var(--paper)` and every
 colour in the drawn page comes from the same tokens the site uses, so the
 page in the middle pane becomes the dark page while the editor's own chrome,
-on a separate `--cms-*` scale, does not move.
+on a separate `--cms-*` scale, does not move. Measured in the editor shell
+harness: the sheet is `rgb(15, 15, 15)` on dark and `rgb(255, 255, 255)` on
+light, and `.cms-root` is `rgb(21, 23, 26)` in both.
+
+That last sentence was wishful for a day. The tokens are declared in
+`src/styles/global.css`, which the published page loads and the CMS route
+does not, so the attribute flipped and nothing else did: every
+`var(--paper, #fff)` quietly used its light fallback. The editor now
+declares them itself, from `src/cms/styles/tokens.ts`, checked against
+`global.css` both ways by `styles/verify-tokens.ts`. A var() with a fallback
+never fails loudly, which is why this one needed a measurement of the
+**surface** rather than of the attribute to find.
 
 **Width is deliberately not on the surface.** The mobile rules are VIEWPORT
 media queries — `@media (max-width: 900px)` in `doc.css` and again in

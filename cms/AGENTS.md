@@ -168,7 +168,10 @@ Run `npm run cms:check` after touching any file that exports CSS.
 `src/cms/app/shell/styles.ts`) and it has drifted from `doc.css` three times.
 `src/cms/app/shell/verify-typography.mjs` renders the same document twice in
 one browser and compares computed styles. Run it after any change to either
-file. It covers block kinds, every mark and both mastheads: 34 checks. It covered
+file. It covers block kinds, every mark and both mastheads, in both themes:
+68 checks. The dark half is there because `color` only has one value to be
+wrong in until there are two themes; a hardcoded light accent in SHELL_CSS
+passes every light check there is. It covered
 block kinds ALONE for a while, which is how bold stayed 600 in the editor
 and 400 on the page, and how a link inside a callout stayed the wrong grey.
 `styles/verify-spacing.mjs` is its companion for the space control.
@@ -176,6 +179,32 @@ and 400 on the page, and how a link inside a callout stayed the wrong grey.
 The surface carries its section as a class (`cms-surface--essays`,
 `cms-surface--projects`) because an essay and a project really are set
 differently, and the editor not knowing that was the cause of the last drift.
+
+**The editor does not load `src/styles/global.css`, so it does not get the
+site's design tokens for free.** `/cms` is a React island; nothing in its
+import graph pulls that stylesheet in, and importing it would be wrong
+anyway, because it styles `body`, the nav and the article, and would repaint
+the dark chrome as a white page. `src/cms/styles/tokens.ts` carries the
+token table instead, and `useShellStyles` / `useSiteStyles` inject it.
+
+That file exists because of a bug that hid for as long as it did by being
+invisible: every colour on the page surface is written `var(--paper, #fff)`,
+`var(--ink, #111111)`, `var(--rule, #e4e4e4)`, and with nothing declaring
+those tokens **every one of them resolved to its light fallback, in both
+themes, always**. The Theme control set `data-theme='dark'` on `<html>`
+exactly as the site does, the attribute landed, and the page stayed white.
+
+Two lessons worth more than the fix:
+
+- **A var() with a fallback does not fail.** It silently uses the fallback.
+  If you write `var(--x, …)` in editor CSS, check `--x` is in
+  `src/cms/styles/tokens.ts`; `styles/verify-tokens.ts` asserts that table
+  matches `global.css` in both directions, so adding a token there and not
+  here is a red check rather than a wrong colour.
+- **`verify-typography.mjs` could never have caught it**, because it builds
+  its test document by concatenating `global.css` itself. It was measuring a
+  page that loads the tokens, which the editor is not. When a harness
+  assembles its own document, ask what the real route assembles.
 
 ---
 
