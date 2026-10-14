@@ -22,7 +22,7 @@ import type { SiteChrome } from '../../../schema.ts';
 import { createDocStore, createStubApi } from '../../state/index.ts';
 import { EditorShell } from '../../shell/index.ts';
 import { SiteChromePanel } from '../SiteChromePanel.tsx';
-import { SiteChromeProvider } from '../context.tsx';
+import { SiteChromeProvider, useSiteChrome } from '../context.tsx';
 import type { SiteChromeApi } from '../context.tsx';
 
 declare const __HOME_JSON__: string;
@@ -116,6 +116,20 @@ function memoryApi(): { api: SiteChromeApi; log: Log[]; state: () => unknown } {
 
 const wire = memoryApi();
 
+/**
+ * The working copy, on the seam.
+ *
+ * `window.__chr.server()` is what the in-memory API holds, which is what has
+ * been SAVED. The body-size checks need what the panel is holding right now,
+ * before any save, because "applied but not saved" is a state the feature
+ * depends on. Rendered inside the provider and nowhere near the UI.
+ */
+function Expose() {
+  const store = useSiteChrome();
+  (window as unknown as { __chr: { chrome?: () => unknown } }).__chr.chrome = () => store.chrome;
+  return null;
+}
+
 function Harness() {
   const [{ store }] = useState(() => ({
     store: createDocStore({ api: createStubApi(), doc: homeDoc, published: homeDoc }),
@@ -123,6 +137,7 @@ function Harness() {
 
   return (
     <SiteChromeProvider api={wire.api} fallback={published}>
+      <Expose />
       <EditorShell
         store={store}
         checkAuthOnMount={false}
@@ -133,12 +148,12 @@ function Harness() {
   );
 }
 
-const host = document.getElementById('root');
-if (host === null) throw new Error('no #root');
-createRoot(host).render(<Harness />);
-
-/** What a driver reads. */
+/** What a driver reads. Defined BEFORE the render, because <Expose> adds to it. */
 (window as unknown as { __chr: unknown }).__chr = {
   log: wire.log,
   server: wire.state,
 };
+
+const host = document.getElementById('root');
+if (host === null) throw new Error('no #root');
+createRoot(host).render(<Harness />);

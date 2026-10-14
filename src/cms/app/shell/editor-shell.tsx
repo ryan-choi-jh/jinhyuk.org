@@ -26,6 +26,7 @@ import { PageSurface } from './page-surface.tsx';
 import type { Zoom } from './page-surface.tsx';
 import type { EditorShellSlots } from './slots.ts';
 import { useShellStyles } from './styles.ts';
+import { useTypeScale } from './use-type-scale.ts';
 import { Toolbar } from './toolbar.tsx';
 import { useShortcuts } from './use-shortcuts.ts';
 import { useLocalDraft } from './use-local-draft.ts';
@@ -80,6 +81,10 @@ export function EditorShell({
   ...slots
 }: EditorShellProps) {
   useShellStyles();
+  // The body size the CMS is set to, applied to the page in the middle pane.
+  // Live: moving the stepper in the Body size panel repaints the surface,
+  // which is the preview. See ./use-type-scale.ts.
+  useTypeScale();
   const state = useDocStore(store);
   const [zoom, setZoom] = useState<Zoom>(initialZoom);
 

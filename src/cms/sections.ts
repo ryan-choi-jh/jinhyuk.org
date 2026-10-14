@@ -590,6 +590,36 @@ export function getSection(id: string): SectionDef | null {
 }
 
 /**
+ * Which section a live URL belongs to.
+ *
+ * Base.astro puts the answer on `<body data-section>` so that one attribute
+ * can scope the type scale to a section, on every page, including the ones
+ * that are not documents at all — a filmography index has no `.doc` to hang
+ * a class on.
+ *
+ * Derived from each section's own `indexUrl`, not from a second list of
+ * prefixes. Longest prefix first, so a hypothetical nested section cannot be
+ * swallowed by a shorter one. `/` matches only `/` itself, because every
+ * path starts with it.
+ *
+ * `/writing/` is here by hand and is the one exception: it is the essays
+ * section's former address, kept alive as a redirect, and a page served
+ * there is an essay however it is spelled.
+ */
+export function sectionForPath(pathname: string): SectionId | null {
+  const path = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  if (path === '/') return 'home';
+  if (path.startsWith('/writing/')) return 'essays';
+  const candidates = SECTIONS.filter((section) => section.indexUrl !== '/').sort(
+    (a, b) => b.indexUrl.length - a.indexUrl.length,
+  );
+  for (const section of candidates) {
+    if (path.startsWith(section.indexUrl)) return section.id;
+  }
+  return null;
+}
+
+/**
  * Lookup that throws. For code that already knows the id is good — a literal,
  * or a value that `getSection` has already accepted.
  */

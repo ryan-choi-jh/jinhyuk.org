@@ -229,6 +229,39 @@ between 0.5500 and 0.5396 every frame: the sheet jittered and every line in
 it rewrapped, continuously. `scrollbar-gutter: stable` makes the width a
 constant and breaks the loop.
 
+**The body size is generated, not edited into the stylesheets.**
+`src/cms/styles/type-scale.ts` holds the base size of every kind of running
+text and emits an ADDITIVE stylesheet that restates them scaled, scoped by
+section. Nothing writes into `global.css` or `doc.css`, and that is the point:
+those are hand-maintained design files, every page depends on them, and "the
+CMS edits the stylesheet" is a far larger promise than "the CMS can make text
+smaller". Four rules follow from it.
+
+- **Default generates the empty string.** A site at 17.5px builds byte-for-byte
+  what it built before the feature existed, and `site.json` has no `type` key
+  at all. `verify-type-scale.ts` asserts both. If you change the generator,
+  keep that property: it is what makes the feature safe to ship.
+- **The base numbers are copies, and they are checked.** Every value in
+  `ROLE_BASE` is a declaration in `global.css`, `doc.css` or `SHELL_CSS`, and
+  a ratio against a stale base is wrong in the quietest way there is — the
+  text comes out a slightly different size from the one asked for and looks
+  fine. `verify-type-scale.ts` reads all three files and fails naming the role.
+- **Two dialects, one generator.** The page scopes by
+  `body[data-section='…']` (Base.astro puts it there, from `sectionForPath`);
+  the editor scopes by `.cms-surface--…`, because it does not load `doc.css`
+  and names the same things differently. They call one function, so their
+  numbers cannot differ; what can differ is whether the rules LAND, which is
+  why `verify-type-scale-browser.mjs` measures both in a browser.
+- **`&` means the scoped element itself.** The first version joined every
+  selector to its scope with a descendant combinator and produced
+  `body[data-section='essays'] body` and `.cms-surface--essays .cms-surface`.
+  Both are valid CSS. Neither matches an element, so the rules were simply
+  inert. There is a check for that specific shape now.
+
+If you add a kind of running text, add it to `ROLE_BASE`, to both dialects and
+to `WITNESS` in the verify, or it will be the one thing on the page that does
+not resize.
+
 **The editor shell harness ran with `--hide-scrollbars` and therefore could
 not see that, or any other scrollbar bug.** The flag was there to keep the
 screenshots tidy. It is gone. A browser flag that simplifies the thing you

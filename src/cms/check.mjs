@@ -42,6 +42,7 @@ const OFFLINE = [
   ['hidden pages', 'src/cms/verify-hidden.ts'],
   ['css strings', 'src/cms/styles/verify-css-strings.ts'],
   ['theme tokens', 'src/cms/styles/verify-tokens.ts'],
+  ['body size', 'src/cms/styles/verify-type-scale.ts'],
   ['server', 'src/cms/server/verify.ts', ['--offline']],
 ];
 
@@ -57,6 +58,7 @@ const BROWSER = [
   ['site shell', 'src/cms/app/shell/site-harness/drive.mjs'],
   ['editor vs page type', 'src/cms/app/shell/verify-typography.mjs'],
   ['space above a block', 'src/cms/styles/verify-spacing.mjs'],
+  ['body size, measured', 'src/cms/styles/verify-type-scale-browser.mjs'],
   ['record editors', 'src/cms/app/records/harness/drive.mjs'],
   ['nav and footer', 'src/cms/app/chrome/harness/run.mjs'],
   ['the guide', 'src/cms/app/guide/harness/run.mjs'],
@@ -133,8 +135,23 @@ if (failed.length === 0) {
 
 for (const [label, file, output] of failed) {
   console.log(`\n${'='.repeat(70)}\n${label}  (node ${file})\n${'='.repeat(70)}`);
-  // The tail, because every one of these prints its failures last.
-  console.log(output.split('\n').slice(-40).join('\n').trimEnd());
+  const lines = output.split('\n');
+  /*
+   * The failing lines FIRST, then the tail.
+   *
+   * The tail alone was not enough. `preview/verify.ts` fails intermittently
+   * in a full-group run and passes every time on its own, and three group
+   * runs in a row reported only "420/424" with forty lines of `ok` above it,
+   * because its failures were four hundred lines earlier. A runner that
+   * cannot say WHAT failed turns an intermittent failure into a mystery.
+   */
+  const named = lines.filter((line) => /\bFAIL\b/.test(line) && !/^FAIL\s+\d/.test(line.trim()));
+  if (named.length > 0) {
+    console.log(named.slice(0, 30).join('\n').trimEnd());
+    if (named.length > 30) console.log(`  … and ${named.length - 30} more`);
+    console.log('');
+  }
+  console.log(lines.slice(-12).join('\n').trimEnd());
 }
 
 console.log(`\n${failed.length} of ${suites.length} failed in ${elapsed}.`);

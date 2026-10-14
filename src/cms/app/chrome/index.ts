@@ -20,5 +20,6 @@ export type {
   SiteChromeStore,
 } from './context.tsx';
 export { SiteChromePanel } from './SiteChromePanel.tsx';
+export { TypeScalePanel } from './TypeScalePanel.tsx';
 export { SiteChromeView } from './chrome-view.tsx';
 export type { SiteChromeViewProps } from './chrome-view.tsx';

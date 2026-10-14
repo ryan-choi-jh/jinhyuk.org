@@ -151,6 +151,17 @@ export const DateSchema = z
 export const SECTION_IDS = ['home', 'projects', 'essays', 'filmography', 'photography'] as const;
 
 export const SectionIdSchema = z.enum(SECTION_IDS);
+
+/**
+ * What the body-size control allows, in CSS pixels.
+ *
+ * Here rather than in src/cms/styles/type-scale.ts because the schema is the
+ * thing that refuses a bad value on the way in, and a bound the schema does
+ * not know is a bound the server does not enforce. type-scale.ts re-exports
+ * these so the slider and the validator cannot disagree.
+ */
+export const TYPE_SIZE_MIN = 12;
+export const TYPE_SIZE_MAX = 24;
 export type SectionId = z.infer<typeof SectionIdSchema>;
 
 /**
@@ -1501,6 +1512,54 @@ export type ThemeToggle = z.infer<typeof ThemeToggleSchema>;
  * returned, so this order is the order of the lines in `site.json` and of every
  * diff of it.
  */
+/**
+ * The body size, site-wide and per section.
+ *
+ * It lives on the site chrome rather than in a file of its own because it is
+ * the same KIND of thing as the nav and the footer: one setting, edited once
+ * under Home, applied to every page at once. A second single-file store with
+ * its own draft, its own publish and its own conflict detection would be a
+ * copy of this one for no gain.
+ *
+ * OPTIONAL, AND ABSENT MEANS THE DESIGN'S OWN SIZE. Every site.json written
+ * before this existed has no `type` key, and must stay valid and stay
+ * rendering exactly as it does. `src/cms/styles/type-scale.ts` generates
+ * nothing at all for the default, so "no key" and "17.5 everywhere" are the
+ * same site, byte for byte.
+ *
+ * `sections` holds only the ones that differ from `size`. That is what makes
+ * "apply everywhere" and "apply to these" one operation with two arguments
+ * rather than two code paths: the first sets `size`, the second sets keys.
+ */
+export const TypeScaleSchema = z
+  .object({
+    size: z
+      .number()
+      .min(TYPE_SIZE_MIN, `body text below ${TYPE_SIZE_MIN}px is not reading`)
+      .max(TYPE_SIZE_MAX, `body text above ${TYPE_SIZE_MAX}px is a heading`)
+      .refine(
+        (value) => Number.isInteger(value * 2),
+        'body size moves in half pixels: 16, 16.5, 17',
+      ),
+    // Required, not defaulted. `.default({})` makes zod's input type differ
+    // from its output type, which propagates into `ValidateResultOf` and
+    // breaks every caller of `validateSiteChrome` with an unreadable error
+    // about two unrelated types of the same name. `type` itself is optional,
+    // which is where "nothing set" is expressed; a `type` that exists always
+    // has both keys, and the only writer is `applyBodySize`.
+    sections: z.record(
+      SectionIdSchema,
+      z
+        .number()
+        .min(TYPE_SIZE_MIN)
+        .max(TYPE_SIZE_MAX)
+        .refine((value) => Number.isInteger(value * 2), 'half pixels only'),
+    ),
+  })
+  .strict();
+
+export type TypeScale = z.infer<typeof TypeScaleSchema>;
+
 export const SiteChromeSchema = z
   .object({
     wordmark: WordmarkSchema,
@@ -1509,6 +1568,7 @@ export const SiteChromeSchema = z
       .max(MAX_NAV_LINKS, `the nav bar holds at most ${MAX_NAV_LINKS} links`),
     themeToggle: ThemeToggleSchema,
     footer: SiteFooterSchema,
+    type: TypeScaleSchema.optional(),
   })
   .strict();
 

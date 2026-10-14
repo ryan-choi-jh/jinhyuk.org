@@ -59,6 +59,9 @@ flowchart TD
 
 Two things that are easy to miss from the picture:
 
+- **The body size is a setting, under Home.** One number, applied to whichever
+  sections you tick, with the scale and the affected pages shown before you
+  apply. See section 4b.
 - **A whole essay can be pasted in at once.** Copy from Notion, Docs or a
   web page and paste into a text block: headings, paragraphs, lists and
   quotes arrive as separate blocks, in order, with bold, italics, colour and
@@ -206,6 +209,50 @@ still builds.
 
 ---
 
+## 4b. Changing the body size
+
+The one setting that changes every page at once, so it is the one that shows
+you what it will do before it does it.
+
+```mermaid
+flowchart TD
+    A([Home → inspector → Body size]) --> B[Step the number<br/>17.5 → 16]
+    B --> C[The sample, the scale table<br/>and the per-section rows<br/><i>nothing has changed yet</i>]
+    C --> D{Tick the sections}
+    D --> E["Apply 16px to 2 sections"]
+    E --> F[["applyBodySize<br/>src/cms/app/chrome/edits.ts"]]
+    F --> G[("site.json → type<br/>{ size, sections }")]
+
+    G --> H[The page in the middle repaints<br/>EDITOR_DIALECT, injected live]
+    G --> I[Save draft → Publish<br/>same path as the nav and footer]
+    I --> J[[Base.astro<br/>sectionForPath → body data-section<br/>typeScaleCss SITE_DIALECT]]
+    J --> K([Only those sections are smaller<br/>on jinhyuk.org])
+
+    F -. "unticked sections" .-> L([Untouched. Not reset, not mentioned])
+
+    style C fill:#fdf6e0,stroke:#e8d79a
+    style K fill:#e8f5e9,stroke:#2e7d52
+    style L fill:#e8f5e9,stroke:#2e7d52
+```
+
+**One generator, two dialects.** `src/cms/styles/type-scale.ts` holds the base
+size of every kind of running text and scales them all by one ratio. The site
+gets selectors scoped by `body[data-section='…']`; the editor gets the same
+roles under `.cms-surface--…`, because the editor does not load `doc.css` and
+names the same things differently. They cannot produce different numbers,
+because they call one function, and
+`styles/verify-type-scale-browser.mjs` measures both in a browser to prove the
+rules actually land.
+
+**What moves:** paragraphs, list items, quotes and callouts, leading included.
+**What does not:** headings, captions, the nav, the footer, buttons.
+
+**Nothing set is nothing generated.** A site at the design's own 17.5px
+produces an empty stylesheet and no `type` key in `site.json`, and builds
+byte-for-byte what it built before the feature existed.
+
+---
+
 ## 5. Where the content lives
 
 | Section | Shape | Editor | Published file | Draft file | Live URL |
@@ -215,7 +262,7 @@ still builds.
 | Essays | collection | document | `src/content/pages/essays/<slug>.json` | same, under `drafts/` | `/essays/<slug>/` |
 | Filmography | collection | records | `src/content/data/filmography.json` | same, under `drafts/` | `/filmography/` (no per-film page) |
 | Photography | collection | records | `src/content/data/photography.json` | same, under `drafts/` | `/photography/<slug>/` |
-| Nav and footer | one file | chrome panel, under Home | `src/content/data/site.json` | same, under `drafts/` | every page |
+| Nav and footer, and body size | one file | chrome panel, under Home | `src/content/data/site.json` | same, under `drafts/` | every page |
 | Old addresses | one file | written by a rename | `src/content/data/redirects.json` | n/a | the URLs it lists |
 
 Uploads go to `public/media/<section>/<key>/` and are served at

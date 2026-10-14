@@ -2,7 +2,9 @@
 import '../styles/global.css';
 import SocialLinks from '../components/SocialLinks.astro';
 import { isNavCurrent, renderCopyright } from '../cms/schema.ts';
+import { sectionForPath } from '../cms/sections.ts';
 import { THEME_ICONS, themeIconArt } from '../cms/site-icons.ts';
+import { SITE_DIALECT, typeScaleCss, typeSettingsOf } from '../cms/styles/type-scale.ts';
 import { siteChrome } from '../lib/site-content.ts';
 
 interface Props {
@@ -46,6 +48,26 @@ const copyright = renderCopyright(chrome.footer.copyright, year);
 
 const path = Astro.url.pathname;
 const isCurrent = (href: string) => isNavCurrent(href, path);
+
+/**
+ * The body size, as the CMS set it.
+ *
+ * Two things reach the page. The section goes on `<body>` so a per-section
+ * rule has something to hang on — on EVERY page, including the filmography
+ * and photography indexes, which are not documents and have no `.doc` class
+ * to scope to. The stylesheet restates the running-text sizes at the scaled
+ * values, for the sections that asked for one.
+ *
+ * It is empty, and omitted entirely, when nothing has been changed: a site
+ * at the design's own 17.5px builds exactly what it built before any of this
+ * existed. See src/cms/styles/type-scale.ts.
+ */
+const section = sectionForPath(path);
+// Only THIS page's section. The rules are scoped by the attribute anyway, so
+// emitting all five would work; it would also put four sections' worth of
+// CSS on every page and leave a rule for essays sitting in the homepage's
+// source, which is the kind of thing that looks like a bug when you read it.
+const typeCss = typeScaleCss(typeSettingsOf(chrome), section === null ? [] : [section], SITE_DIALECT);
 
 // Only carried when it has something to say. `system` is what the site has
 // always done and is the script's own default, so the common case puts no
@@ -107,8 +129,13 @@ const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&display=swap"
     />
+    {/* is:inline, or Astro treats this as a scoped component style: it
+        hoists it into the bundled stylesheet and rewrites the selectors,
+        which both moves the rules out of this page and breaks them. The
+        first version emitted nothing at all. */}
+    {typeCss !== '' && <style is:inline set:html={typeCss} />}
   </head>
-  <body>
+  <body data-section={section ?? undefined}>
     <header class="site-header">
       <nav class="site-nav">
         <a class="wordmark" href={wordmark.href}>{wordmark.label}</a>

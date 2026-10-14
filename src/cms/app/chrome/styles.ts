@@ -178,6 +178,74 @@ export const CHROME_CSS = `
   color: var(--chr-muted);
   overflow-wrap: anywhere;
 }
+
+/* ---------------------------------------------------------------------------
+   Body size
+   The one panel that is a decision rather than a field, so it is laid out as
+   one: the number and what it looks like, then what else moves, then which
+   pages it touches.
+   --------------------------------------------------------------------------- */
+.cms-type__stepper { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cms-type__value { width: 68px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* The sample. On the panel's own dark ground rather than on paper, because it
+   is showing a SIZE and a second background would invite reading it as a
+   preview of the page, which the middle pane already is and does better. */
+.cms-type__sample {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--chr-line);
+  color: var(--chr-text);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.cms-type__scale {
+  width: 100%;
+  margin: 6px 0 10px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.cms-type__scale th {
+  padding: 3px 8px 3px 0;
+  text-align: left;
+  font-weight: 400;
+  color: var(--chr-muted);
+}
+.cms-type__scale td { padding: 3px 0; color: var(--chr-muted); }
+.cms-type__scale .cms-type__from { padding-right: 8px; }
+.cms-type__scale .cms-type__to { padding-left: 8px; color: var(--chr-text); text-align: right; }
+
+.cms-type__who { display: block; margin: 10px 0 4px; }
+
+/* A row is a checkbox, a name, what it covers, and what it is now.
+
+   A grid and not a flex row: "every project page, and the projects index"
+   wraps at this width, and in a flex row the wrap pushed the size out of
+   alignment with the rows above it, so the one column you want to read down
+   was the one that moved. The second grid row gives the description a line
+   of its own under the name and leaves the sizes in a straight column. */
+.cms-type__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'box name now'
+    '.   what .';
+  column-gap: 8px;
+  align-items: baseline;
+}
+.cms-type__row > input { grid-area: box; }
+.cms-type__name { grid-area: name; color: var(--chr-text); }
+.cms-type__affects { grid-area: what; color: var(--chr-muted); font-size: 11px; }
+.cms-type__now {
+  grid-area: now;
+  color: var(--chr-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.cms-type__actions { margin-top: 10px; gap: 6px; }
 `;
 
 /** Inject `CHROME_CSS` once per document. Idempotent under StrictMode. */

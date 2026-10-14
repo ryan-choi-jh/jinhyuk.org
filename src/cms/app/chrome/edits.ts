@@ -31,7 +31,9 @@ import type {
   ThemeToggle,
   Wordmark,
 } from '../../schema.ts';
+import type { SectionId } from '../../schema.ts';
 import { SOCIAL_ICON_LABELS } from '../../site-icons.ts';
+import { BODY_BASE_SIZE } from '../../styles/type-scale.ts';
 
 /* -------------------------------------------------------------------------- */
 /* List primitives                                                             */
@@ -253,4 +255,73 @@ export function chromeProblem(chrome: SiteChrome): string | null {
 export function sameChrome(a: SiteChrome | null, b: SiteChrome | null): boolean {
   if (a === null || b === null) return a === b;
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/* -------------------------------------------------------------------------- */
+/* The body size                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Apply a body size to a chosen set of sections, and to nothing else.
+ *
+ * This one function is both "apply everywhere" and "apply to these": passing
+ * all five sections is the global case. There is deliberately no second code
+ * path for it, because two implementations of "which pages does this change"
+ * is how a global apply quietly misses one.
+ *
+ * WHAT IT DOES TO THE SECTIONS NOT CHOSEN: holds them exactly where they are.
+ * A section already at the design's own size stays there; a section that was
+ * previously overridden keeps its override. "Apply to essays and projects"
+ * means essays and projects, not essays and projects and a reset of
+ * everything else.
+ *
+ * `size` is stored under each chosen section rather than in `size` itself,
+ * even when every section is chosen, so that the stored file says what was
+ * meant: these sections, at this size. `size` stays the site's baseline for
+ * anything added later.
+ */
+export function applyBodySize(
+  chrome: SiteChrome,
+  size: number,
+  sections: readonly SectionId[],
+): SiteChrome {
+  const current = chrome.type ?? { size: BODY_BASE_SIZE, sections: {} };
+  const next: Partial<Record<SectionId, number>> = { ...current.sections };
+  for (const section of sections) {
+    // A section put back to the baseline is REMOVED rather than stored as a
+    // number equal to it. The generator emits nothing for either, but a file
+    // that lists five sections all at 17.5 reads as though something is set.
+    if (size === current.size) delete next[section];
+    else next[section] = size;
+  }
+  return withType(chrome, { size: current.size, sections: next });
+}
+
+/** Put these sections back to the site's baseline, whatever it is. */
+export function clearBodySize(chrome: SiteChrome, sections: readonly SectionId[]): SiteChrome {
+  const current = chrome.type ?? { size: BODY_BASE_SIZE, sections: {} };
+  const next: Partial<Record<SectionId, number>> = { ...current.sections };
+  for (const section of sections) delete next[section];
+  return withType(chrome, { size: current.size, sections: next });
+}
+
+/**
+ * The chrome with type settings attached, or with them removed when they say
+ * nothing.
+ *
+ * Dropping the key when everything is at the baseline is what keeps
+ * "site.json has no type key" the resting state. A site that was scaled and
+ * then put back is byte-identical to one that never was, which is both tidier
+ * to read and the thing that makes the "default generates nothing" guarantee
+ * hold in the file as well as in the CSS.
+ */
+function withType(chrome: SiteChrome, type: { size: number; sections: Partial<Record<SectionId, number>> }): SiteChrome {
+  const sections = Object.fromEntries(
+    Object.entries(type.sections).filter(([, value]) => value !== undefined),
+  ) as Partial<Record<SectionId, number>>;
+  if (type.size === BODY_BASE_SIZE && Object.keys(sections).length === 0) {
+    const { type: _dropped, ...rest } = chrome;
+    return rest as SiteChrome;
+  }
+  return { ...chrome, type: { size: type.size, sections } };
 }

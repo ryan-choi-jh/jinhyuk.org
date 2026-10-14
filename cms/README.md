@@ -18,7 +18,7 @@ Where those two and these files disagree, the code wins.
 Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
-npm run cms:check           # 16 offline suites, about two seconds
+npm run cms:check           # 17 offline suites, about two seconds
 npm run cms:check:browser   # 15 that open a browser, about seven minutes
 npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
 ```
@@ -64,6 +64,7 @@ the Xcode licence is accepted.
 | `verify-hidden.ts` | `meta.hidden` makes a page absent, not merely unlisted |
 | `styles/verify-css-strings.ts` | No backtick inside a CSS comment, and the braces balance |
 | `styles/verify-tokens.ts` | The editor's copy of the site's design tokens still matches `global.css`, both ways |
+| `styles/verify-type-scale.ts` | The body-size scale: its base numbers are what the stylesheets declare, the default generates nothing, and every override out-specifies what it overrides |
 | `server/verify.ts --offline` | Header parsers, HTTP helpers, route refusals |
 
 **Browser** (`npm run cms:check:browser`)
@@ -76,8 +77,9 @@ the Xcode licence is accepted.
 | `app/shell/site-harness/drive.mjs` | The whole-site navigation shell |
 | `app/shell/verify-typography.mjs` | The editor sets prose exactly as the page does, in light and in dark |
 | `styles/verify-spacing.mjs` | "Space above" is a floor, in both places, at both widths |
+| `styles/verify-type-scale-browser.mjs` | A scaled section measures the same in the editor as on the page, at three sizes |
 | `app/records/harness/drive.mjs` | The record editors |
-| `app/chrome/harness/run.mjs` | The nav and footer editor |
+| `app/chrome/harness/run.mjs` | The nav and footer editor, and the body-size panel |
 | `app/guide/harness/run.mjs` | The welcome guide |
 | `app/library/harness/run.mjs` | The component library |
 | `app/canvas/harness/verify-browser.mjs` | The canvas, measured in a browser |
@@ -102,5 +104,11 @@ claimed fixed.
 
 ## State
 
-All 31 non-e2e suites passed on 2026-10-13: 16 offline, 15 browser. With
-the two end-to-end suites that is 33.
+All 33 non-e2e suites passed on 2026-10-14: 17 offline, 16 browser. With
+the two end-to-end suites that is 35.
+
+`preview/verify.ts` has failed two or four of its 424 checks in three
+full-group runs and passed 424/424 in nine runs on its own, including
+under the runner's exact spawn. Not reproduced in isolation and not
+understood. `check.mjs` now prints the named failures of a failed suite
+rather than only its tail, so the next group run says which ones.

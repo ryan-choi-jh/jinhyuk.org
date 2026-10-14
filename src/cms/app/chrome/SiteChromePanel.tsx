@@ -67,6 +67,7 @@ import {
   wordmarkProblem,
 } from './edits.ts';
 import { useChromeStyles } from './styles.ts';
+import { TypeScalePanel } from './TypeScalePanel.tsx';
 
 export function SiteChromePanel() {
   useChromeStyles();
@@ -279,6 +280,16 @@ function Panel({ store }: { store: SiteChromeStore }) {
           </span>
         </div>
       </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* The body size                                                    */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Here because it is the same KIND of setting as the nav and the
+          footer: one decision, made once, applied to every page. It writes
+          into the same file and saves and publishes with everything else in
+          this panel. */}
+
+      <TypeScalePanel />
 
       {/* ---------------------------------------------------------------- */}
       {/* The footer                                                       */}

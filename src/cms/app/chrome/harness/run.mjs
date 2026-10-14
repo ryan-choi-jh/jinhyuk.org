@@ -563,6 +563,114 @@ async function main() {
     await page.shot('02b-wordmark-and-toggle');
 
     /* ------------------------------------------------------------------ */
+    section('the body size, and who gets it');
+    {
+      /*
+       * The thing this panel exists for is not the number, it is knowing
+       * what the number will do before doing it. So the checks follow the
+       * same order the panel does: the proposal, what it says will happen,
+       * and then whether that is what actually happened.
+       *
+       * Measured on the surface, not on the panel. The panel saying "16px"
+       * and the page in the middle still being 17.5 is precisely the failure
+       * mode, and reading the control back would not see it.
+       */
+      // The surface draws prose through the slot, and this harness mounts
+      // no prose editor, so a paragraph is the read-only placeholder's
+      // `p.cms-ph-p`. It inherits from `.cms-surface` exactly as a real
+      // paragraph does, which is the thing being measured.
+      const paragraph = `${t('page-surface')} .cms-ph-p`;
+      const sizeOf = (selector) =>
+        page.evaluate(`(() => {
+          const el = document.querySelector(${JSON.stringify(selector)});
+          if (el === null) return null;
+          const s = getComputedStyle(el);
+          return parseFloat(s.fontSize) + '/' + parseFloat(s.lineHeight);
+        })()`);
+
+      equal('the page starts at the design’s own size', await sizeOf(paragraph), '17.5/35');
+      equal('and the panel says nothing is changed', await page.text(t('type-status')), 'default');
+
+      // Nothing is ticked on a site that has never been scaled, so Apply has
+      // nothing to do and says so rather than quietly applying to everything.
+      equal('with nothing picked, Apply is disabled', await page.disabled(t('type-apply')), true);
+      check(
+        'and the panel says why',
+        (await page.text(t('type-consequence'))).includes('nothing would change'),
+      );
+
+      await page.click(t('type-smaller'));
+      await page.click(t('type-smaller'));
+      await page.click(t('type-smaller'));
+      equal('three steps down from 17.5 is 16', await page.values(t('type-size')), ['16']);
+      equal(
+        'the page has NOT moved, because nothing has been applied',
+        await sizeOf(paragraph),
+        '17.5/35',
+      );
+      check(
+        'the sample shows the proposed size',
+        (await page.text(t('type-sample'))).includes('16px over 32px'),
+        await page.text(t('type-sample')),
+      );
+
+      await page.click(t('type-pick-home'));
+      await page.settle();
+      const scale = await page.texts(`${t('type-scale')} td`);
+      check(
+        'the scale says what else moves, from and to',
+        scale.includes('17.5px/35px') && scale.includes('16px/32px') && scale.includes('14.5px/25.5px'),
+        scale.join(' '),
+      );
+      equal(
+        'the row says where this section is going',
+        await page.text(t('type-now-home')),
+        '17.5px → 16px',
+      );
+      check(
+        'and the consequence names the pages',
+        (await page.text(t('type-consequence'))).includes('the homepage'),
+        await page.text(t('type-consequence')),
+      );
+      equal(
+        'a section that is not ticked says it is staying put',
+        await page.text(t('type-now-essays')),
+        '17.5px',
+      );
+
+      await page.click(t('type-apply'));
+      await page.settle();
+      equal('applying moves the page in the middle', await sizeOf(paragraph), '16/32');
+      equal('and the panel says one section is changed', await page.text(t('type-status')), '1 section changed');
+      equal('and the chrome is unsaved', await page.text(t('chrome-state')), 'unsaved');
+
+      // A quote is the other running text and moves with it. A heading does
+      // not: that is the design decision, checked rather than described.
+      // The callout is covered against real rendered markup in
+      // src/cms/styles/verify-type-scale-browser.mjs; the placeholder here
+      // draws one as an ordinary paragraph.
+      const quote = await sizeOf(`${t('page-surface')} .cms-ph-quote`);
+      if (quote !== null) equal('a quote moves with it', quote, '24/36.5');
+      const heading = await sizeOf(`${t('page-surface')} .cms-ph-h2`);
+      if (heading !== null) equal('a heading does not', heading, '22/32');
+
+      // The one that matters for "apply only to what I picked": the stored
+      // settings name home and nothing else.
+      const stored = await page.evaluate('JSON.stringify(window.__chr.chrome().type)');
+      equal('only the section that was picked is stored', stored, '{"size":17.5,"sections":{"home":16}}');
+
+      await page.click(t('type-reset'));
+      await page.settle();
+      equal('reset puts the page back', await sizeOf(paragraph), '17.5/35');
+      equal(
+        'and removes the setting entirely rather than storing the default',
+        await page.evaluate('String(window.__chr.chrome().type)'),
+        'undefined',
+      );
+      await page.shot('05-type-scale');
+    }
+
+    /* ------------------------------------------------------------------ */
     section('a new link has to be filled in before it can be saved');
 
     await page.click(t('chrome-social-add'));
