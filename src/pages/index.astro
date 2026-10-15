@@ -7,7 +7,8 @@
  * All four are the renderer's now: `renderDoc` sees `meta.section: "home"` and
  * builds the site's own `.hero`, `.hero-hint`, `.intro` and `.lightbox`
  * (src/cms/render/pages/home.ts), and `initLightboxes` is the inline script
- * from this file, ported into a module the album page shares.
+ * from this file, ported into a module the album page shares. `initHomeNote`
+ * plays the 원고지 note over the hero (src/cms/render/home-note-player.ts).
  *
  * doc.css is imported because a band after the hero and the intro renders as
  * an ordinary document (docs/cms-sections.md 3.2). Every one of its rules is
@@ -26,6 +27,10 @@ const body = renderDoc(homeDoc());
 </Base>
 
 <script>
+  import { initHomeNote } from '../cms/render/home-note-player.ts';
   import { initLightboxes } from '../cms/render/lightbox.ts';
   initLightboxes();
+  // After the lightbox, so the lightbox has the tap on the grid first. Not in
+  // the editor's preview frame, on purpose: there the note stays hidden.
+  initHomeNote();
 </script>

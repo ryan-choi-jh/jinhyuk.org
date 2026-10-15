@@ -583,6 +583,126 @@ function render(bands: Band[]): string {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* The 원고지 note (pages/home-note.ts, docs/wongoji-note.md)                  */
+/* -------------------------------------------------------------------------- */
+
+{
+  // The real hero's shape in miniature: the grid at the back, one of the four
+  // subjects, the skier who starts off the left edge, and one ordinary scene.
+  // The alt carries every character escapeAttr has to deal with.
+  const piece = (id: string, x: number, z: number) => ({
+    id,
+    kind: 'image' as const,
+    src: `/home/hero/${id}.webp`,
+    alt: id,
+    x,
+    y: 48,
+    w: 100,
+    h: 100,
+    z,
+  });
+  const homeResult = validateDoc({
+    version: 1,
+    meta: { title: 'Ryan Choi', slug: 'home', date: '2026-10-14', section: 'home' },
+    bands: [
+      {
+        id: 'b_hero',
+        type: 'canvas',
+        height: 789,
+        items: [
+          { ...piece('i_grid', 0, 0), w: 1344, h: 732, alt: 'A grid & "its" <scenes>' },
+          piece('i_01_first_swing', 22, 1),
+          piece('i_10_alpine_carve', -50, 2),
+          piece('i_08_cricket', 1219, 3),
+        ],
+      },
+      prose('b_intro', [{ id: 'p1', kind: 'p', content: [{ type: 'text', text: 'Hello.' }] }]),
+    ],
+  });
+  if (!homeResult.ok) throw new Error(`home test document is invalid:\n${formatIssues(homeResult.issues)}`);
+  const page = renderDoc(homeResult.doc);
+  const lightboxAt = page.indexOf('<div class="lightbox"');
+  const onPage = lightboxAt === -1 ? page : page.slice(0, lightboxAt);
+  const inLightbox = lightboxAt === -1 ? '' : page.slice(lightboxAt);
+
+  // The image role moved off .hero so the note can be text, onto the stage.
+  // verify-sections greps for exactly `class="hero"`, so nothing is added to it.
+  contains('note: .hero is a plain container', page, '<div class="hero" tabindex="-1"><button class="hero-open"');
+  contains(
+    'note: the stage is the one image, named by the grid, escaped',
+    page,
+    '<div class="hero-stage" role="img" aria-label="A grid &amp; &quot;its&quot; &lt;scenes&gt;"',
+  );
+  ok('note: one role="img" on the page, none in the lightbox', (onPage.match(/role="img"/g) ?? []).length === 1 && !inLightbox.includes('role="img"'));
+  ok(
+    'note: hero pieces are hidden from assistive tech, lightbox pieces are not',
+    (onPage.match(/class="hero-piece"[^>]*aria-hidden="true"/g) ?? []).length === 4 && !inLightbox.includes('aria-hidden="true" style'),
+  );
+
+  // What each piece does while the note is up.
+  contains('note: the piece at the back is the ground', page, 'data-item="i_grid" data-note="ground"');
+  contains('note: a subject stays in colour', page, 'data-item="i_01_first_swing" data-note="keep"');
+  contains('note: a scene steps back', page, 'data-item="i_08_cricket" data-note="step-back"');
+  contains('note: the skier at x:-50 comes back first, not before the note leaves', page, '--note-x:0"');
+  contains('note: the stagger is x over 1344', page, `--note-x:${Math.round((1219 / 1344) * 10000) / 10000}"`);
+
+  // Inert without the player: the editor's preview runs no script.
+  for (const [what, open] of [
+    ['the note layer', '<div class="note-layer" hidden>'],
+    ['the caption slot', '<div class="note-caption" hidden>'],
+    ['the replay button', '<button class="note-replay" type="button" hidden>'],
+    ['the rule beside it', '<span class="hero-hint-rule" aria-hidden="true" hidden>'],
+  ] as const) {
+    contains(`note: ${what} is rendered hidden`, page, open);
+  }
+
+  // Inside .hero, beside the button, never inside the stage or the lightbox.
+  const heroEnd = onPage.indexOf('<div class="note-caption"');
+  const layerAt = onPage.indexOf('<div class="note-layer"');
+  const stageEnd = onPage.indexOf('</button>', onPage.indexOf('class="hero-open"'));
+  ok('note: the layer is after the stage and inside .hero', stageEnd !== -1 && layerAt > stageEnd && layerAt < heroEnd);
+  excludes('note: nothing of the note is enlarged in the lightbox', inLightbox, 'class="note');
+
+  // The copy, as Ryan wrote it, and the two bits of markup in it.
+  const note = page.slice(page.indexOf('<aside class="note"'), page.indexOf('</aside>') + 8);
+  contains('note: an aside labelled by its heading', note, 'aria-labelledby="wongoji-note-title"');
+  contains('note: the heading it is labelled by', note, '<p class="note-head" id="wongoji-note-title">');
+  contains(
+    'note: the heading is three squares, silent, then 원고지 said as one word and how it is said',
+    note,
+    '<span class="note-cells" lang="ko" aria-hidden="true"><span class="note-cell"><span class="note-glyph">원</span></span><span class="note-cell"><span class="note-glyph">고</span></span><span class="note-cell"><span class="note-glyph">지</span></span></span><span class="note-said" lang="ko">원고지</span> <span class="note-roman">won-go-ji</span>',
+  );
+  contains('note: paragraph one', note, '<p>Korean manuscript paper. One syllable to a square, spaces included.</p>');
+  contains(
+    'note: paragraph two',
+    note,
+    '<p>I learned to write on these as a kid, filling page after page with diary entries. The early ones were mostly drawings. Eventually, the words took over.</p>',
+  );
+  contains(
+    'note: paragraph three, draft in italics, 원고 in Korean',
+    note,
+    '<p><span lang="ko">원고</span> (won-go) means <em>draft.</em> It felt like a fitting place to begin: a life still being written, one square at a time, with plenty of room for what comes next.</p>',
+  );
+  ok('note: no em or en dashes in the copy', !/[\u2013\u2014]/.test(note));
+  contains('note: the replay button is named by its question', page, '<span class="note-replay-label">What is this grid?</span>');
+  contains('note: the squares on the button are not read out', page, '<span class="note-replay-cells" lang="ko" aria-hidden="true">');
+
+  // No hero, no note: a homepage that starts with prose gets none of it.
+  const noHero = renderDoc(
+    (() => {
+      const r = validateDoc({
+        version: 1,
+        meta: { title: 'Ryan Choi', slug: 'home', date: '2026-10-14', section: 'home' },
+        bands: [prose('b_intro', [{ id: 'p1', kind: 'p', content: [{ type: 'text', text: 'Hello.' }] }])],
+      });
+      if (!r.ok) throw new Error('no-hero test document is invalid');
+      return r.doc;
+    })(),
+  );
+  excludes('note: a homepage without a hero has no note', noHero, 'class="note');
+}
+
 console.log(`${passed} passed, ${failures.length} failed`);
 if (failures.length > 0) {
   for (const failure of failures) console.log(`  FAIL  ${failure}`);

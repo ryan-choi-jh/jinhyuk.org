@@ -6,8 +6,9 @@
  * The homepage is a document now (docs/cms-sections.md 3.2), but it is not a
  * document that should render like a project page. Live it is three things:
  *
- *   .hero        the 원고지 illustration, full bleed, on its own white sheet
- *   .hero-hint   "TAP THE GRID TO ENLARGE", touch devices only
+ *   .hero        the 원고지 illustration, full bleed, on its own white sheet,
+ *                with the 원고지 note over it (./home-note.ts)
+ *   .hero-hint   "TAP THE GRID TO ENLARGE" on touch, and the note's replay
  *   .intro       the name in bold, then the paragraphs, at a 1184px measure
  *   .lightbox    the enlarge overlay, pannable
  *
@@ -31,6 +32,13 @@ import { REFERENCE_WIDTH, isCanvasBand, isProseBand, refPxToPercent } from '../.
 import type { Band, CanvasBand, CanvasItem, Doc, ProseBand } from '../../schema.ts';
 import { attr, css, escapeAttr, escapeText, joinParts, safeUrl } from '../escape.ts';
 import { renderInline, renderProseBlock } from '../prose.ts';
+import {
+  noteRoleOf,
+  renderNoteCaption,
+  renderNoteLayer,
+  renderNoteReplay,
+  renderNoteRule,
+} from './home-note.ts';
 
 /* -------------------------------------------------------------------------- */
 /* Picking the hero and the intro out of the bands                            */
@@ -117,8 +125,23 @@ const HERO_HINT = 'TAP THE GRID TO ENLARGE';
  * fraction off would otherwise shift the scene on the grid. It also means the
  * page does not reflow as 23 files arrive, because every box has its final
  * size before any of them do.
+ *
+ * `data-item` and `data-note` are for the 원고지 note (./home-note.ts): while
+ * it is up, the grid, the four subjects and everything else each do something
+ * different, and the stylesheet tells them apart by these rather than by
+ * position in the list. `--note-x` is how far across the stage the piece
+ * starts, as a fraction, which is what staggers the drawings coming back in
+ * left to right when the note closes.
+ *
+ * `hidden` is for the hero on the page, where the stage is ONE image with one
+ * name (see `renderHero`): the pieces are hidden from assistive technology so
+ * that name is announced once, not followed by 23 more. Chrome does not prune
+ * the children of `role="img"` on its own; measured, it read the grid's alt
+ * twice and then every scene. The alt text stays on each `<img>` all the same,
+ * because the editor lists it and the lightbox, which has no wrapping name,
+ * still uses it.
  */
-function heroPiece(item: CanvasItem, lazy: boolean): string {
+function heroPiece(item: CanvasItem, lazy: boolean, isGround: boolean, hidden: boolean): string {
   const src = safeUrl(item.src);
   if (src === null) return '';
 
@@ -133,6 +156,9 @@ function heroPiece(item: CanvasItem, lazy: boolean): string {
   if (item.rotate !== undefined && item.rotate !== 0) {
     style.push(`transform:rotate(${css(item.rotate)}deg)`);
   }
+  // The skier starts at x:-50, so this is clamped: a negative delay would
+  // bring him back before the note has finished leaving.
+  style.push(`--note-x:${css(Math.min(1, Math.max(0, item.x / REFERENCE_WIDTH)))}`);
 
   // The grid is the ground and is the one piece worth fetching eagerly; the
   // scenes on it can arrive as they arrive. In the lightbox nothing is
@@ -141,7 +167,8 @@ function heroPiece(item: CanvasItem, lazy: boolean): string {
     lazy || item.z !== 0 ? ' loading="lazy" decoding="async"' : ' fetchpriority="high" decoding="async"';
 
   return (
-    `<div class="hero-piece" style="${escapeAttr(style.join(';'))}">` +
+    `<div class="hero-piece"${attr('data-item', item.id)}${attr('data-note', noteRoleOf(item.id, isGround))}` +
+    `${hidden ? ' aria-hidden="true"' : ''} style="${escapeAttr(style.join(';'))}">` +
     `<img${attr('src', src)}${attr('alt', item.alt ?? '')}${priority} />` +
     '</div>'
   );
@@ -154,14 +181,21 @@ function heroPiece(item: CanvasItem, lazy: boolean): string {
  * `.doc`, because the hero is not inside `.doc` — it is a sibling of it — so
  * without this the `cqw` tops would resolve against the wrong box, or against
  * the viewport, and the whole arrangement would shear as the window changed.
+ *
+ * `label` makes the stage the illustration's one accessible image, which is
+ * what the page wants and the lightbox does not (the overlay is a dialog with
+ * its own name, and the pieces inside it are the thing being looked at).
  */
-function heroStage(band: CanvasBand, lazy: boolean): string {
-  const pieces = [...band.items]
-    .sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
-    .map((item) => heroPiece(item, lazy))
+function heroStage(band: CanvasBand, options: { lazy: boolean; label?: string }): string {
+  const sorted = [...band.items].sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+  const ground = sorted[0];
+  const labelled = options.label !== undefined;
+  const pieces = sorted
+    .map((item) => heroPiece(item, options.lazy, item === ground, labelled))
     .join('');
+  const role = labelled ? ` role="img"${attr('aria-label', options.label)}` : '';
   return (
-    `<div class="hero-stage" style="aspect-ratio:${css(REFERENCE_WIDTH)} / ${css(band.height)}">` +
+    `<div class="hero-stage"${role} style="aspect-ratio:${css(REFERENCE_WIDTH)} / ${css(band.height)}">` +
     pieces +
     '</div>'
   );
@@ -184,19 +218,41 @@ const CLOSE_SVG =
   '<path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />' +
   '</svg>';
 
+/**
+ * The hero, the 원고지 note that explains it, and the row under the sheet.
+ *
+ *   .hero                  the white sheet; plain container, focus returns here
+ *     .hero-open           the enlarge button (inert on a desktop)
+ *       .hero-stage        role="img", the illustration's one name
+ *     .note-layer          the note, over the grid (hidden until played)
+ *   .note-caption          the note's place on a phone (hidden, empty)
+ *   .hero-hint             TAP THE GRID TO ENLARGE | replay button
+ *
+ * `role="img"` used to be on `.hero` itself. It moved to the stage because a
+ * note inside it would be text inside an image, which is not text anyone can
+ * reach, and the note is a sibling of the button, not a descendant of the
+ * stage, for that reason and because the lightbox reuses the stage.
+ *
+ * The replay button is in the hint row because on a phone it shares that row
+ * with the hint, one line under the sheet. On a desktop the row is a
+ * zero-height strip holding only the button, so it overlays the gap above the
+ * intro rather than pushing the intro down: in Paper the intro is at the same
+ * height with and without it.
+ */
 export function renderHero(band: CanvasBand): string {
-  // role="img" with one label makes the 23 pieces presentational, so assistive
-  // technology announces the illustration once rather than reading a list of
-  // scene names. The pieces keep their own alt text all the same: it is what
-  // the editor lists down the side, and it is the fallback if the wrapper's
-  // role is ever dropped.
   return (
-    `<div class="hero" tabindex="-1" role="img"${attr('aria-label', heroLabel(band))}>` +
+    '<div class="hero" tabindex="-1">' +
     '<button class="hero-open" type="button" aria-label="Enlarge the illustration">' +
-    heroStage(band, false) +
+    heroStage(band, { lazy: false, label: heroLabel(band) }) +
     '</button>' +
+    renderNoteLayer() +
     '</div>' +
-    `<span class="hero-hint">${HERO_HINT}</span>`
+    renderNoteCaption() +
+    '<div class="hero-hint">' +
+    `<span class="hero-hint-tap">${HERO_HINT}</span>` +
+    renderNoteRule() +
+    renderNoteReplay() +
+    '</div>'
   );
 }
 
@@ -215,7 +271,7 @@ export function renderHeroLightbox(band: CanvasBand): string {
   return (
     `<div class="lightbox" id="${HERO_LIGHTBOX_ID}" tabindex="-1" role="dialog" aria-modal="true"` +
     ' aria-label="Illustration, enlarged">' +
-    `<div class="lightbox-stage">${heroStage(band, true)}</div>` +
+    `<div class="lightbox-stage">${heroStage(band, { lazy: true })}</div>` +
     '<button class="lightbox-close" type="button" aria-label="Close">' +
     CLOSE_SVG +
     '</button>' +

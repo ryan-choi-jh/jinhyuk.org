@@ -67,6 +67,9 @@ const BROWSER = [
   ['preview', 'src/cms/preview/verify.ts'],
   ['render layout', 'src/cms/render/verify.ts'],
   ['render vs the live site', 'src/cms/render/verify-sections.ts'],
+  // ASCII on purpose: padEnd counts a Hangul syllable as one column and the
+  // terminal draws it as two, which knocks the table out of line.
+  ['the wongoji note', 'src/cms/render/verify-home-note.mjs'],
   ['integration', 'src/cms/app/integration/verify.ts'],
 ];
 

@@ -31,8 +31,12 @@ const OPEN_CLASS = 'is-open';
 /**
  * The media query the homepage uses to decide whether enlarging is worth
  * offering. Verbatim from src/pages/index.astro.
+ *
+ * Exported because the 원고지 note (./home-note-player.ts) draws the same
+ * line: where a tap enlarges the grid, the note is a caption under it rather
+ * than an overlay on it, and a tap on the grid must never start it.
  */
-const CAN_ZOOM = '(pointer: coarse), (max-width: 1024px)';
+export const CAN_ZOOM = '(pointer: coarse), (max-width: 1024px)';
 
 type Teardown = () => void;
 

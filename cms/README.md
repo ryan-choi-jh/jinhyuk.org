@@ -19,7 +19,7 @@ Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
 npm run cms:check           # 17 offline suites, about two seconds
-npm run cms:check:browser   # 15 that open a browser, about seven minutes
+npm run cms:check:browser   # 17 that open a browser, about eight minutes
 npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
 ```
 
@@ -86,6 +86,7 @@ the Xcode licence is accepted.
 | `preview/verify.ts` | The preview, every surface, every width |
 | `render/verify.ts` | Layout at 1440, 1100 and 390 |
 | `render/verify-sections.ts` | **Pixel-compared against jinhyuk.org as it is right now** |
+| `render/verify-home-note.mjs` | The homepage's 원고지 note, on a real build: its squares on the grid's own lines (found in the image's pixels) at 1440 and 1100, every trigger and way out, the phone caption, dark mode, reduced motion, the keyboard, the accessibility tree, storage that throws, and that it is invisible without its script |
 | `app/integration/verify.ts` | The wiring between workstreams |
 
 **End to end** (`npm run cms:check:e2e`) creates a throwaway branch, drives
@@ -104,8 +105,10 @@ claimed fixed.
 
 ## State
 
-All 33 non-e2e suites passed on 2026-10-14: 17 offline, 16 browser. With
-the two end-to-end suites that is 35.
+All 34 non-e2e suites passed on 2026-10-14: 17 offline, 17 browser. The
+17th browser suite, `render/verify-home-note.mjs`, came in with the
+homepage's 원고지 note; the end-to-end pair was not re-run for it, since the
+note touches neither the API nor the editor. With them that is 36.
 
 `preview/verify.ts` has failed two or four of its 424 checks in three
 full-group runs and passed 424/424 in nine runs on its own, including

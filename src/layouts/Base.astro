@@ -127,7 +127,15 @@ const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Inter+Tight:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Sarina&family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Inter:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Inter+Tight:wght@400;500&display=swap"
+    />
+    {/* The 원고지 note's red pen (src/cms/render/pages/home-note.ts). Its own
+        request, cut to the letters it writes: 원고지 and won-go-ji. The whole
+        family is a multi-megabyte Korean font for eleven glyphs. A separate
+        link because `text=` applies to every family in a request. */}
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&text=%EC%9B%90%EA%B3%A0%EC%A7%80won-gji&display=swap"
     />
     {/* is:inline, or Astro treats this as a scoped component style: it
         hoists it into the bundled stylesheet and rewrites the selectors,

@@ -315,6 +315,8 @@ html.theme-vt::view-transition-new(root) {
    into the 44px of bleed below the grid that the export carries and the
    reduced .intro padding accounts for. */
 .hero {
+  /* For the 원고지 note's layer, which is placed over the stage. */
+  position: relative;
   background: var(--sheet);
   box-shadow: 0 0 0 100vmax var(--sheet);
   clip-path: inset(0 -100vmax);
@@ -376,10 +378,16 @@ html.theme-vt::view-transition-new(root) {
   cursor: default;
 }
 
-/* Sits below the sheet, on the page background, not on the paper. */
+/* Sits below the sheet, on the page background, not on the paper.
+
+   On a desktop the row is a zero-height strip with only the 원고지 note's
+   replay button in it (the tap hint is for touch). Zero height, so the button
+   overlays the gap above .intro instead of pushing the intro down: in Paper
+   the intro is at the same y with the button and without it. */
 .hero-hint {
-  display: none;
-  align-items: center;
+  display: flex;
+  height: 0;
+  align-items: flex-start;
   justify-content: center;
   font-family: var(--nav);
   font-size: 8px;
@@ -387,6 +395,11 @@ html.theme-vt::view-transition-new(root) {
   line-height: 20px;
   letter-spacing: 0.08em;
   color: var(--muted);
+}
+
+.hero-hint-tap,
+.hero-hint-rule {
+  display: none;
 }
 
 /* Touch devices, and small windows. Phones and iPads get the enlarge;
@@ -397,7 +410,665 @@ html.theme-vt::view-transition-new(root) {
   }
 
   .hero-hint {
-    display: flex;
+    height: auto;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .hero-hint-tap {
+    display: inline;
+  }
+
+  .hero-hint-rule {
+    display: block;
+    flex-shrink: 0;
+    width: 1px;
+    height: 10px;
+    background: var(--rule);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   원고지 note
+   The homepage explaining its grid, once: the drawings step back, 원 · 고 · 지
+   is written into three of the grid's squares in red pen, and a short note
+   says what the paper is. On close the three squares fly into the replay
+   button under the sheet. Markup: src/cms/render/pages/home-note.ts.
+   Behaviour, and the timeline these delays add up to:
+   src/cms/render/home-note-player.ts. Handoff: docs/wongoji-note.md.
+
+   Every element is rendered `hidden` and the player takes that off, so these
+   [hidden] rules have to out-rank the display each element is given below.
+   --------------------------------------------------------------------------- */
+.note-layer[hidden],
+.note-caption[hidden],
+.note-replay[hidden],
+.hero-hint-rule[hidden],
+.hero-hint.is-away {
+  display: none;
+}
+
+/* Over the stage exactly, and an inline-size container of its own, so cqw
+   here is the same stage width the pieces are placed against: the note's
+   squares stay locked onto the grid's at any window width. */
+.note-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  container-type: inline-size;
+  pointer-events: none;
+  /* The sheet is white in both themes, so the note is too. Not --ink and
+     --muted: those turn light in dark mode, on paper that does not. */
+  --note-ink: #1a1a1a;
+  --note-quiet: #6b6b6b;
+}
+
+/* Under the sheet the caption is on the page background, which does change
+   with the theme, so there it is the other way round. */
+.note-caption {
+  --note-ink: #1a1a1a;
+  --note-quiet: var(--muted);
+}
+
+:root[data-theme='dark'] .note-caption {
+  --note-ink: var(--ink);
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  color: var(--note-ink);
+}
+
+/* Focused only when a keyboard user replays it, so Tab carries on from the
+   note rather than from the top of the page. Never a ring over the grid. */
+.note:focus {
+  outline: none;
+}
+
+.note-head {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.note-cells {
+  display: flex;
+}
+
+/* 원고지 as one word, for a screen reader: the squares beside it are
+   aria-hidden, because three boxes are read as three syllables. */
+.note-said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Shared edges, no double lines: every square has a left, top and bottom
+   border and only the last closes on the right, as in Paper. */
+.note-cell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid #ee9ea3;
+  border-right-width: 0;
+  background: #ffffff;
+}
+
+.note-cell:last-child {
+  border-right-width: 1px;
+}
+
+.note-glyph,
+.note-roman,
+.note-replay-glyph {
+  font-family: 'Nanum Pen Script', cursive;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #d7261e;
+}
+
+.note-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.note-body p {
+  margin: 0;
+  font-family: var(--sans);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  /* Korean words stay whole, so 그림일기 never breaks mid-word. */
+  word-break: keep-all;
+}
+
+.note-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.note-close {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* A bigger target than the 16px it looks, without moving anything. */
+  margin: -14px -10px;
+  padding: 14px 10px;
+  border: 0;
+  background: none;
+  font-family: var(--nav);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--note-quiet);
+  cursor: pointer;
+}
+
+.note-close svg {
+  width: 10px;
+  height: 10px;
+}
+
+.note-close:hover {
+  color: #d7261e;
+}
+
+.note-close:focus {
+  outline: none;
+}
+
+.note-close:focus-visible span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The hold, in red pen: it un-draws over the 12 seconds the note stays up. */
+.note-timer {
+  display: block;
+  flex-shrink: 0;
+  width: 62px;
+  height: 2px;
+}
+
+.note-timer-bar {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  background: #d7261e;
+  transform-origin: left center;
+}
+
+/* --- On the sheet (desktop) ----------------------------------------------
+   Every size that has to stay on the grid is in cqw against 1344: the block
+   starts at (240, 60) in stage space, which is columns 5 to 7 of the first
+   row, and a square is 48. Text clamps; the squares never do. */
+.note-layer .note {
+  position: absolute;
+  left: 17.8571cqw;   /* 240 */
+  top: 4.4643cqw;     /* 60 */
+  width: 44.6429cqw;  /* 600 */
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.note-layer .note-cell {
+  width: 3.5714cqw;   /* 48 */
+  height: 3.5714cqw;
+}
+
+.note-layer .note-glyph {
+  font-size: 4.0179cqw;   /* 54 */
+  line-height: 3.5714cqw; /* 48 */
+}
+
+.note-layer .note-roman {
+  padding-left: 0.8929cqw; /* 12 */
+  font-size: 2.2321cqw;    /* 30 */
+  line-height: 3.5714cqw;
+}
+
+.note-layer .note-body {
+  width: 43.1548cqw;  /* 580 */
+  gap: 10px;
+}
+
+.note-layer .note-body p {
+  font-size: clamp(14px, 1.1905cqw, 16px);
+  line-height: 1.5;
+  /* Lifts the words off the ghosted drawings behind them. */
+  text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px #fff;
+}
+
+.note-layer .note-foot {
+  margin-top: 6px; /* 16 below the body, with the 10px gap */
+}
+
+/* --- The replay button ----------------------------------------------------
+   Desktop: centred under the sheet, its squares about 10px below the grid.
+   The padding makes the target 44px tall; the negative margin gives the
+   space back, so the visible squares sit 1px under .hero's bottom edge (stage
+   y 790) and nothing in the layout moves. Positioned so it is above .intro's
+   padding when hit-testing; that box overlaps it. */
+.note-replay {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -7px -12px -16px;
+  padding: 8px 12px 16px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.note-replay-cells {
+  display: flex;
+}
+
+/* White in both themes: a scrap of the sheet, on the page background. */
+.note-replay-cell {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #f3b9bc;
+  border-right-width: 0;
+  background: #ffffff;
+}
+
+.note-replay-cell:last-child {
+  border-right-width: 1px;
+}
+
+.note-replay-glyph {
+  font-size: 22px;
+  line-height: 20px;
+}
+
+.note-replay-label {
+  position: relative;
+  font-family: var(--nav);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 150ms ease-out;
+}
+
+.note-replay:hover .note-replay-label,
+.note-replay:focus-visible .note-replay-label {
+  color: #d7261e;
+}
+
+.note-replay:focus {
+  outline: none;
+}
+
+.note-replay:focus-visible .note-replay-cells {
+  outline: 2px solid #d7261e;
+  outline-offset: 2px;
+}
+
+/* Drawn once, as the heading lands in the button. Only then: a returning
+   visitor gets the button and no flourish. */
+.note-replay-label::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0.08em; /* the tracking after the last letter is not text */
+  bottom: -3px;
+  height: 1.5px;
+  background: #d7261e;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* --- Under the sheet (phones, touch, and windows of 1024 or less) --------
+   The same media query as the lightbox's CAN_ZOOM. No overlay: the squares
+   are about 12px here. The note opens under the sheet in place of the hint
+   row, growing from nothing (0fr to 1fr). */
+@media (pointer: coarse), (max-width: 1024px) {
+  .note-caption {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .note-caption.is-open {
+    grid-template-rows: 1fr;
+  }
+
+  /* Closing: shrinks as the heading flies into the hint row, and lands with
+     it, so the row arrives where the squares do. */
+  .note-caption.is-collapsing {
+    transition-duration: 600ms;
+    transition-delay: 100ms;
+    transition-timing-function: cubic-bezier(0.5, 0, 0.2, 1);
+  }
+
+  .note-caption-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .note-caption .note {
+    gap: 12px;
+    padding: 16px 0;
+  }
+
+  .note-caption .note-cell {
+    width: 30px;
+    height: 30px;
+    border-color: #f3b9bc;
+  }
+
+  .note-caption .note-glyph {
+    font-size: 34px;
+    line-height: 30px;
+  }
+
+  .note-caption .note-roman {
+    padding-left: 10px;
+    font-size: 24px;
+    line-height: 30px;
+  }
+
+  .note-caption .note-body {
+    gap: 8px;
+  }
+
+  .note-caption .note-body p {
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .note-replay {
+    gap: 7px;
+    margin: -12px -8px;
+    padding: 12px 8px;
+  }
+
+  .note-replay-cell {
+    width: 16px;
+    height: 16px;
+  }
+
+  .note-replay-glyph {
+    font-size: 18px;
+    line-height: 16px;
+  }
+
+  /* The size and weight of the tap hint beside it. */
+  .note-replay-label {
+    font-size: 8px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  .note-replay-label::after {
+    bottom: 1px;
+    height: 1px;
+  }
+}
+
+/* --- Stepped back ----------------------------------------------------------
+   While the note is up the grid fades to 0.38 and every drawing to 0.10 in
+   grey, except the four subjects (data-note="keep", see home-note.ts). On
+   close they come back left to right, by where each one starts. */
+.hero .hero-piece {
+  transition:
+    opacity 500ms ease-out,
+    filter 500ms ease-out;
+}
+
+.hero.is-noting .hero-piece {
+  opacity: 0.1;
+  filter: grayscale(1);
+}
+
+.hero.is-noting .hero-piece[data-note='ground'] {
+  opacity: 0.38;
+  filter: none;
+}
+
+.hero.is-noting .hero-piece[data-note='keep'] {
+  opacity: 1;
+  filter: none;
+}
+
+.hero.is-returning .hero-piece {
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  transition-delay: calc(200ms + var(--note-x, 0) * 200ms);
+}
+
+/* --- The timeline ----------------------------------------------------------
+   Times are from the trigger. Build: the squares fade in (0 to 500ms), the
+   syllables are written left to right, 120ms each with 60ms between (300,
+   480, 660), won-go-ji at 780, then the paragraphs and the close row rise in
+   60ms apart from 900. `both` holds each one at its start until its turn. */
+@keyframes note-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes note-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Negative insets so the pen's strokes, which overhang a 48px line at 54px,
+   are not trimmed top and bottom while the reveal runs. */
+@keyframes note-write {
+  from {
+    clip-path: inset(-25% 100% -25% -25%);
+  }
+  to {
+    clip-path: inset(-25% -25% -25% -25%);
+  }
+}
+
+@keyframes note-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes note-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes note-underline {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  16.67% {
+    transform: scaleX(1);
+  }
+  83.33% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.note.is-building .note-cell {
+  animation: note-fade-in 500ms ease-out both;
+}
+
+.note.is-building .note-glyph {
+  animation: note-write 120ms cubic-bezier(0.65, 0, 0.35, 1) 300ms both;
+}
+
+.note.is-building .note-cell:nth-child(2) .note-glyph {
+  animation-delay: 480ms;
+}
+
+.note.is-building .note-cell:nth-child(3) .note-glyph {
+  animation-delay: 660ms;
+}
+
+.note.is-building .note-roman {
+  animation: note-fade-in 200ms cubic-bezier(0.65, 0, 0.35, 1) 780ms both;
+}
+
+.note.is-building .note-body p,
+.note.is-building .note-foot {
+  animation: note-rise 300ms cubic-bezier(0.65, 0, 0.35, 1) 900ms both;
+}
+
+.note.is-building .note-body p:nth-child(2) {
+  animation-delay: 960ms;
+}
+
+.note.is-building .note-body p:nth-child(3) {
+  animation-delay: 1020ms;
+}
+
+.note.is-building .note-foot {
+  animation-delay: 1080ms;
+}
+
+/* A replay: the squares arrive already written, flown up from the button
+   (0 to 600ms), so nothing is written on and the rest starts sooner. */
+.note.is-building.is-replay .note-cell,
+.note.is-building.is-replay .note-glyph {
+  animation: none;
+}
+
+.note.is-building.is-replay .note-roman {
+  animation-delay: 600ms;
+}
+
+.note.is-building.is-replay .note-body p:nth-child(1) {
+  animation-delay: 700ms;
+}
+
+.note.is-building.is-replay .note-body p:nth-child(2) {
+  animation-delay: 760ms;
+}
+
+.note.is-building.is-replay .note-body p:nth-child(3) {
+  animation-delay: 820ms;
+}
+
+.note.is-building.is-replay .note-foot {
+  animation-delay: 880ms;
+}
+
+/* While the squares are in flight, the ones they left or are heading for
+   are held invisible, still taking their space. */
+.note.is-cells-away .note-cells,
+.note-replay.is-cells-away .note-replay-cells {
+  visibility: hidden;
+}
+
+.note.is-holding .note-timer-bar {
+  animation: note-timer 12s linear both;
+}
+
+/* The hold waits while the pointer is on the hero or focus is in the note. */
+.note.is-paused .note-timer-bar {
+  animation-play-state: paused;
+}
+
+/* Close: everything but the heading fades in the first 200ms. */
+.note.is-closing .note-roman,
+.note.is-closing .note-body,
+.note.is-closing .note-foot {
+  animation: note-fade-out 200ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* The ways out that skip the flight (the hero scrolled out of view, or
+   reduced motion): the whole note fades, and the button fades in. */
+.note.is-fading {
+  animation: note-fade-out 200ms ease-out both;
+}
+
+.hero-hint.is-appearing .hero-hint-tap,
+.hero-hint.is-appearing .hero-hint-rule,
+.hero-hint.is-appearing .note-replay {
+  animation: note-fade-in 200ms ease-out both;
+}
+
+/* The row under the sheet, as the heading lands in it: the label (and on a
+   phone the tap hint and the rule) fade in from 400 to 700ms. */
+.hero-hint.is-arriving .hero-hint-tap,
+.hero-hint.is-arriving .hero-hint-rule,
+.hero-hint.is-arriving .note-replay-label {
+  animation: note-fade-in 300ms cubic-bezier(0.65, 0, 0.35, 1) 400ms both;
+}
+
+.note-replay.is-landed .note-replay-label::after {
+  animation: note-underline 1.8s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* The squares in flight: a fixed clone on <body>, because .hero's clip-path
+   would cut off anything that leaves it downwards. Positioned by the player;
+   x and y move on separate wrappers so the path arcs. */
+.note-flight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.note-flight > div > div {
+  display: flex;
+  transform-origin: 0 0;
+}
+
+/* Reduced motion: nothing is written on, nothing flies, nothing staggers.
+   The note and the stepped-back state arrive in one 200ms fade and leave in
+   another (the player closes by .is-fading, never by the flight), and the
+   button fades in as the note goes. */
+@media (prefers-reduced-motion: reduce) {
+  .note.is-building .note-cell,
+  .note.is-building .note-glyph,
+  .note.is-building .note-roman,
+  .note.is-building .note-body p,
+  .note.is-building .note-foot {
+    animation: none;
+  }
+
+  .note.is-building {
+    animation: note-fade-in 200ms ease-out both;
+  }
+
+  .hero .hero-piece,
+  .hero.is-returning .hero-piece {
+    transition:
+      opacity 200ms ease-out,
+      filter 200ms ease-out;
+    transition-delay: 0s;
+  }
+
+  .note-caption,
+  .note-caption.is-collapsing {
+    transition: none;
   }
 }
 
