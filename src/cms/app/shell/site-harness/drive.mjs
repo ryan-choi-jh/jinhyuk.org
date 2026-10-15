@@ -37,6 +37,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const OUT_DIR =
   process.env.CMS_SITE_HARNESS_OUT ?? fileURLToPath(new URL('.out', import.meta.url));
 const SHOTS_DIR = join(OUT_DIR, 'shots');
+/** The repository, for real files to hand a file input. */
+const ROOT = fileURLToPath(new URL('../../../../../', import.meta.url));
 const CHROME =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
@@ -304,6 +306,21 @@ class Page {
       el.dispatchEvent(new Event('input', { bubbles: true }));
       return true;
     })()`);
+    await this.settle();
+  }
+
+  /**
+   * Put real files on a real `<input type="file">`, the way a file dialog
+   * does. The records harness's helper, by test id: a synthetic change event
+   * cannot carry a FileList, so this goes through DevTools instead.
+   */
+  async setFiles(testId, paths) {
+    const node = await this.cdp.send('Runtime.evaluate', {
+      expression: `document.querySelector('[data-testid="${testId}"]')`,
+    });
+    const objectId = node.result?.objectId;
+    if (objectId === undefined) throw new Error(`no file input at ${testId}`);
+    await this.cdp.send('DOM.setFileInputFiles', { files: paths, objectId });
     await this.settle();
   }
 
@@ -1161,6 +1178,80 @@ section('renaming a page from the field that shows its slug');
     check('and so is the top bar', narrow.bar === 'none');
     console.log(`    shot  ${await page.shot('15-narrow')}`);
     await page.setViewport(WIDE);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  section('an essay cover: upload it, describe it, remove it');
+  {
+    await page.evaluate('window.confirm = () => true');
+    const meta = () => page.evaluate(`window.__wsd.store.docStore('essays').getState().doc.meta`);
+
+    // A page whose masthead does not draw a cover is not offered one.
+    await page.click('section-row-projects');
+    await page.quiet();
+    await page.click(`entry-open-${PROJECT}`);
+    await page.quiet();
+    const onProject = await page.evaluate(`document.querySelector('[data-testid="meta-cover-pick"]') !== null`);
+    check('a project is not offered a cover', onProject === false);
+
+    await page.click('section-row-essays');
+    await page.quiet();
+    await page.click(`entry-open-${ESSAY}`);
+    await page.quiet();
+    check('an essay is', await page.evaluate(`document.querySelector('[data-testid="meta-cover-pick"]') !== null`));
+    check(
+      'and is asked for no description before there is a picture',
+      await page.evaluate(`document.querySelector('[data-testid="meta-cover-alt"]') === null`),
+    );
+
+    // Something that is not a picture is refused before it is sent.
+    await page.setFiles('meta-cover-input', [join(ROOT, 'package.json')]);
+    await page.quiet();
+    const refused = await page.evaluate(`document.querySelector('[data-testid="meta-cover-problem"]')?.textContent ?? ''`);
+    check('a file that is not an image is refused, naming it', refused.includes('package.json'), refused);
+    check('and nothing was stored', (await meta()).cover === undefined);
+
+    await page.setFiles('meta-cover-input', [join(ROOT, 'public', 'home', 'hero.jpg')]);
+    await page.quiet();
+    const uploaded = await meta();
+    check(
+      'a picture is uploaded into the essay\'s own media folder and becomes the cover',
+      uploaded.cover === `/media/essays/${uploaded.slug}/hero.jpg`,
+      String(uploaded.cover),
+    );
+    const drawn = await page.evaluate(`(() => {
+      const img = document.querySelector('[data-testid="surface-doc-head"] .doc-cover img');
+      if (img === null) return null;
+      const box = img.getBoundingClientRect();
+      const title = document.querySelector('[data-testid="surface-doc-head"] .doc-title').getBoundingClientRect();
+      return { ratio: box.width / box.height, above: box.bottom <= title.top, alt: img.getAttribute('alt') };
+    })()`);
+    check('the page surface draws it', drawn !== null);
+    if (drawn !== null) {
+      check('at the page\'s 12:5', Math.abs(drawn.ratio - 2.4) < 0.01, drawn.ratio.toFixed(3));
+      check('above the title', drawn.above === true);
+      check('announced as decorative until it is described', drawn.alt === '', JSON.stringify(drawn.alt));
+    }
+    check('the panel shows it', await page.evaluate(`document.querySelector('[data-testid="meta-cover-thumb"]') !== null`));
+
+    await page.fill('meta-cover-alt', 'A field of dug holes');
+    const described = await meta();
+    check('the description is stored', described.coverAlt === 'A field of dug holes', String(described.coverAlt));
+    check(
+      'and reaches the drawn image',
+      (await page.evaluate(`document.querySelector('[data-testid="surface-doc-head"] .doc-cover img')?.getAttribute('alt') ?? null`)) ===
+        'A field of dug holes',
+    );
+    console.log(`    shot  ${await page.shot('16-essay-cover')}`);
+
+    await page.click('meta-cover-remove');
+    await page.quiet();
+    const removed = await meta();
+    check('Remove takes the cover and its description', removed.cover === undefined && removed.coverAlt === undefined);
+    check(
+      'and the page surface stops drawing it',
+      await page.evaluate(`document.querySelector('[data-testid="surface-doc-head"] .doc-cover') === null`),
+    );
   }
 
   /* ---------------------------------------------------------------------- */

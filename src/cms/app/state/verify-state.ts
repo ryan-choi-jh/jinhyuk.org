@@ -178,6 +178,29 @@ section('doc-ops: meta and equality');
   check('clearing an optional field removes the key', !('summary' in ops.updateMeta(dense, { summary: '' }).meta));
   check('setting the same value is a no-op', ops.updateMeta(dense, { title: dense.meta.title }) === dense);
 
+  // The cover and its description, the way the inspector writes them.
+  const covered = ops.updateMeta(dense, { cover: '/media/essays/x/cover.jpg', coverAlt: 'A field of holes' });
+  check('a cover and its description are stored', covered.meta.cover === '/media/essays/x/cover.jpg' && covered.meta.coverAlt === 'A field of holes');
+  check('a page with a cover validates', validateDoc(covered).ok);
+  check(
+    'clearing the description removes the key, not an empty string the schema refuses',
+    (() => {
+      const cleared = ops.updateMeta(covered, { coverAlt: '' });
+      return !('coverAlt' in cleared.meta) && validateDoc(cleared).ok;
+    })(),
+  );
+  check(
+    'removing the cover takes its description with it',
+    (() => {
+      const removed = ops.updateMeta(covered, { cover: undefined });
+      return !('cover' in removed.meta) && !('coverAlt' in removed.meta);
+    })(),
+  );
+  // `dense` already carries a cover (it is the old, unused list-thumbnail
+  // field's fixture), so start from a page without one.
+  const bare = ops.updateMeta(dense, { cover: undefined });
+  check('a description typed before any image is kept out of the file', !('coverAlt' in ops.updateMeta(bare, { coverAlt: 'Early' }).meta));
+
   check('deepEqual ignores key order', ops.deepEqual({ a: 1, b: 2 }, { b: 2, a: 1 }));
   check('deepEqual treats a missing key and an undefined key as equal', ops.deepEqual({ a: 1 }, { a: 1, b: undefined }));
   check('deepEqual sees a different value', !ops.deepEqual({ a: 1 }, { a: 2 }));

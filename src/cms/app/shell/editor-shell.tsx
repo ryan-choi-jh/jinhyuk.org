@@ -206,7 +206,7 @@ export function EditorShell({
           <section className="cms-pane cms-pane--right" aria-label="Inspector">
             <header className="cms-pane__head">Inspector</header>
             <div className="cms-pane__body">
-              <Inspector store={store} state={state} slots={slots} />
+              <Inspector store={store} state={state} slots={slots} resolveMediaSrc={resolveMediaSrc} />
             </div>
           </section>
         </div>

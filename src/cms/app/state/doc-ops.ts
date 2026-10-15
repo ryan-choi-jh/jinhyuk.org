@@ -760,7 +760,7 @@ export function blockPlainText(block: ProseBlock): string {
  * place to put it.
  */
 export function updateMeta(doc: Doc, patch: Partial<DocMeta>): Doc {
-  const OPTIONAL = ['summary', 'url', 'urlLabel', 'cover'] as const;
+  const OPTIONAL = ['summary', 'url', 'urlLabel', 'cover', 'coverAlt'] as const;
   let meta: DocMeta = { ...doc.meta, ...patch };
   for (const key of OPTIONAL) {
     if (meta[key] === '' || meta[key] === undefined) meta = omit(meta, key);
@@ -773,6 +773,10 @@ export function updateMeta(doc: Doc, patch: Partial<DocMeta>): Doc {
   // whole row with the link) and waiting to reappear under a different URL
   // typed months later.
   if (meta.url === undefined) meta = omit(meta, 'urlLabel');
+  // The same for the cover. A description of an image that has been removed
+  // describes nothing, and left in the file it would be read out over the
+  // next cover uploaded, which is a different picture.
+  if (meta.cover === undefined) meta = omit(meta, 'coverAlt');
   if (deepEqual(meta, doc.meta)) return doc;
   return { ...doc, meta };
 }

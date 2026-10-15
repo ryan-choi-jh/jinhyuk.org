@@ -25,6 +25,8 @@ import {
 } from '../../schema.ts';
 import type { Anchor, BlockSpace, CanvasBand, CanvasItem, Doc, ProseBand, ProseBlock, ProseBlockKind, ShapeKind } from '../../schema.ts';
 import { SPACE_SCALE } from '../../styles/spacing.ts';
+import { drawsCover } from '../../render/index.ts';
+import { isPhotoFile, rejectedFileMessage } from '../records/uploads.ts';
 import { blockPlainText, emptyProseBlocks, mergeTargetFor } from '../state/doc-ops.ts';
 import { resolveSelection } from '../state/selection.ts';
 import type { Selection } from '../state/selection.ts';
@@ -73,9 +75,13 @@ export type InspectorProps = {
   store: DocStore;
   state: DocStoreState;
   slots: EditorShellSlots;
+  /** The shell's, so a just-uploaded cover's thumbnail loads. Identity by default. */
+  resolveMediaSrc?: (src: string) => string;
 };
 
-export function Inspector({ store, state, slots }: InspectorProps) {
+const identity = (src: string): string => src;
+
+export function Inspector({ store, state, slots, resolveMediaSrc = identity }: InspectorProps) {
   const { doc, selection } = state;
   const resolved = resolveSelection(doc, selection);
 
@@ -105,7 +111,7 @@ export function Inspector({ store, state, slots }: InspectorProps) {
         </div>
       )}
 
-      {resolved.kind === 'none' && <PagePanel store={store} state={state} />}
+      {resolved.kind === 'none' && <PagePanel store={store} state={state} resolveMediaSrc={resolveMediaSrc} />}
 
       {resolved.kind === 'band' && (
         <BandPanel store={store} doc={doc} band={resolved.band} bandIndex={resolved.bandIndex} />
@@ -287,7 +293,154 @@ function SlugField({ store, state }: { store: DocStore; state: DocStoreState }) 
   );
 }
 
-function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) {
+/**
+ * The essay's cover: pick a picture, it is uploaded and becomes `meta.cover`;
+ * describe it, and that becomes `meta.coverAlt`.
+ *
+ * Offered only where the masthead draws one (`drawsCover`, next to the
+ * renderer), so a project or the homepage never collects a cover that would
+ * appear nowhere. Before this it was a free-text path box on every page,
+ * which nothing read.
+ *
+ * The upload goes through the document store's own API, the same call a
+ * canvas image makes, so the file lands in this page's media folder and the
+ * stub APIs the harnesses run on answer it too. The thumbnail goes through
+ * `resolveMediaSrc` because a file uploaded a minute ago is on the branch and
+ * in no build yet.
+ *
+ * The description is only asked for once there is a picture to describe;
+ * `updateMeta` would drop one typed before, so a box for it would refuse
+ * every keystroke.
+ */
+function CoverSection({
+  store,
+  state,
+  resolveMediaSrc,
+}: {
+  store: DocStore;
+  state: DocStoreState;
+  resolveMediaSrc: (src: string) => string;
+}) {
+  const meta = state.doc.meta;
+  const input = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  // WHICH src failed, not a flag: undo can bring back a different cover, and
+  // a flag left over from the last one would hide a picture that loads.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  const broken = meta.cover !== undefined && brokenSrc === meta.cover;
+
+  const upload = async (file: File): Promise<void> => {
+    if (!isPhotoFile(file)) {
+      setProblem(rejectedFileMessage(file.name));
+      return;
+    }
+    setProblem(null);
+    setUploading(file.name);
+    try {
+      const result = await store.api.uploadMedia(state.slug, file);
+      setSize({ w: result.w, h: result.h });
+      store.updateMeta({ cover: result.src });
+    } catch (error) {
+      setProblem(`The cover did not upload: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const busy = uploading !== null || state.phase !== 'idle';
+
+  return (
+    <Section title="Cover">
+      {meta.cover !== undefined &&
+        (broken ? (
+          <div className="cms-hint cms-hint--error" data-testid="meta-cover-thumb">
+            The image at {meta.cover} could not be loaded here.
+          </div>
+        ) : (
+          <div className="cms-cover-thumb" data-testid="meta-cover-thumb">
+            <img src={resolveMediaSrc(meta.cover)} alt="" onError={() => setBrokenSrc(meta.cover ?? null)} />
+          </div>
+        ))}
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        hidden
+        data-testid="meta-cover-input"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          // Cleared at once, so choosing the same file again still fires.
+          event.target.value = '';
+          if (file !== undefined) void upload(file);
+        }}
+      />
+      <div className="cms-row-actions">
+        <button
+          type="button"
+          className="cms-btn cms-btn--tiny"
+          data-testid="meta-cover-pick"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+        >
+          {meta.cover === undefined ? 'Upload a cover…' : 'Replace…'}
+        </button>
+        {meta.cover !== undefined && (
+          <button
+            type="button"
+            className="cms-btn cms-btn--tiny cms-btn--danger"
+            data-testid="meta-cover-remove"
+            disabled={busy}
+            onClick={() => {
+              setSize(null);
+              store.updateMeta({ cover: undefined });
+            }}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {uploading !== null && (
+        <div className="cms-hint" data-testid="meta-cover-uploading">
+          Uploading {uploading}…
+        </div>
+      )}
+      {problem !== null && (
+        <div className="cms-hint cms-hint--error" data-testid="meta-cover-problem">
+          {problem}
+        </div>
+      )}
+      {meta.cover !== undefined && (
+        <TextField
+          label="Description"
+          wide
+          testId="meta-cover-alt"
+          value={meta.coverAlt ?? ''}
+          placeholder="What the picture shows"
+          onChange={(coverAlt) => store.updateMeta({ coverAlt })}
+        />
+      )}
+      <div className="cms-hint" data-testid="meta-cover-help">
+        {size !== null && size.w < REFERENCE_WIDTH
+          ? `This one is ${size.w}px wide, narrower than the ${REFERENCE_WIDTH}px the page draws it at, so it will look soft. `
+          : ''}
+        Shown across the top of the essay, cropped to 2.4:1, and as the picture when the link is shared, cropped to
+        about 1.9:1. Make it about 2:1 with the subject in the middle and both crops keep it.
+      </div>
+    </Section>
+  );
+}
+
+function PagePanel({
+  store,
+  state,
+  resolveMediaSrc,
+}: {
+  store: DocStore;
+  state: DocStoreState;
+  resolveMediaSrc: (src: string) => string;
+}) {
   const meta = state.doc.meta;
   return (
     <>
@@ -328,14 +481,9 @@ function PagePanel({ store, state }: { store: DocStore; state: DocStoreState }) 
           placeholder="Visit"
           onChange={(urlLabel) => store.updateMeta({ urlLabel: urlLabel === '' ? undefined : urlLabel })}
         />
-        <TextField
-          label="Cover"
-          wide
-          value={meta.cover ?? ''}
-          placeholder="/media/slug/cover.png"
-          onChange={(cover) => store.updateMeta({ cover })}
-        />
       </Section>
+
+      {drawsCover(meta.section) && <CoverSection store={store} state={state} resolveMediaSrc={resolveMediaSrc} />}
 
       <Section title="Draft">
         <div className="cms-hint" data-testid="draft-state">

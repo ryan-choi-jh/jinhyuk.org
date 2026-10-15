@@ -152,7 +152,7 @@ export function PageSurface({ store, doc, selection, zoom, slots, resolveMediaSr
                   Preview, which is a strange way to find out it worked. */}
               <svg className="doc-connectors" aria-hidden="true" focusable="false" />
               <SiteChromeView where="top" section={doc.meta.section} />
-              <DocHead doc={doc} />
+              <DocHead doc={doc} resolveMediaSrc={resolveMediaSrc} />
               {groups.map((group) => (
                 <div className="cms-group" key={group.host.id}>
                   <BandBox
@@ -257,14 +257,19 @@ type BandBoxProps = {
  * Home has no masthead here. Its title is the bold `.name` line INSIDE the
  * intro, under the illustration rather than above it, so it is drawn by the
  * intro band instead — see `isHomeIntro` below.
+ *
+ * `resolveMediaSrc` reaches the essay masthead for its cover. A cover
+ * uploaded a minute ago is committed but in no build yet, so its stored
+ * `/media/…` path 404s here; the resolver points it at the branch, the same
+ * way a canvas image is drawn.
  */
-function DocHead({ doc }: { doc: Doc }) {
+function DocHead({ doc, resolveMediaSrc }: { doc: Doc; resolveMediaSrc: (src: string) => string }) {
   const section = doc.meta.section;
   const html =
     section === 'projects'
       ? renderProjectHead(doc)
       : section === 'essays'
-        ? renderDocHead(doc)
+        ? renderDocHead(doc, { resolveSrc: resolveMediaSrc })
         : null;
   if (html === null) return null;
   return (
