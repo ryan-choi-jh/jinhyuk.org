@@ -10,9 +10,22 @@ import { siteChrome } from '../lib/site-content.ts';
 interface Props {
   title?: string;
   description?: string;
+  /**
+   * The picture a shared link shows, as a site-absolute path or an http(s)
+   * URL. An essay passes its `meta.cover`; every other page, and an essay
+   * without one, gets the homepage's hero, which is what every link showed
+   * before covers existed.
+   */
+  image?: string;
+  /** What `image` shows, when the page knows. */
+  imageAlt?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, image, imageAlt } = Astro.props;
+
+// Resolved against the site, so a stored "/media/…" path becomes the absolute
+// URL a link preview needs; an absolute URL comes back unchanged.
+const ogImage = new URL(image ?? '/home/hero.jpg', Astro.site);
 
 // The whole frame of the site is content, in src/content/data/site.json, edited
 // in the CMS under Home and applied here — so to every page at once. That is
@@ -112,7 +125,8 @@ const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.
     <meta property="og:title" content={fullTitle} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:type" content="website" />
-    <meta property="og:image" content={new URL('/home/hero.jpg', Astro.site)} />
+    <meta property="og:image" content={ogImage} />
+    {image && imageAlt && <meta property="og:image:alt" content={imageAlt} />}
     <meta name="twitter:card" content="summary_large_image" />
 
     <!-- No favicon on purpose; the empty data URL stops browsers requesting /favicon.ico. -->

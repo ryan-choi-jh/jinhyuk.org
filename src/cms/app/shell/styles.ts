@@ -515,6 +515,14 @@ export const SHELL_CSS = `
   margin: 0 0 40px;
   font-weight: 300; font-style: italic;
 }
+/* An essay's cover, from meta.cover: the full column, a fixed 12:5, 40px
+   under the nav and 56px over the title. doc.css says why those numbers.
+   Desktop only, like the rest of this surface. */
+.cms-surface__head .doc-cover { margin: 0; padding-top: 40px; }
+.cms-surface__head .doc-cover-img {
+  display: block; width: 100%; aspect-ratio: 12 / 5; object-fit: cover;
+}
+.cms-surface__head .doc-cover + .doc-head { padding-top: 56px; }
 /* The homepage's name line, inside the intro rather than above the page. */
 .cms-surface__name { margin: 0 0 24px; font-weight: 700; }
 
@@ -969,7 +977,15 @@ export const SHELL_CSS = `
 .cms-check { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
 .cms-check input { margin: 0; }
 .cms-hint { color: var(--cms-muted); font-size: 10.5px; }
+.cms-hint--error { color: var(--cms-danger); }
 .cms-row-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* The page panel's cover thumbnail: the page's own 12:5 crop, so what the
+   author sees here is what the essay shows. A hairline, because a cover on
+   white paper is otherwise a white box with no edge on the dark chrome's
+   lighter fields. */
+.cms-cover-thumb { border: 1px solid var(--cms-line-strong); border-radius: 4px; overflow: hidden; background: #fff; }
+.cms-cover-thumb img { display: block; width: 100%; aspect-ratio: 12 / 5; object-fit: cover; }
 
 .cms-issues { margin: 0; padding: 6px 8px 6px 20px; border: 1px solid #52241f; border-radius: 5px; background: #2a1715; color: #f0b3ae; font-size: 11px; }
 .cms-issues li { margin: 1px 0; }

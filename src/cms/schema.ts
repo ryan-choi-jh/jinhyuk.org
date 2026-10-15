@@ -366,8 +366,32 @@ export const DocMetaSchema = z
      * because "Visit:" would be wrong for the default.
      */
     urlLabel: z.string().min(1, 'the link label must not be empty').optional(),
-    /** List thumbnail. */
+    /**
+     * The cover image: drawn across the top of the page, above the title, and
+     * the picture a shared link shows (`og:image`, in Base.astro).
+     *
+     * One file for both jobs, deliberately. The page crops it into a fixed
+     * 12:5 box (`.doc-cover` in doc.css) and a messaging app crops the whole
+     * file to about 1.91:1, so a cover drawn at about 2:1 with its subject in
+     * the middle band survives both, and there is no second image to forget
+     * to update.
+     *
+     * Declared long before anything used it, as "List thumbnail", and nothing
+     * ever read it or wrote it; no stored page carries one. Giving it this job
+     * changes no published page.
+     */
     cover: SrcSchema.optional(),
+    /**
+     * What the cover shows, for a screen reader and for a preview that cannot
+     * load the image.
+     *
+     * Absent means the image is announced as decorative (`alt=""`), which is
+     * honest for a cover that only restates the title below it and wrong for
+     * one that carries meaning of its own, so the editor asks for it. A label
+     * without a cover renders nothing, the same way `urlLabel` without `url`
+     * does, so the two are not tied together by a refinement.
+     */
+    coverAlt: z.string().min(1, 'the cover description must not be empty').optional(),
     /**
      * Keep this page off the site without deleting it.
      *

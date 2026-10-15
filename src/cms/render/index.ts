@@ -33,7 +33,7 @@
  */
 
 import { isCanvasBand, resolveAnchor } from '../schema.ts';
-import type { Band, CanvasBand, Doc } from '../schema.ts';
+import type { Band, CanvasBand, Doc, DocumentSectionId, SectionId } from '../schema.ts';
 import { renderCanvasBand } from './canvas.ts';
 import { attr, escapeText, joinParts, safeUrl } from './escape.ts';
 import { newHeadingIds, renderProseBand } from './prose.ts';
@@ -345,14 +345,15 @@ function prettyUrl(raw: string): string {
 
 /**
  * The masthead for a document: title, date, the "Visit" link and the summary,
- * styled to match the existing `article h1` / `.post-meta` / `.lead`.
+ * styled to match the existing `article h1` / `.post-meta` / `.lead`, with
+ * the cover above all of them when the page has one.
  *
  * NOT part of the 3.6 contract, and not part of `renderDoc`, which is bands
  * only. It is here because the preview, the published page and the migration
  * diff all need the same three lines above the body, and three copies of them
  * is three chances to disagree. A page that builds its own header ignores this.
  */
-export function renderDocHead(doc: Doc): string {
+export function renderDocHead(doc: Doc, options: { resolveSrc?: (src: string) => string } = {}): string {
   const { meta } = doc;
   // `safeUrl`, the same as the project masthead does it (./pages/project.ts).
   // This is the one field on a document that becomes an href, the editor
@@ -376,12 +377,82 @@ export function renderDocHead(doc: Doc): string {
     meta.summary === undefined ? '' : `<p class="doc-summary">${escapeText(meta.summary)}</p>`;
 
   return (
+    renderDocCover(doc, options.resolveSrc) +
     `<header class="doc-head${meta.section === undefined ? '' : ` doc-head--${meta.section}`}">` +
     `<h1 class="doc-title">${escapeText(meta.title)}</h1>` +
     `<p class="doc-date">${escapeText(formatDate(meta.date))}</p>` +
     visit +
     summary +
     '</header>'
+  );
+}
+
+/**
+ * Which document surfaces draw `meta.cover`. The editor asks this before it
+ * offers the field, so a cover cannot be set on a page that would not show it.
+ *
+ * A table keyed by every document section rather than an `=== 'essays'`, the
+ * LEDGER way (./pages/ledger.ts): a new document section is a compile error
+ * here until someone decides, rather than a page that quietly has no cover.
+ * It lives with the renderer and not in the section registry because it is a
+ * fact about this masthead. The homepage has its own hero and no masthead, and
+ * a project is drawn by `renderProjectHead`, a different object that has no
+ * cover.
+ */
+export const DRAWS_COVER: Readonly<Record<DocumentSectionId, boolean>> = {
+  home: false,
+  projects: false,
+  essays: true,
+};
+
+/**
+ * True when a document of this section gets its cover drawn. A document with
+ * no section (every phase 1 project page) is drawn as a project, so no. Takes
+ * any section id, because `meta.section` is typed as one; a record section
+ * cannot reach here (DocSchema refuses it) and would answer no if it did.
+ */
+export function drawsCover(section: SectionId | undefined): boolean {
+  return section !== undefined && Object.hasOwn(DRAWS_COVER, section) && DRAWS_COVER[section as DocumentSectionId];
+}
+
+/**
+ * The cover, across the top of the page, or '' when there is none.
+ *
+ * A SIBLING of the header, not inside it. `.doc-head` is held to the 720px
+ * reading measure, and a cover is the width of the whole column, the way the
+ * homepage's sheet is; inside the header it would have been a postage stamp.
+ *
+ * `safeUrl` on the src for the same reason the Visit link has it: this
+ * becomes an attribute on the published page, and the renderer does not trust
+ * the document whatever the schema says. No width or height attributes: the
+ * box is a fixed 12:5 in doc.css, so its height is known before the file
+ * arrives and the title below it does not jump when it does.
+ *
+ * `fetchpriority="high"` because it is the first thing on the page and
+ * usually the largest, which is what the browser would otherwise discover
+ * late. Not lazy, for the same reason.
+ *
+ * `resolveSrc` is the editor's: a cover uploaded a minute ago is committed to
+ * the repository but not yet in any build, so the editor maps it to where the
+ * bytes really are, the way it already does for a canvas image. The site
+ * passes nothing and publishes the stored path.
+ *
+ * `safeUrl` checks the STORED value, before the resolver sees it. The stored
+ * value is the document's, and untrusted; the resolver is the editor's own
+ * code, and its answer is not a document value at all. Checking its output
+ * instead was the first version, and it drew no cover in the shell harness,
+ * whose resolver answers with a `file:` URL into `public/`.
+ */
+function renderDocCover(doc: Doc, resolveSrc?: (src: string) => string): string {
+  const meta = doc.meta;
+  if (!drawsCover(meta.section) || meta.cover === undefined) return '';
+  const stored = safeUrl(meta.cover);
+  if (stored === null) return '';
+  const src = resolveSrc === undefined ? stored : resolveSrc(stored);
+  return (
+    '<figure class="doc-cover">' +
+    `<img class="doc-cover-img"${attr('src', src)}${attr('alt', meta.coverAlt ?? '')} decoding="async" fetchpriority="high">` +
+    '</figure>'
   );
 }
 

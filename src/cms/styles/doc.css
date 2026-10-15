@@ -582,6 +582,38 @@
   font-style: italic;
 }
 
+/* The cover (`meta.cover`): the full width of the column, above the title,
+   the way the homepage's sheet sits above its intro.
+
+   A fixed 12:5 box (2.4:1) with the image cropped into it, not the image's
+   own shape, so the box has its height before the file arrives and the title
+   underneath does not jump down when it loads. 2:1 was tried first, to match
+   a link preview's shape, and at 1344px wide it is 672px tall, which put the
+   title below the fold on a laptop. The page and the preview do not have to
+   agree: the preview uses the whole file, cropped by the messaging app to
+   about 1.91:1. So a cover drawn at about 2:1 with its subject in the middle
+   band survives both crops.
+
+   The spacing is the masthead's own 71px of head room, split: 40px above the
+   cover, and 56px between the cover and the title, which is what the Paper
+   mock (Personal Site, "Essay page") measured as reading as one unit rather
+   than as an image with a page under it. */
+.doc-cover {
+  margin: 0;
+  padding-top: 40px;
+}
+
+.doc-cover-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 12 / 5;
+  object-fit: cover;
+}
+
+.doc-cover + .doc-head {
+  padding-top: 56px;
+}
+
 /* ---------------------------------------------------------------------------
    Essays — WS-B, phase 2.
 
@@ -795,6 +827,19 @@
 
   .doc-head {
     padding-top: 40px;
+  }
+
+  /* The same split of the head room as above, at the phone's 40px: the
+     cover takes 24px of it and leaves 32px between itself and the title.
+     `.doc-cover + .doc-head` has to be restated here: it outranks the bare
+     `.doc-head` rule just above on specificity, whatever the order, so
+     without this the desktop's 56px would carry down to the phone. */
+  .doc-cover {
+    padding-top: 24px;
+  }
+
+  .doc-cover + .doc-head {
+    padding-top: 32px;
   }
 
   .doc-title {

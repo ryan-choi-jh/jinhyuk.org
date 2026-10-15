@@ -81,6 +81,12 @@ function everyKind(section) {
       url: 'https://example.com/demo',
       urlLabel: 'Visit demo:',
       summary: 'A standfirst, which both mastheads set in italics.',
+      // Only the essay masthead draws it; a project's ignores it, so the
+      // project pass reports the cover rows as not in this document. The
+      // file is never fetched successfully here, and does not need to be:
+      // the box is a fixed 2:1 whether or not the image arrives.
+      cover: '/media/essays/every-kind/cover.jpg',
+      coverAlt: 'A cover',
     },
     bands: [
       {
@@ -142,6 +148,12 @@ const PROPERTIES = [
   'borderLeftWidth',
   'borderLeftColor',
   'paddingLeft',
+  // For the cover and the header under it, whose spacing is padding and
+  // whose shape is a ratio. Every other row reads these too and has them at
+  // the same value on both sides, which is itself worth knowing.
+  'paddingTop',
+  'aspectRatio',
+  'objectFit',
 ];
 
 const BLOCKS = [
@@ -171,6 +183,9 @@ const MASTHEAD = [
   ['the visit row', '.project-link, .doc-visit'],
   ['the visit label', '.project-link-label, .doc-visit-label'],
   ['the standfirst', '.project-lead, .doc-summary'],
+  ['the cover', '.doc-cover'],
+  ['the cover image', '.doc-cover-img'],
+  ['the header under a cover', '.doc-cover + .doc-head'],
 ];
 
 let failures = 0;

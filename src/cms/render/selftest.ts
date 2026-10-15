@@ -16,7 +16,7 @@
 
 import { formatIssues, validateDoc } from '../schema.ts';
 import type { Band, Doc, ProseBlock } from '../schema.ts';
-import { fallbackGenerateShape, renderDoc, renderProseBlock } from './index.ts';
+import { drawsCover, fallbackGenerateShape, renderDoc, renderDocHead, renderProjectHead, renderProseBlock } from './index.ts';
 
 /* -------------------------------------------------------------------------- */
 
@@ -701,6 +701,89 @@ function render(bands: Band[]): string {
     })(),
   );
   excludes('note: a homepage without a hero has no note', noHero, 'class="note');
+}
+
+{
+  // The cover (`meta.cover`). It is drawn by the masthead, above the title,
+  // and only by the essay masthead: a project's head is a different object.
+  const withCover = (meta: Record<string, unknown>): Doc => {
+    const r = validateDoc({
+      version: 1,
+      meta: { title: 'Selftest', slug: 'selftest', date: '2026-10-08', section: 'essays', ...meta },
+      bands: [prose('b1', [{ id: 'p1', kind: 'p', content: [] }])],
+    });
+    if (!r.ok) throw new Error(`cover test document is invalid:\n${formatIssues(r.issues)}`);
+    return r.doc;
+  };
+
+  const head = renderDocHead(withCover({ cover: '/media/essays/selftest/cover.jpg', coverAlt: 'A field of "holes" & a spade' }));
+  contains(
+    'cover: drawn above the title, the src and the escaped alt on the img',
+    head,
+    '<figure class="doc-cover"><img class="doc-cover-img" src="/media/essays/selftest/cover.jpg" alt="A field of &quot;holes&quot; &amp; a spade" decoding="async" fetchpriority="high"></figure><header class="doc-head doc-head--essays">',
+  );
+  ok(
+    'cover: a sibling of the header, not inside its 720px measure',
+    head.includes('</figure>') && head.indexOf('</figure>') < head.indexOf('<header'),
+  );
+
+  contains(
+    'cover: no description is announced as decorative, not left without an alt',
+    renderDocHead(withCover({ cover: '/media/essays/selftest/cover.jpg' })),
+    'alt=""',
+  );
+  excludes('cover: none set, none drawn', renderDocHead(withCover({})), 'doc-cover');
+  excludes('cover: a description with no image draws nothing', renderDocHead(withCover({ coverAlt: 'Orphan' })), 'doc-cover');
+
+  // Defence in depth, as for a canvas image: the schema refuses this, and the
+  // renderer must not publish it when handed one anyway.
+  const evil = {
+    version: 1,
+    meta: { title: 'Selftest', slug: 'selftest', date: '2026-10-08', section: 'essays', cover: 'javascript:alert(1)' },
+    bands: [prose('b1', [{ id: 'p1', kind: 'p', content: [] }])],
+  } as unknown as Doc;
+  ok('cover: the schema rejects an unusable src', !validateDoc(evil).ok);
+  excludes('cover: an unusable src is not drawn', renderDocHead(evil), 'javascript');
+  ok(
+    'cover: the schema rejects an empty description',
+    !validateDoc({ ...evil, meta: { ...evil.meta, cover: '/media/x/c.jpg', coverAlt: '' } }).ok,
+  );
+
+  // Which surfaces draw one is a table, and the editor offers the field from it.
+  ok('cover: essays draw one', drawsCover('essays'));
+  ok('cover: projects and the homepage do not', !drawsCover('projects') && !drawsCover('home'));
+  ok('cover: a document with no section does not', !drawsCover(undefined));
+  ok('cover: a record section does not', !drawsCover('photography'));
+  excludes(
+    'cover: renderDocHead draws none for a section-less document',
+    renderDocHead(withCover({ cover: '/media/essays/selftest/cover.jpg', section: undefined })),
+    'doc-cover',
+  );
+
+  // The editor's resolver: what it returns is what is drawn. The STORED value
+  // is what safeUrl checks, before the resolver sees it, so an unusable src in
+  // the document is refused even when a resolver would have rewritten it.
+  const resolved = renderDocHead(withCover({ cover: '/media/essays/selftest/cover.jpg' }), {
+    resolveSrc: (src) => `https://raw.example.com${src}`,
+  });
+  contains('cover: the editor can point the image at where the bytes are', resolved, 'src="https://raw.example.com/media/essays/selftest/cover.jpg"');
+  contains(
+    'cover: including a file: url, which is what the shell harness resolves to',
+    renderDocHead(withCover({ cover: '/media/essays/selftest/cover.jpg' }), { resolveSrc: (src) => `file:///repo/public${src}` }),
+    'src="file:///repo/public/media/essays/selftest/cover.jpg"',
+  );
+  excludes(
+    'cover: an unusable stored src is refused before any resolver sees it',
+    renderDocHead(evil, { resolveSrc: () => 'https://looks-fine.example/x.jpg' }),
+    'looks-fine',
+  );
+
+  // A project page has its own masthead and does not draw a cover.
+  excludes(
+    'cover: the project masthead does not draw one',
+    renderProjectHead(withCover({ cover: '/media/essays/selftest/cover.jpg', section: 'projects' })),
+    'doc-cover',
+  );
 }
 
 console.log(`${passed} passed, ${failures.length} failed`);

@@ -28,7 +28,7 @@ const { doc } = Astro.props;
 const body = renderDocPage(doc);
 ---
 
-<Base title={doc.meta.title} description={doc.meta.title}>
+<Base title={doc.meta.title} description={doc.meta.title} image={doc.meta.cover} imageAlt={doc.meta.coverAlt}>
   <Fragment set:html={body} />
 </Base>
 

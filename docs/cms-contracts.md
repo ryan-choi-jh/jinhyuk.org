@@ -85,6 +85,15 @@ are optional, so a document written in phase 1 is still valid, and
 `DocMetaSchema` is still a plain `ZodObject` so `DocMetaSchema.shape.slug`
 keeps working for the three phase 1 files that use it.
 
+`meta.cover` was declared from the start as a list thumbnail and never used.
+Since 2026-10-15 it is the page's cover image: the essay masthead draws it
+across the top of the page in a fixed 12:5 box, and Base.astro makes it the
+page's `og:image`. `meta.coverAlt` is its description, optional (absent is
+`alt=""`). Which surfaces draw a cover is `DRAWS_COVER` in
+`src/cms/render/index.ts`, essays only; the inspector offers the field from
+the same table. `updateMeta` drops `coverAlt` when `cover` goes, as it drops
+`urlLabel` when `url` goes.
+
 Constants, so nobody hardcodes a number:
 
 ```ts
