@@ -16,7 +16,17 @@
 
 import { formatIssues, validateDoc } from '../schema.ts';
 import type { Band, Doc, ProseBlock } from '../schema.ts';
-import { drawsCover, fallbackGenerateShape, renderDoc, renderDocHead, renderProjectHead, renderProseBlock } from './index.ts';
+import {
+  drawsCover,
+  fallbackGenerateShape,
+  formatLedgerDate,
+  ledgerItemsFromMetas,
+  renderDoc,
+  renderDocHead,
+  renderLedgerPage,
+  renderProjectHead,
+  renderProseBlock,
+} from './index.ts';
 
 /* -------------------------------------------------------------------------- */
 
@@ -784,6 +794,48 @@ function render(bands: Band[]): string {
     renderProjectHead(withCover({ cover: '/media/essays/selftest/cover.jpg', section: 'projects' })),
     'doc-cover',
   );
+}
+
+{
+  // The essays index: one cover per essay, the title and the long date on the
+  // card. Projects keep their rows.
+  const metas = [
+    { title: 'Older', slug: 'older', date: '2026-06-02' },
+    { title: 'Newest & best', slug: 'newest', date: '2026-10-14', cover: '/media/essays/newest/cover.jpg' },
+    { title: 'Middle', slug: 'middle', date: '2026-08-01', cover: '/media/essays/middle/cover.jpg' },
+  ];
+  const html = renderLedgerPage(ledgerItemsFromMetas(metas, 'essays'), 'essays');
+  contains('essays index: a list of covers, not rows', html, '<ul class="ledger ledger--covers">');
+  contains(
+    'essays index: the newest first, its cover fetched first, the title escaped, the date written out',
+    html,
+    '<li class="ledger-cover"><a class="ledger-cover-link" href="/essays/newest/"><span class="ledger-cover-art"><img class="ledger-cover-img" src="/media/essays/newest/cover.jpg" alt="" fetchpriority="high" decoding="async"></span><span class="ledger-cover-card"><span class="ledger-title">Newest &amp; best</span><span class="ledger-date">October 14, 2026</span></span></a></li>',
+  );
+  contains('essays index: every later cover is lazy', html, 'src="/media/essays/middle/cover.jpg" alt="" loading="lazy"');
+  ok('essays index: newest first', html.indexOf('/essays/newest/') < html.indexOf('/essays/middle/') && html.indexOf('/essays/middle/') < html.indexOf('/essays/older/'));
+  contains(
+    'essays index: an essay with no cover is still listed, as the card alone',
+    html,
+    '<li class="ledger-cover ledger-cover--bare"><a class="ledger-cover-link" href="/essays/older/"><span class="ledger-cover-card"><span class="ledger-title">Older</span><span class="ledger-date">June 2, 2026</span></span></a></li>',
+  );
+  ok('essays index: one title per essay, which the preview check counts', (html.match(/class="ledger-title"/g) ?? []).length === 3);
+
+  const evil = renderLedgerPage(
+    [{ href: '/essays/x/', title: 'X', date: '2026-10-14', cover: 'javascript:alert(1)' }],
+    'essays',
+  );
+  excludes('essays index: an unusable cover src is not drawn', evil, 'javascript');
+  contains('essays index: and the essay is listed bare instead of dropped', evil, 'ledger-cover--bare');
+
+  const projects = renderLedgerPage(
+    ledgerItemsFromMetas([{ title: 'P', slug: 'p', date: '2026-07-01', summary: 'S', cover: '/media/projects/p/c.jpg' }], 'projects'),
+    'projects',
+  );
+  contains('projects index: still rows, with the summary and the month', projects, '<ul class="ledger"><li><div class="ledger-body"><a class="ledger-title" href="/projects/p/">P</a><span class="ledger-summary">S</span></div><span class="ledger-date">2026.07</span></li></ul>');
+  excludes('projects index: a cover set on a project is not drawn there', projects, 'img');
+
+  ok('the long date', formatLedgerDate('2026-01-05', 'long') === 'January 5, 2026');
+  ok('the long date leaves something unparseable alone', formatLedgerDate('soon', 'long') === 'soon');
 }
 
 console.log(`${passed} passed, ${failures.length} failed`);

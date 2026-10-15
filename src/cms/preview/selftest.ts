@@ -638,7 +638,10 @@ const ledgerHtml = renderLedgerPage(
   ledgerItemsFromMetas([essayMeta, laterMeta] as never, 'essays'),
   'essays',
 );
-eq('renderLedgerPage emits one row per item', countOf(ledgerHtml, '.ledger-body'), 2);
+// Counted by title, not by `.ledger-body`: the essays index is one cover per
+// essay now (`.ledger--covers`), which has no row body, and a title per item
+// is what both layouts share.
+eq('renderLedgerPage emits one item per document', countOf(ledgerHtml, '.ledger-title'), 2);
 check('with a masthead above them', ledgerHtml.startsWith('<div class="masthead"'));
 
 /* -------------------------------------------------------------------------- */

@@ -177,7 +177,7 @@ function readAlbums(): Album[] {
  * what `src/lib/site-content.ts` builds the site from, so the comparison
  * stays true as the site is edited.
  */
-type Front = { title: string; date: string; summary?: string; draft: boolean; slug: string };
+type Front = { title: string; date: string; summary?: string; cover?: string; draft: boolean; slug: string };
 
 /** Every document in a section, as the index page needs it. */
 function readSectionDocs(section: 'projects' | 'essays'): Front[] {
@@ -206,12 +206,15 @@ function readSectionDocs(section: 'projects' | 'essays'): Front[] {
       slug: meta.slug,
     };
     if (meta.summary !== undefined) entry.summary = meta.summary;
+    // The essays index is one cover per essay now, and the live page draws
+    // them; a comparison without them is a page with every picture missing.
+    if (meta.cover !== undefined) entry.cover = meta.cover;
     out.push(entry);
   }
   return out;
 }
 
-function ledgerItems(front: Front[], base: string, withSummary: boolean): LedgerItem[] {
+function ledgerItems(front: Front[], base: string, withSummary: boolean, withCover = false): LedgerItem[] {
   return front
     .filter((entry) => !entry.draft)
     .map((entry) => {
@@ -221,6 +224,7 @@ function ledgerItems(front: Front[], base: string, withSummary: boolean): Ledger
         date: entry.date,
       };
       if (withSummary && entry.summary !== undefined) item.summary = entry.summary;
+      if (withCover && entry.cover !== undefined) item.cover = entry.cover;
       return item;
     });
 }
@@ -1142,7 +1146,7 @@ async function main(): Promise<void> {
     {
       name: 'essays-index',
       livePath: '/essays/',
-      body: renderLedgerPage(ledgerItems(essayFront, '/essays/', false), 'essays'),
+      body: renderLedgerPage(ledgerItems(essayFront, '/essays/', false, true), 'essays'),
       compare: true,
       expect: (m, width) => {
         check(
