@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import Analytics from '../components/Analytics.astro';
 import SocialLinks from '../components/SocialLinks.astro';
 import { isNavCurrent, renderCopyright } from '../cms/schema.ts';
 import { sectionForPath } from '../cms/sections.ts';
@@ -156,6 +157,7 @@ const initialTheme = themeToggle.initial === 'system' ? undefined : themeToggle.
         which both moves the rules out of this page and breaks them. The
         first version emitted nothing at all. */}
     {typeCss !== '' && <style is:inline set:html={typeCss} />}
+    <Analytics />
   </head>
   <body data-section={section ?? undefined}>
     <header class="site-header">
