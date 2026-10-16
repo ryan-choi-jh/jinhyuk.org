@@ -536,23 +536,60 @@ edits are commits on `main` with messages like
 
 ---
 
-## 9. Before you say you are done
+## 9. Before you say you are done: run what your change can reach
+
+**The rule is targeted checks, not the whole browser group every time.** The
+owner set it on 2026-10-16, after a one-file CSS change sat behind a
+seventeen-minute run whose suites mostly drive editor surfaces the change
+could not touch.
+
+**Always run the offline group.** `npm run cms:check` is all 17 offline
+suites in about two seconds, so there is no reason to pick among them.
+
+**Then run only the browser suites your change can reach**, named to the
+runner (a suite's name as its table prints it, or part of its path):
 
 ```
-node src/cms/fixtures/verify.ts
-node src/cms/render/selftest.ts
-node src/cms/app/prose/verify.ts
-node src/cms/app/state/verify-state.ts
-node src/cms/app/shell/verify-typography.mjs      # if you touched any CSS
-node src/cms/app/prose/harness/run.mjs            # if you touched the prose editor
-node src/cms/app/prose/harness/keys.mjs           # if you touched a keymap
-node src/cms/styles/sync-doc-css.mjs              # if you touched highlight.ts or callout.ts
+node src/cms/check.mjs browser "preview,body size measured"
 ```
 
-The full list of 27 suites, with what each one returned on 2026-10-13, is in
-[`README.md`](README.md).
+| If you touched | Run |
+| --- | --- |
+| `app/prose/**` | `prose component`, `block-boundary keys` |
+| `app/shell/**`: the shell, the inspector, the toolbar, publishing | `editor shell`, `site shell` |
+| `doc.css`, `SHELL_CSS` (`app/shell/styles.ts`), the canvas caption CSS, either masthead | `editor vs page type`, `space above a block`, `render layout` |
+| `styles/type-scale.ts`, or any rule inside the one `max-width: 900px` block of `global.css` | `body size measured` |
+| `app/records/**` | `record editors` |
+| `app/chrome/**` | `nav and footer` |
+| `app/guide/**` | `the guide` |
+| `app/library/**` | `the library` |
+| `app/canvas/**` | `canvas in a browser` |
+| `preview/**`, or the markup or CSS of an index or album page (`render/pages/**` and its rules in `global.css` or `sections.css`) | `preview`, then `render vs the live site` after the deploy |
+| the homepage hero or its 원고지 note | `the wongoji note` |
+| the wiring between workstreams (`app/index.tsx`, `app/integration/**`) | `integration` |
 
-**All 27 pass.** So anything failing is yours. Keep it that way: five of them
-were red for months for reasons that had nothing to do with the product, and
-the cost was not the five failures, it was that nobody ran the slow checks
-any more and so nothing they would have caught was caught.
+**Run the whole browser group** (`npm run cms:check:browser`) for a change to
+the foundations everything reads (`schema.ts`, `sections.ts`,
+`render/index.ts`, `render/prose.ts`, `render/escape.ts`, `server/**`,
+`check.mjs`), for a change that spans several rows of the table, and when you
+cannot say which rows a change reaches.
+
+**A change that is in no row:** find its reach the way you would find a
+caller. Grep the browser suites for the class, selector or module you
+changed, run what turns up, then add the row here. That is how the
+essays-index row was found: three suites mention the ledger, fourteen do not.
+
+**`render vs the live site` compares against jinhyuk.org as it is now.** A
+change to a page's markup is red there until it deploys, by design: run it
+after the deploy, and only then read a difference as a regression.
+
+`node src/cms/styles/sync-doc-css.mjs` still comes first if you touched
+`highlight.ts` or `callout.ts`. The list of every suite and what it proves is
+in [`README.md`](README.md).
+
+**Every suite passes.** So anything failing is yours. Keep it that way: five
+of them were red for months for reasons that had nothing to do with the
+product, and the cost was not the five failures, it was that nobody ran the
+slow checks any more and so nothing they would have caught was caught.
+Targeting is the answer to that, not skipping: a run that takes the four
+minutes a change needs is a run that gets done.

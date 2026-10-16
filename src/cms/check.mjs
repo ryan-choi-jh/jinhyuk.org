@@ -8,6 +8,16 @@
  *   npm run cms:check:e2e        the two that write to GitHub on a throwaway branch
  *   node src/cms/check.mjs all   everything except e2e
  *
+ *   node src/cms/check.mjs browser "preview,site shell"
+ *                                only the named suites of a group: a suite's
+ *                                name as the table prints it, or any part of
+ *                                its file's path ("records/harness")
+ *
+ * Run the suites a change can reach, not the whole browser group: the map
+ * from what you touched to what to run is section 9 of cms/AGENTS.md. The
+ * whole group is seventeen minutes, and most of it drives editor surfaces a
+ * change to a page's CSS cannot touch.
+ *
  * WHY A RUNNER AND NOT `a && b && c`. A chain stops at the first failure, so
  * one broken suite hides every suite after it, and you fix things one slow
  * round trip at a time. This runs all of them and prints a table. Exit code
@@ -58,7 +68,7 @@ const BROWSER = [
   ['site shell', 'src/cms/app/shell/site-harness/drive.mjs'],
   ['editor vs page type', 'src/cms/app/shell/verify-typography.mjs'],
   ['space above a block', 'src/cms/styles/verify-spacing.mjs'],
-  ['body size, measured', 'src/cms/styles/verify-type-scale-browser.mjs'],
+  ['body size measured', 'src/cms/styles/verify-type-scale-browser.mjs'],
   ['record editors', 'src/cms/app/records/harness/drive.mjs'],
   ['nav and footer', 'src/cms/app/chrome/harness/run.mjs'],
   ['the guide', 'src/cms/app/guide/harness/run.mjs'],
@@ -86,13 +96,33 @@ const E2E = [
 const GROUPS = { offline: OFFLINE, browser: BROWSER, e2e: E2E };
 
 const asked = process.argv[2] ?? 'offline';
-const suites =
+const group =
   asked === 'all' ? [...OFFLINE, ...BROWSER] : GROUPS[asked] ?? null;
 
-if (suites === null) {
+if (group === null) {
   console.error(`Unknown group "${asked}". One of: offline, browser, e2e, all.`);
   process.exit(2);
 }
+
+/*
+ * The optional list of suites to run. A name that matches nothing is an
+ * error, not a skip: a typo that silently ran no suites would print
+ * "All 0 passed", which reads exactly like a passing run.
+ */
+const only = (process.argv[3] ?? '')
+  .split(',')
+  .map((name) => name.trim().toLowerCase())
+  .filter((name) => name !== '');
+const matches = (name, [label, file]) => label.toLowerCase() === name || file.toLowerCase().includes(name);
+const unmatched = only.filter((name) => !group.some((suite) => matches(name, suite)));
+if (unmatched.length > 0) {
+  console.error(
+    `No ${asked} suite is called ${unmatched.map((name) => `"${name}"`).join(', ')}. ` +
+      `The ${asked} suites are: ${group.map(([label]) => label).join(', ')}.`,
+  );
+  process.exit(2);
+}
+const suites = only.length === 0 ? group : group.filter((suite) => only.some((name) => matches(name, suite)));
 
 function run(file, args) {
   return new Promise((resolve) => {

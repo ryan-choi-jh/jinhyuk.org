@@ -19,9 +19,16 @@ Three groups, all plain `node`. No build, no test runner, no watch mode.
 
 ```
 npm run cms:check           # 17 offline suites, about two seconds
-npm run cms:check:browser   # 17 that open a browser, about eight minutes
+npm run cms:check:browser   # 17 that open a browser, about seventeen minutes
 npm run cms:check:e2e       # 2 that create a GitHub branch and drive a dev server
+
+node src/cms/check.mjs browser "preview,site shell"   # only the named suites
 ```
+
+**Run the browser suites a change can reach, not the whole group.** The map
+from what you touched to what to run is section 9 of
+[`AGENTS.md`](AGENTS.md); the whole group is for changes to the foundations,
+or when you cannot tell.
 
 The runner (`src/cms/check.mjs`) runs every suite in the group rather than
 stopping at the first failure, prints a table with timings, and then prints
