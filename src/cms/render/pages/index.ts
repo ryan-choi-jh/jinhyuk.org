@@ -52,6 +52,7 @@ export {
   renderLedger,
   renderLedgerPage,
   sortNewestFirst,
+  titleLines,
 } from './ledger.ts';
 export type { LedgerItem, LedgerSectionId } from './ledger.ts';
 export { formatLedgerDate, renderEmptyLine, renderMasthead } from './masthead.ts';

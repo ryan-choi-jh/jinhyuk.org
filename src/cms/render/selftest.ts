@@ -26,6 +26,7 @@ import {
   renderLedgerPage,
   renderProjectHead,
   renderProseBlock,
+  titleLines,
 } from './index.ts';
 
 /* -------------------------------------------------------------------------- */
@@ -797,26 +798,45 @@ function render(bands: Band[]): string {
 }
 
 {
-  // The essays index: one cover per essay, the title and the long date on the
-  // card. Projects keep their rows.
+  // The essays index: the projects' rows, each led by a strip of its cover,
+  // the date to the day. Projects keep their plain rows.
   const metas = [
     { title: 'Older', slug: 'older', date: '2026-06-02' },
     { title: 'Newest & best', slug: 'newest', date: '2026-10-14', cover: '/media/essays/newest/cover.jpg' },
     { title: 'Middle', slug: 'middle', date: '2026-08-01', cover: '/media/essays/middle/cover.jpg' },
   ];
   const html = renderLedgerPage(ledgerItemsFromMetas(metas, 'essays'), 'essays');
-  contains('essays index: a list of covers, not rows', html, '<ul class="ledger ledger--covers">');
+  contains('essays index: rows with a cover strip, not plain rows', html, '<ul class="ledger ledger--covers">');
   contains(
-    'essays index: the newest first, its cover fetched first, the title escaped, the date written out',
+    'essays index: the newest first, its cover fetched first, the title escaped, the date to the day',
     html,
-    '<li class="ledger-cover"><a class="ledger-cover-link" href="/essays/newest/"><span class="ledger-cover-art"><img class="ledger-cover-img" src="/media/essays/newest/cover.jpg" alt="" fetchpriority="high" decoding="async"></span><span class="ledger-cover-card"><span class="ledger-title">Newest &amp; best</span><span class="ledger-date">October 14, 2026</span></span></a></li>',
+    '<li class="ledger-cover"><a class="ledger-cover-link" href="/essays/newest/"><span class="ledger-cover-art"><img class="ledger-cover-img" src="/media/essays/newest/cover.jpg" alt="" fetchpriority="high" decoding="async"></span><span class="ledger-title">Newest &amp; best</span><span class="ledger-date">2026.10.14</span></a></li>',
   );
   contains('essays index: every later cover is lazy', html, 'src="/media/essays/middle/cover.jpg" alt="" loading="lazy"');
   ok('essays index: newest first', html.indexOf('/essays/newest/') < html.indexOf('/essays/middle/') && html.indexOf('/essays/middle/') < html.indexOf('/essays/older/'));
   contains(
-    'essays index: an essay with no cover is still listed, as the card alone',
+    'essays index: an essay with no cover is still listed, as the title and date alone',
     html,
-    '<li class="ledger-cover ledger-cover--bare"><a class="ledger-cover-link" href="/essays/older/"><span class="ledger-cover-card"><span class="ledger-title">Older</span><span class="ledger-date">June 2, 2026</span></span></a></li>',
+    '<li class="ledger-cover ledger-cover--bare"><a class="ledger-cover-link" href="/essays/older/"><span class="ledger-title">Older</span><span class="ledger-date">2026.06.02</span></a></li>',
+  );
+
+  // The title breaks after its first clause, as the owner set both titles.
+  const lines = (title: string) => JSON.stringify(titleLines(title));
+  ok('title lines: after a colon', lines('The Doctor on the Other End of the Line: How Health Insurers Decide What Care Gets Covered') === JSON.stringify(['The Doctor on the Other End of the Line:', 'How Health Insurers Decide What Care Gets Covered']));
+  ok('title lines: after a first sentence', lines('I Was Looking for a Startup Idea. I Needed to Ask a Different Question') === JSON.stringify(['I Was Looking for a Startup Idea.', 'I Needed to Ask a Different Question']));
+  ok('title lines: after a question', lines('Why Now? Because the Rules Changed') === JSON.stringify(['Why Now?', 'Because the Rules Changed']));
+  ok('title lines: the first boundary wins', lines('Two Parts: One. Two') === JSON.stringify(['Two Parts:', 'One. Two']));
+  ok('title lines: one clause is one line', lines('Who I’m Looking For') === JSON.stringify(['Who I’m Looking For']));
+  ok('title lines: not after an initialism', lines('The U.S. Health System') === JSON.stringify(['The U.S. Health System']));
+  ok('title lines: not after a title', lines('Dr. Strange and the Insurers') === JSON.stringify(['Dr. Strange and the Insurers']));
+  ok('title lines: not after vs.', lines('Payers vs. Providers') === JSON.stringify(['Payers vs. Providers']));
+  ok('title lines: not inside a number or a time', lines('Version 2.5 at 10:30') === JSON.stringify(['Version 2.5 at 10:30']));
+  ok('title lines: not before nothing', lines('A Title Ending in a Colon:') === JSON.stringify(['A Title Ending in a Colon:']));
+  const twoLines = renderLedgerPage([{ href: '/essays/x/', title: 'A & B: C <D>', date: '2026-10-14' }], 'essays');
+  contains(
+    'essays index: two lines are two escaped block spans with a space between them',
+    twoLines,
+    '<span class="ledger-title"><span class="ledger-title-line">A &amp; B:</span> <span class="ledger-title-line">C &lt;D&gt;</span></span>',
   );
   ok('essays index: one title per essay, which the preview check counts', (html.match(/class="ledger-title"/g) ?? []).length === 3);
 

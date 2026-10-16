@@ -8,9 +8,10 @@
  * about and that are easy to get wrong when the data source changes under
  * them:
  *
- *   essays    one cover per essay (`meta.cover`), the title and the date
- *             ("October 14, 2026") on a card cut into its lower-left corner;
- *             empty copy "Nothing published yet. Soon."
+ *   essays    the projects' rows, each led by a strip of the essay's cover
+ *             (`meta.cover`), the title broken after its first clause, the
+ *             date to the day (2026.10.14); empty copy "Nothing published
+ *             yet. Soon."
  *   projects  rows: date is 2026.07, a `.ledger-summary` under the title,
  *             empty copy "Nothing here yet. Soon."
  *
@@ -43,10 +44,9 @@ type LedgerStyle = {
   heading: string;
   precision: LedgerDatePrecision;
   /**
-   * `rows`: a title and a date per line, on hairlines. `covers`: one feature
-   * per document, its cover across the column with the title on a card cut
-   * into the lower-left corner (Paper: Personal Site, "Essays index",
-   * "Try 1 · Letterbox").
+   * `rows`: a title and a date per line, on hairlines. `covers`: the same
+   * rows, each led by a strip of the document's cover, the whole row the link
+   * (Paper: Personal Site, "Essays index", "Compact 2 · Ledger").
    */
   layout: 'rows' | 'covers';
   showSummary: boolean;
@@ -61,7 +61,7 @@ type LedgerStyle = {
 const LEDGER: Readonly<Record<LedgerSectionId, LedgerStyle>> = {
   essays: {
     heading: 'Essays',
-    precision: 'long',
+    precision: 'day',
     layout: 'covers',
     showSummary: false,
     empty: 'Nothing published yet. Soon.',
@@ -130,8 +130,42 @@ function renderRow(item: LedgerItem, precision: LedgerDatePrecision): string {
 }
 
 /**
- * One essay as a feature: the whole thing is the link, the cover is the art
- * box, and the card holds the title and the date.
+ * A title as the essays index sets it: broken after its first clause, the way
+ * the owner set both titles in the mock ("The Doctor on the Other End of the
+ * Line:" over "How Health Insurers…"; "I Was Looking for a Startup Idea." over
+ * "I Needed to Ask…"). A title with no clause boundary is one line.
+ *
+ * The boundary is the first colon, question mark, exclamation mark or full
+ * stop followed by a space and more title. A full stop counts only after a
+ * word of two or more lowercase letters, so an initialism or a title ("U.S.",
+ * "Dr.") is not mistaken for the end of a sentence; "vs." and "etc." are
+ * skipped for the same reason.
+ */
+export function titleLines(title: string): [string] | [string, string] {
+  for (const match of title.matchAll(/[:.?!](?=\s+\S)/g)) {
+    const before = title.slice(0, match.index);
+    if (match[0] === '.' && (!/[a-z]{2}$/.test(before) || /\b(?:vs|etc)$/i.test(before))) continue;
+    const first = title.slice(0, match.index + 1).trim();
+    const rest = title.slice(match.index + 1).trim();
+    if (first !== '' && rest !== '') return [first, rest];
+  }
+  return [title];
+}
+
+/**
+ * Two lines are two block spans with a space between them, so the title still
+ * reads as one sentence to a screen reader or a copy and paste, and the break
+ * is the stylesheet's (`.ledger-title-line`).
+ */
+function renderTitleLines(title: string): string {
+  const lines = titleLines(title);
+  if (lines.length === 1) return escapeText(title);
+  return lines.map((line) => `<span class="ledger-title-line">${escapeText(line)}</span>`).join(' ');
+}
+
+/**
+ * One essay as a row: the whole row is the link, led by a strip of the cover,
+ * then the title and the date, as on the projects index.
  *
  * The image is decorative here (`alt=""`): it sits inside a link whose name
  * is the title beside it, and a description read out before the title would
@@ -139,8 +173,8 @@ function renderRow(item: LedgerItem, precision: LedgerDatePrecision): string {
  *
  * `safeUrl` on the src, as everywhere a document value becomes an attribute.
  * An essay with no cover, or one the renderer refuses, is still listed: as
- * the card alone (`.ledger-cover--bare`), never dropped, because a missing
- * picture is not a reason to hide an essay.
+ * the title and date alone (`.ledger-cover--bare`), never dropped, because a
+ * missing picture is not a reason to hide an essay.
  *
  * Only the first cover is fetched eagerly, and at high priority; it is the
  * one above the fold. Every later one is lazy.
@@ -156,10 +190,9 @@ function renderCoverRow(item: LedgerItem, precision: LedgerDatePrecision, index:
     `<li class="ledger-cover${src === null ? ' ledger-cover--bare' : ''}">` +
     `<a class="ledger-cover-link"${attr('href', item.href)}>` +
     art +
-    '<span class="ledger-cover-card">' +
-    `<span class="ledger-title">${escapeText(item.title)}</span>` +
+    `<span class="ledger-title">${renderTitleLines(item.title)}</span>` +
     `<span class="ledger-date">${escapeText(formatLedgerDate(item.date, precision))}</span>` +
-    '</span></a></li>'
+    '</a></li>'
   );
 }
 

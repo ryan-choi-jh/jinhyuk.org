@@ -1329,53 +1329,39 @@ body.is-locked {
 }
 
 /* ---------------------------------------------------------------------------
-   Essays: one cover per essay (`.ledger--covers`)
+   Essays: the projects' list, with a cover strip (`.ledger--covers`)
 
-   Designed in Paper (Personal Site, "Essays index", "Try 1 · Letterbox").
-   Each essay is a feature: its cover across the column in a short 1344:300
-   box, and a card cut into the lower-left corner holding the title and the
-   date. The whole feature is the link.
+   Designed in Paper (Personal Site, "Essays index", "Compact 2 · Ledger").
+   The rows are the projects index's: the same 18/26 title, the same orange
+   date at the right, the same hairline between rows. Each row leads with a
+   strip of its cover, and the whole row is the link. It replaced a
+   full-width letterbox per essay, which on a laptop's 770px window put one
+   essay above the fold; a row is 180px, so two essays and the start of a
+   third show before any scrolling.
 
-   The cover is shown exactly as drawn. Every cover is ink wash on white
-   paper, and tinting that paper to give the box an edge was tried and turned
-   down: it dulls the one thing the page is for. So the box is white in both
-   themes (--sheet, like the homepage's grid) and the edge is the
-   --media-edge hairline the album tiles and film posters already have. In
-   dark mode the white cover against the dark page is its own edge, and the
-   line, grey between white and black, only outlined the title; it is made
-   transparent there rather than removed, so the title sits on the same pixel
-   in both themes.
+   The strip is the cover cropped to 22:7 (440 by 140 at the full column),
+   52% down. A cover is ink wash on white paper, drawn as a band across the
+   middle of the file (from about 23% to 80% of its height on both so far),
+   so the crop takes only blank paper. It is shown as drawn, with no frame and
+   no tint: on the white page the drawing sits straight on the paper, and in
+   dark mode the white strip (--sheet, white in both themes, like the
+   homepage's grid) is its own edge.
 
-   The card is the page colour, offset 1px over the frame so the hairline
-   steps around it instead of running underneath. Its text starts on the
-   column's edge, under the "Essays" heading.
-
-   The drawing is not cropped to fill the box. Cropped to 1344:300, a 2:1
-   cover loses the figure's head; scaled to 78% of the box's width and moved
-   right (85%, the free side, away from the card), the whole band of ink fits
-   with the left of it running under the card, where a cover's lower-left
-   corner is drawn empty. The two percentages are the mock's 1050px in 1344
-   and its 85% 52% position, written as what a background-position does:
-   left = 85% of the slack, top = 52% of it.
+   The title breaks after its first clause (`titleLines` in
+   src/cms/render/pages/ledger.ts), which is how the owner set both titles in
+   the mock, and keeps to the mock's 520px column so a long one wraps there
+   rather than across the row.
    --------------------------------------------------------------------------- */
-.ledger--covers {
-  display: flex;
-  flex-direction: column;
-  gap: 56px;
-}
-
 .ledger--covers > li {
   display: block;
   padding: 0;
-  border-bottom: 0;
 }
 
 .ledger-cover-link {
-  position: relative;
-  display: block;
-  aspect-ratio: 1344 / 300;
-  border: 1px solid var(--media-edge);
-  background: var(--sheet);
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 20px 0;
 }
 
 .ledger-cover-link:focus-visible {
@@ -1383,92 +1369,41 @@ body.is-locked {
   outline-offset: 4px;
 }
 
+/* 440px at the full 1344 column, a third of a narrower one, and never under
+   280px, where the figures in a drawing get too small to make out. */
 .ledger-cover-art {
-  position: absolute;
-  inset: 0;
+  flex: none;
+  width: clamp(280px, 33%, 440px);
+  aspect-ratio: 22 / 7;
   overflow: hidden;
+  background: var(--sheet);
 }
 
 .ledger-cover-img {
-  position: absolute;
   display: block;
-  width: 78.125%;
-  /* The site caps every img at its container's width, which is right for an
-     image in prose and wrong here: on a phone this one is drawn at 150% of
-     its box on purpose, and the cap quietly undid that. */
-  max-width: none;
-  height: auto;
-  left: calc((100% - 78.125%) * 0.85);
-  top: 52%;
-  transform: translateY(-52%);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 52%;
 }
 
-.ledger-cover-card {
-  position: absolute;
-  left: -1px;
-  bottom: -1px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: calc(560 / 1344 * 100%);
-  padding: 28px 40px 0 0;
-  background: var(--paper);
-  border-top: 1px solid var(--media-edge);
-  border-right: 1px solid var(--media-edge);
-}
-
-/* The mock's 26px at the designed 1440 page, stepping down with the window so
-   a long title still fits the card at a narrow desktop width: at 900px the box
-   is 179px tall and a 26px title would push the card out of the top of it.
-   The floor is 18px, not 20: at 20 an 88-character title ("The Doctor on the
-   Other End of the Line: …") took four lines at 920px and the card's top
-   edge reached the drawing's horizon. */
 .ledger--covers .ledger-title {
-  font-size: clamp(18px, 1.9vw, 26px);
-  line-height: 1.23;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  flex: 0 1 520px;
+  min-width: 0;
+}
+
+/* Balanced, so a line too long for a phone or a narrow window splits into
+   two even halves rather than leaving "Covered" on its own. */
+.ledger-title-line {
+  display: block;
+  text-wrap: balance;
 }
 
 .ledger--covers .ledger-date {
-  text-align: left;
+  margin-left: auto;
 }
 
-:root[data-theme='dark'] .ledger-cover-link,
-:root[data-theme='dark'] .ledger-cover-card {
-  border-color: transparent;
-}
-
-/* A narrow desktop window: the box shrinks with the column but the title has
-   a 20px floor, so a long one wraps to a third line and the card grows to
-   most of the box's height. Measured at 950px with "The Doctor on the Other
-   End of the Line": the card was 131px of a 187px box and its top edge cut
-   through the reviewer at his desk, on the horizon. A taller box here keeps
-   the card to about half of it. 1100px was tried first and the desk still
-   touched the card at 1101; at 1201 the 1344:300 box leaves it 15px clear.
-   Below 900px the phone layout takes over (the one 900px block, further down). */
-@media (max-width: 1200px) {
-  .ledger-cover-link {
-    aspect-ratio: 1344 / 380;
-  }
-}
-
-/* No cover (none set, or one the renderer refused): the card on its own, in
-   the column, rather than an empty frame. */
-.ledger-cover--bare .ledger-cover-link {
-  aspect-ratio: auto;
-  border: 0;
-  background: none;
-}
-
-.ledger-cover--bare .ledger-cover-card {
-  position: static;
-  width: auto;
-  padding: 0;
-  border: 0;
-}
-
-/* The phone rules for the covers are in the site's one `max-width: 900px`
+/* The phone rules for these rows are in the site's one `max-width: 900px`
    block further down, beside the other ledger rules: the body-size check
    (src/cms/styles/verify-type-scale.ts) reads everything after the first
    such block as phone rules, and a second block up here made the desktop
@@ -2349,54 +2284,28 @@ article figcaption {
     line-height: 24px;
   }
 
-  /* A phone: the cover full width at 2:1, the card underneath it rather than
-     over it, which at 342px wide would hide half the drawing. The whole drawing
-     is shown, at the box's width and centred in its height. It was zoomed to
-     150% toward its subject, as in the mock, and on "The Doctor on the Other
-     End of the Line" that cut the reviewer on the far horizon off at the
-     left edge: a cover's story can run edge to edge, so nothing is cropped. */
-
-  .ledger--covers {
-    gap: 44px;
-  }
-
+  /* A phone: the strip across the column, then the title and the date under
+     it, still on the projects' hairlines and at their 16/24 title. At 342px
+     wide the 22:7 strip is 109px tall and still holds the whole band of ink,
+     the reviewer on the far horizon included. */
   .ledger-cover-link {
-    aspect-ratio: auto;
-    border: 0;
-    background: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
   }
 
   .ledger-cover-art {
-    position: relative;
-    display: block;
-    aspect-ratio: 2 / 1;
-    border: 1px solid var(--media-edge);
-    background: var(--sheet);
-  }
-
-  .ledger-cover-img {
     width: 100%;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .ledger-cover-card {
-    position: static;
-    width: auto;
-    padding: 18px 0 0;
-    border: 0;
-    background: none;
-    gap: 10px;
+    margin-bottom: 16px;
   }
 
   .ledger--covers .ledger-title {
-    font-size: 22px;
-    line-height: 28px;
+    flex: none;
   }
 
-  :root[data-theme='dark'] .ledger-cover-art {
-    border-color: transparent;
+  .ledger--covers .ledger-date {
+    margin: 8px 0 0;
+    text-align: left;
   }
 
   .site-nav {

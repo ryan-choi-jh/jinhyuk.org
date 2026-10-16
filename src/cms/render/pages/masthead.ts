@@ -28,8 +28,8 @@ export function renderMasthead(title: string, deck?: string): string {
  * The formats the live index pages use, kept together so nobody has to
  * remember which surface wants which:
  *
- *   essays    October 14, 2026   src/pages/essays/index.astro, since the
- *                                index became one cover per essay
+ *   essays    2026.10.14         src/pages/essays/index.astro, the projects'
+ *                                format to the day
  *   projects  2026.07            src/pages/projects/index.astro
  *
  * The input is a `Doc.meta.date`, which the schema has already proved is a real
@@ -44,8 +44,9 @@ export function formatLedgerDate(date: string, precision: LedgerDatePrecision): 
 
 /**
  * How the date is written. `long` is "October 14, 2026", the way an essay's
- * own masthead writes it (`formatDate` in ../index.ts), so the essays index,
- * whose cards are small versions of that masthead, says it the same way.
+ * own masthead writes it (`formatDate` in ../index.ts). The essays index used
+ * it while its rows were cards cut into a full-width cover; since it became
+ * the projects' list with a cover strip, it writes the date the projects' way.
  */
 export type LedgerDatePrecision = 'day' | 'month' | 'long';
 
