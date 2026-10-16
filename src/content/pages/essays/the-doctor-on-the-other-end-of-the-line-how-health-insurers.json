@@ -3,7 +3,7 @@
   "meta": {
     "title": "The Doctor on the Other End of the Line: How Health Insurers Decide What Care Gets Covered",
     "slug": "the-doctor-on-the-other-end-of-the-line-how-health-insurers",
-    "date": "2026-10-15",
+    "date": "2026-10-16",
     "cover": "/media/essays/the-doctor-on-the-other-end-of-the-line-how-health-insurers/essay-cover-doctor-on-the-line.jpg",
     "coverAlt": "An ink drawing of a doctor on the phone; the cord runs past a patient waiting on a bench to a distant reviewer at a desk piled with paper.",
     "section": "essays"
@@ -577,7 +577,7 @@
     {
       "id": "b_abcfed69bd",
       "type": "canvas",
-      "height": 584,
+      "height": 358,
       "padBottom": 28,
       "items": [
         {
@@ -585,8 +585,8 @@
           "kind": "image",
           "x": 0,
           "y": 32,
-          "w": 1344,
-          "h": 493,
+          "w": 726,
+          "h": 267,
           "src": "/media/essays/the-doctor-on-the-other-end-of-the-line-how-health-insurers/medicare-advantage-denials-2024.png",
           "alt": "A chart of 100 Medicare Advantage prior-authorization denials in 2024: about 89 never formally appealed, 9 appealed and overturned, and 2 appealed and upheld.",
           "caption": "Of every 100 Medicare Advantage prior-authorization denials in 2024, ~89 were never formally appealed, 9 were appealed and overturned, and 2 were appealed and upheld.",
