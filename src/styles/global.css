@@ -1990,8 +1990,8 @@ article figure video {
 
 article figcaption {
   margin-top: 10px;
-  font-size: 14px;
-  line-height: 21px;
+  font-size: calc(1em - 1px);
+  line-height: 1.5;
   letter-spacing: 0;
   color: var(--muted);
 }
@@ -2236,10 +2236,11 @@ article figcaption {
   border: 1px solid var(--media-edge);
 }
 
+/* One pixel under the body, like every caption (.doc-caption in doc.css). */
 .media-caption {
   margin-top: 10px;
-  font-size: 14px;
-  line-height: 21px;
+  font-size: calc(1em - 1px);
+  line-height: 1.5;
   letter-spacing: 0;
   color: var(--muted);
 }
@@ -2349,9 +2350,11 @@ article figcaption {
   }
 
   /* A phone: the cover full width at 2:1, the card underneath it rather than
-     over it, which at 342px wide would hide half the drawing. The drawing is
-     zoomed to 150% of the box, toward its subject (58%), as in the mock, or it
-     is too small to read at this size. */
+     over it, which at 342px wide would hide half the drawing. The whole drawing
+     is shown, at the box's width and centred in its height. It was zoomed to
+     150% toward its subject, as in the mock, and on "The Doctor on the Other
+     End of the Line" that cut the reviewer on the far horizon off at the
+     left edge: a cover's story can run edge to edge, so nothing is cropped. */
 
   .ledger--covers {
     gap: 44px;
@@ -2372,8 +2375,8 @@ article figcaption {
   }
 
   .ledger-cover-img {
-    width: 150%;
-    left: calc((100% - 150%) * 0.58);
+    width: 100%;
+    left: 0;
     top: 50%;
     transform: translateY(-50%);
   }

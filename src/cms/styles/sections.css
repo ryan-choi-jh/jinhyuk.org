@@ -168,10 +168,11 @@
 }
 
 /* `.doc-caption` and `article figcaption`, to the pixel. */
+/* One pixel under the body, like every caption (.doc-caption in doc.css). */
 .album-caption {
   margin-top: 10px;
-  font-size: 14px;
-  line-height: 21px;
+  font-size: calc(1em - 1px);
+  line-height: 1.5;
   letter-spacing: 0;
   font-weight: 300;
   color: var(--muted, #6b6b6b);

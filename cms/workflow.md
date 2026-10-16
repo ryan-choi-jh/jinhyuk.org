@@ -258,7 +258,9 @@ because they call one function, and
 rules actually land.
 
 **What moves:** paragraphs, list items, quotes and callouts, leading included.
-**What does not:** headings, captions, the nav, the footer, buttons.
+**What does not:** headings, the nav, the footer, buttons.
+**Captions follow on their own:** every caption is `calc(1em - 1px)`, one
+pixel under the body it sits in, so a body-size change carries them with it.
 
 **Nothing set is nothing generated.** A site at the design's own 17.5px
 produces an empty stylesheet and no `type` key in `site.json`, and builds

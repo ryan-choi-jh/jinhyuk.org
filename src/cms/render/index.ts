@@ -425,7 +425,7 @@ export function drawsCover(section: SectionId | undefined): boolean {
  * `safeUrl` on the src for the same reason the Visit link has it: this
  * becomes an attribute on the published page, and the renderer does not trust
  * the document whatever the schema says. No width or height attributes: the
- * box is a fixed 12:5 in doc.css, so its height is known before the file
+ * box is a fixed 15:4 in doc.css, so its height is known before the file
  * arrives and the title below it does not jump when it does.
  *
  * `fetchpriority="high"` because it is the first thing on the page and

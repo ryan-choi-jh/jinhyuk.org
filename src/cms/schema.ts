@@ -371,10 +371,10 @@ export const DocMetaSchema = z
      * the picture a shared link shows (`og:image`, in Base.astro).
      *
      * One file for both jobs, deliberately. The page crops it into a fixed
-     * 12:5 box (`.doc-cover` in doc.css) and a messaging app crops the whole
-     * file to about 1.91:1, so a cover drawn at about 2:1 with its subject in
-     * the middle band survives both, and there is no second image to forget
-     * to update.
+     * 15:4 letterbox (`.doc-cover` in doc.css) and a messaging app crops the
+     * whole file to about 1.91:1, so a cover drawn at about 2:1 with its
+     * subject in the middle band survives both, and there is no second image
+     * to forget to update.
      *
      * Declared long before anything used it, as "List thumbnail", and nothing
      * ever read it or wrote it; no stored page carries one. Giving it this job

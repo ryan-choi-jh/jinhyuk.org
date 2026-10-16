@@ -425,8 +425,9 @@ function CoverSection({
         {size !== null && size.w < REFERENCE_WIDTH
           ? `This one is ${size.w}px wide, narrower than the ${REFERENCE_WIDTH}px the page draws it at, so it will look soft. `
           : ''}
-        Shown across the top of the essay, cropped to 2.4:1, and as the picture when the link is shared, cropped to
-        about 1.9:1. Make it about 2:1 with the subject in the middle and both crops keep it.
+        Shown across the top of the essay as a 3.75:1 strip, which trims the top and bottom, and as the picture when
+        the link is shared, cropped to about 1.9:1. Make it about 2:1 with the subject in a band across the middle
+        and both crops keep it.
       </div>
     </Section>
   );

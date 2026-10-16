@@ -136,12 +136,13 @@ const CSS = `
 .cv-root:focus-within .cv-stage { box-shadow: 0 0 0 var(--cv-hair) rgba(0,0,0,.14); }
 .cv-item { position: absolute; cursor: move; }
 /* Mirrors .doc-caption in src/cms/styles/doc.css so what shows here is what
-   the page prints. It sits below the item's box, which is what the published
-   <figcaption> does inside its <figure>. */
+   the page prints: one pixel under the body, which here is the surface's own
+   size for the section, at 1.5 leading. It sits below the item's box, which is
+   what the published <figcaption> does inside its <figure>. */
 .cv-caption {
   position: absolute; top: 100%; left: 0; right: 0;
   margin-top: 10px;
-  font: 300 14px/21px var(--cv-caption-font, Inter, ui-sans-serif, system-ui, sans-serif);
+  font: 300 calc(1em - 1px)/1.5 var(--cv-caption-font, Inter, ui-sans-serif, system-ui, sans-serif);
   letter-spacing: 0;
   color: #6b6b6b;
   pointer-events: none;

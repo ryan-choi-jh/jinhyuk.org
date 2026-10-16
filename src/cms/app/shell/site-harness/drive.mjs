@@ -1228,7 +1228,7 @@ section('renaming a page from the field that shows its slug');
     })()`);
     check('the page surface draws it', drawn !== null);
     if (drawn !== null) {
-      check('at the page\'s 12:5', Math.abs(drawn.ratio - 2.4) < 0.01, drawn.ratio.toFixed(3));
+      check('at the page\'s 15:4', Math.abs(drawn.ratio - 3.75) < 0.01, drawn.ratio.toFixed(3));
       check('above the title', drawn.above === true);
       check('announced as decorative until it is described', drawn.alt === '', JSON.stringify(drawn.alt));
     }

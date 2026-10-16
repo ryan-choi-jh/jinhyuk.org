@@ -4,9 +4,9 @@
 
    Every value here is taken from src/styles/global.css rather than invented:
    the measures (720px of reading width, 900px of quote), the type scale
-   (17.5/35 body, 22/32 h2, 18/28 h3, 26/40 quote, 14/21 caption), the margins
-   (28px between paragraphs, 48px above an h2) and the tokens (--ink, --muted,
-   --rule, --accent, --media-edge). A page that loads global.css gets the site's
+   (17.5/35 body, 22/32 h2, 18/28 h3, 26/40 quote, and a caption one pixel
+   under the body at 1.5 leading), the margins (28px between paragraphs, 48px
+   above an h2) and the tokens (--ink, --muted, --rule, --accent, --media-edge). A page that loads global.css gets the site's
    typography; a page that loads only this file gets the same thing from the
    fallbacks in the var() calls, which is what makes the fixtures screenshot
    honestly on their own.
@@ -471,11 +471,18 @@
   border: 1px solid var(--media-edge, #e4e4e4);
 }
 
-/* .media-caption in global.css. */
+/* .media-caption in global.css.
+
+   Captions are one pixel smaller than the body text they sit under, on every
+   page, at every width, and whatever the CMS's body-size setting makes that
+   body: 1em is the body size here, because nothing between the document and
+   the caption sets a size of its own. A fixed 14px was smaller than a 17.5px
+   body and LARGER than a phone essay's, which the 15px essay setting scales
+   to 12px. Leading is the 1.5 that 14/21 was. */
 .doc-caption {
   margin-top: 10px;
-  font-size: 14px;
-  line-height: 21px;
+  font-size: calc(1em - 1px);
+  line-height: 1.5;
   letter-spacing: 0;
   font-weight: 300;
   color: var(--muted, #6b6b6b);
@@ -585,33 +592,41 @@
 /* The cover (`meta.cover`): the full width of the column, above the title,
    the way the homepage's sheet sits above its intro.
 
-   A fixed 12:5 box (2.4:1) with the image cropped into it, not the image's
-   own shape, so the box has its height before the file arrives and the title
-   underneath does not jump down when it loads. 2:1 was tried first, to match
-   a link preview's shape, and at 1344px wide it is 672px tall, which put the
-   title below the fold on a laptop. The page and the preview do not have to
-   agree: the preview uses the whole file, cropped by the messaging app to
-   about 1.91:1. So a cover drawn at about 2:1 with its subject in the middle
-   band survives both crops.
+   A fixed 15:4 letterbox (3.75:1) with the image cropped into it, not the
+   image's own shape, so the box has its height before the file arrives and
+   the title underneath does not jump down when it loads. A cover is ink on
+   white paper drawn as a horizontal band (the ink runs from about 23% to 80%
+   of the file's height on both covers so far), so this crop takes only blank
+   paper off the top and bottom, and 52% down, as on the essays index, because
+   the band sits a little under the middle. 2:1 and then 12:5 came first, and
+   12:5 at 1344px wide is 560px tall: on a laptop's 760px window the cover and
+   the title were the whole first screen. The rule is that the cover, the
+   title, the date and the opening lines all show before any scrolling.
 
-   The spacing is the masthead's own 71px of head room, split: 40px above the
-   cover, and 56px between the cover and the title, which is what the Paper
-   mock (Personal Site, "Essay page") measured as reading as one unit rather
-   than as an image with a page under it. */
+   The page and the preview do not have to agree: the preview uses the whole
+   file, cropped by the messaging app to about 1.91:1. So a cover drawn at
+   about 2:1 with its subject in the middle band survives both crops.
+
+   24px above the cover and 40px between it and the title. The crop leaves
+   some 12 to 32px of blank paper inside the box at each edge, so the space a
+   reader sees is about the 40 and 56 that the Paper mock (Personal Site,
+   "Essay page") measured as reading as one unit rather than as an image with
+   a page under it. */
 .doc-cover {
   margin: 0;
-  padding-top: 40px;
+  padding-top: 24px;
 }
 
 .doc-cover-img {
   display: block;
   width: 100%;
-  aspect-ratio: 12 / 5;
+  aspect-ratio: 15 / 4;
   object-fit: cover;
+  object-position: 50% 52%;
 }
 
 .doc-cover + .doc-head {
-  padding-top: 56px;
+  padding-top: 40px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -829,15 +844,11 @@
     padding-top: 40px;
   }
 
-  /* The same split of the head room as above, at the phone's 40px: the
-     cover takes 24px of it and leaves 32px between itself and the title.
+  /* The cover keeps the desktop's 24px above it, and leaves 32px rather than
+     40px between itself and the title, at the phone's tighter scale.
      `.doc-cover + .doc-head` has to be restated here: it outranks the bare
      `.doc-head` rule just above on specificity, whatever the order, so
-     without this the desktop's 56px would carry down to the phone. */
-  .doc-cover {
-    padding-top: 24px;
-  }
-
+     without this the desktop's 40px would carry down to the phone. */
   .doc-cover + .doc-head {
     padding-top: 32px;
   }

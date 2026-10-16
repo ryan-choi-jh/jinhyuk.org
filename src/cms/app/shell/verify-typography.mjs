@@ -154,6 +154,7 @@ const PROPERTIES = [
   'paddingTop',
   'aspectRatio',
   'objectFit',
+  'objectPosition',
 ];
 
 const BLOCKS = [
