@@ -1419,9 +1419,12 @@ body.is-locked {
 
 /* The mock's 26px at the designed 1440 page, stepping down with the window so
    a long title still fits the card at a narrow desktop width: at 900px the box
-   is 179px tall and a 26px title would push the card out of the top of it. */
+   is 179px tall and a 26px title would push the card out of the top of it.
+   The floor is 18px, not 20: at 20 an 88-character title ("The Doctor on the
+   Other End of the Line: …") took four lines at 920px and the card's top
+   edge reached the drawing's horizon. */
 .ledger--covers .ledger-title {
-  font-size: clamp(20px, 1.9vw, 26px);
+  font-size: clamp(18px, 1.9vw, 26px);
   line-height: 1.23;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -1434,6 +1437,20 @@ body.is-locked {
 :root[data-theme='dark'] .ledger-cover-link,
 :root[data-theme='dark'] .ledger-cover-card {
   border-color: transparent;
+}
+
+/* A narrow desktop window: the box shrinks with the column but the title has
+   a 20px floor, so a long one wraps to a third line and the card grows to
+   most of the box's height. Measured at 950px with "The Doctor on the Other
+   End of the Line": the card was 131px of a 187px box and its top edge cut
+   through the reviewer at his desk, on the horizon. A taller box here keeps
+   the card to about half of it. 1100px was tried first and the desk still
+   touched the card at 1101; at 1201 the 1344:300 box leaves it 15px clear.
+   Below 900px the phone layout takes over (the one 900px block, further down). */
+@media (max-width: 1200px) {
+  .ledger-cover-link {
+    aspect-ratio: 1344 / 380;
+  }
 }
 
 /* No cover (none set, or one the renderer refused): the card on its own, in
