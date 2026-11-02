@@ -12,6 +12,12 @@
   },
   "bands": [
     {
+      "id": "b_dbd20cf08a",
+      "type": "canvas",
+      "height": 360,
+      "items": []
+    },
+    {
       "id": "b_99e87daea0",
       "type": "prose",
       "blocks": [
