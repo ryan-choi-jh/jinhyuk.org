@@ -230,6 +230,379 @@
           ]
         }
       ]
+    },
+    {
+      "id": "b_955b91ceac",
+      "type": "canvas",
+      "height": 668,
+      "items": [
+        {
+          "id": "i_4d8035d7d6",
+          "kind": "image",
+          "x": 0,
+          "y": 0,
+          "w": 1055,
+          "h": 668,
+          "z": 0,
+          "src": "/media/projects/pingnow-making-it-easier-to-get-your-golf-group-onto-the-course/frame-2x-4.png"
+        }
+      ]
+    },
+    {
+      "id": "b_fd2a9ff206",
+      "type": "prose",
+      "blocks": [
+        {
+          "id": "p_ce3c84626e",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "It was a small conceptual shift that made a meaningful difference to how the product worked."
+            }
+          ]
+        },
+        {
+          "id": "p_f2ae635582",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "Building the infrastructure behind the alerts"
+            }
+          ]
+        },
+        {
+          "id": "p_8f5cab8875",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "PingNow started as a four-week sprint with a technical teammate (shoutout to Sihoon)."
+            }
+          ]
+        },
+        {
+          "id": "p_3382e7bf5c",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I led product, UI/UX, the website, frontend and parts of the backend. Sihoon focused on the crawler and underlying infrastructure."
+            }
+          ]
+        },
+        {
+          "id": "p_bfa3f2bb0f",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "We shipped as an installable web app rather than a native iOS application since it was the fastest way to get something onto people’s phones with push notifications without taking on the overhead of building and distributing a native app."
+            }
+          ]
+        },
+        {
+          "id": "p_fd9d7b855a",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Once the user experience was mapped out, the frontend was relatively straightforward. The harder problem was getting reliable access to tee-time inventory. Our initial assumption was that we could crawl every public golf course without much difficulty; that turned out to be rather optimistic."
+            }
+          ]
+        },
+        {
+          "id": "p_2df0eda392",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The 40 public courses we covered were spread across six booking vendors. Each had its own infrastructure and access requirements. Some exposed relatively straightforward endpoints and others required browser sessions or different handling."
+            }
+          ]
+        },
+        {
+          "id": "p_6ab90f625f",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "We needed a crawling system that could adapt to each vendor. That meant using different access methods, tuning request frequency, maintaining sessions, and adjusting how often we checked each course. We also had to manage requests at the vendor level rather than treating every course independently. Multiple courses could share the same booking vendor, so aggressive requests to one could affect access to all the others."
+            }
+          ]
+        },
+        {
+          "id": "p_60e99564bb",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The less glamorous part was making sure the system knew when something had gone wrong."
+            }
+          ]
+        },
+        {
+          "id": "p_729d3683b6",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "One particularly memorable incident involved a course that continued returning successful HTTP responses while quietly fetching the wrong date range. Our dashboard showed everything as healthy, but future tee-time inventory had effectively disappeared. We quickly learned that a successful request doesn’t necessarily mean a healthy system."
+            }
+          ]
+        },
+        {
+          "id": "p_87be87c8f9",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Over time, we built better checks around data completeness, freshness, and unexpected changes. By mid-July, we were tracking roughly 31,000 future tee times across the 40 courses we covered, with a 24-hour crawl success rate of around 97%."
+            }
+          ]
+        },
+        {
+          "id": "p_d391294d98",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "The visible product was only a small part of what made the experience work. Behind every alert was a system that had to keep checking, interpreting, and validating data from a collection of very different booking platforms."
+            }
+          ]
+        },
+        {
+          "id": "p_c2fb30ec44",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "Lessons learned"
+            }
+          ]
+        },
+        {
+          "id": "p_65246e9713",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "Consumer products are built on trust, not just functionality"
+            }
+          ]
+        },
+        {
+          "id": "p_98aa32c5a7",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Most of my previous experience had been in B2B, where the dynamics of finding customers, building relationships and demonstrating value are quite different."
+            }
+          ]
+        },
+        {
+          "id": "p_8d752212a8",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "With PingNow, I became much more conscious of the importance of community."
+            }
+          ]
+        },
+        {
+          "id": "p_efa91f3d7d",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "It wasn’t enough to build something that worked. We needed golfers to trust us with something they cared about. They needed to feel that we understood the sport, shared their enthusiasm for it and would look after them."
+            }
+          ]
+        },
+        {
+          "id": "p_50b27080f8",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Community building wasn’t just a distribution strategy…it was part of the product itself."
+            }
+          ]
+        },
+        {
+          "id": "p_610ce09fec",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I also realized that the product’s growth loop came with an interesting challenge. Golf is typically played in foursomes, which means every round can bring new people onto the platform. But it also means that a signup isn’t necessarily an activated user. PingNow only really demonstrates its value when multiple people are coordinating inside the same round."
+            }
+          ]
+        },
+        {
+          "id": "p_3c0faad95b",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Getting someone to download an app is one thing. Getting their entire golf group to use it is another."
+            }
+          ]
+        },
+        {
+          "id": "p_83cd7df09d",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Knowing what to build less of is harder than it sounds"
+            }
+          ]
+        },
+        {
+          "id": "p_6eb423bf7a",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "We also spent time designing things that never made it into the product."
+            }
+          ]
+        },
+        {
+          "id": "p_c0aa0a7f4b",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "For example, we explored a concierge booking feature that would let PingNow book tee times on behalf of users, as well as a potential freemium monetization model."
+            }
+          ]
+        },
+        {
+          "id": "p_9723c811d1",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Both were interesting directions, but neither was necessary to test the central hypothesis."
+            }
+          ]
+        },
+        {
+          "id": "p_01dc006815",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "I’d already been working through a similar lesson with Linchpin: a prototype should test a specific hypothesis, not try to become a complete product. But I didn’t fully apply that lesson here. We had a four-week sprint and a relatively small beta, yet still found ourselves building for possibilities well beyond what we needed to validate."
+            }
+          ]
+        },
+        {
+          "id": "p_e5201d4a9d",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "In hindsight, we could have tested the core idea with a much smaller product. It’s easy to confuse building more with making more progress. They’re not the same thing."
+            }
+          ]
+        },
+        {
+          "id": "p_d718ee8584",
+          "kind": "h3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Getting two people moving in the same direction"
+            }
+          ]
+        },
+        {
+          "id": "p_2d39e100f9",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "This was my first time building a product so closely with a technical teammate. One thing that surprised me was how much we could get done with just two people by focusing on complementary workstreams. I could own the product and user experience while Sihoon focused on the crawler and infrastructure, allowing us to cover a lot of ground without stepping on each other’s toes."
+            }
+          ]
+        },
+        {
+          "id": "p_03bbd5c81f",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "But splitting responsibilities was only part of it. We spent enough time upfront aligning on what we were trying to build and, just as importantly, what a good user experience should feel like. That meant caring about everything from keeping the product simple to how quickly alerts arrived, how the in-app experience worked alongside push notifications, and the small details that made the whole thing feel considered. Having that shared quality bar meant we could develop independently while still pushing each other to make the product better."
+            }
+          ]
+        },
+        {
+          "id": "p_39b3c176c5",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "Since PingNow started with a problem I personally cared about, I also felt responsible for bringing that enthusiasm into the collaboration. I wanted Sihoon to be just as excited about the problem as I was. That meant spending time together beyond dividing up tasks: talking through the problem, exploring ideas, and getting excited about what we could build. I came away thinking that when two people genuinely care about the problem they’re solving, the process of building becomes a lot more enjoyable."
+            }
+          ]
+        },
+        {
+          "id": "p_76c00f1b0d",
+          "kind": "h2",
+          "content": [
+            {
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ],
+              "text": "Where things stand"
+            }
+          ]
+        },
+        {
+          "id": "p_94b228ff41",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "PingNow has a live website and app, and golfers have used it to find and book tee times. The crawler is currently paused, so the monitoring that powered the alerts isn’t running at the moment."
+            }
+          ]
+        },
+        {
+          "id": "p_60497eab6e",
+          "kind": "p",
+          "content": [
+            {
+              "type": "text",
+              "text": "For now, I’m happy to leave it as something real that we put into the world."
+            }
+          ]
+        }
+      ]
     }
   ]
 }
