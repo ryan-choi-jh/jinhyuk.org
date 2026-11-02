@@ -109,6 +109,11 @@
           ]
         },
         {
+          "id": "p_f0f2babebe",
+          "kind": "p",
+          "content": []
+        },
+        {
           "id": "p_e77635a316",
           "kind": "h2",
           "content": [
@@ -264,6 +269,11 @@
         },
         {
           "id": "p_f2ae635582",
+          "kind": "p",
+          "content": []
+        },
+        {
+          "id": "p_82ddea441b",
           "kind": "h2",
           "content": [
             {
@@ -376,6 +386,11 @@
               "text": "The visible product was only a small part of what made the experience work. Behind every alert was a system that had to keep checking, interpreting, and validating data from a collection of very different booking platforms."
             }
           ]
+        },
+        {
+          "id": "p_ef4d9d041c",
+          "kind": "p",
+          "content": []
         },
         {
           "id": "p_c2fb30ec44",
@@ -566,6 +581,11 @@
               "text": "Since PingNow started with a problem I personally cared about, I also felt responsible for bringing that enthusiasm into the collaboration. I wanted Sihoon to be just as excited about the problem as I was. That meant spending time together beyond dividing up tasks: talking through the problem, exploring ideas, and getting excited about what we could build. I came away thinking that when two people genuinely care about the problem they’re solving, the process of building becomes a lot more enjoyable."
             }
           ]
+        },
+        {
+          "id": "p_0287485ee6",
+          "kind": "p",
+          "content": []
         },
         {
           "id": "p_76c00f1b0d",
