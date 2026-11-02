@@ -14,8 +14,19 @@
     {
       "id": "b_dbd20cf08a",
       "type": "canvas",
-      "height": 360,
-      "items": []
+      "height": 395,
+      "items": [
+        {
+          "id": "i_33f3281e80",
+          "kind": "video",
+          "x": 0,
+          "y": 0,
+          "w": 703,
+          "h": 395,
+          "z": 0,
+          "src": "/media/projects/pingnow-making-it-easier-to-get-your-golf-group-onto-the-course/pingnow-video-web.mp4"
+        }
+      ]
     },
     {
       "id": "b_99e87daea0",
