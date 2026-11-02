@@ -6,7 +6,7 @@
     "date": "2026-08-03",
     "summary": "TL;DR: I built PingNow, a group tee-time alert service for Bay Area golfers. Instead of just notifying individuals when a slot becomes available, PingNow helps an entire group find a time that works for everyone. Built with a technical teammate over four weeks, it grew into a live website and app covering around 40 public golf courses.",
     "url": "https://pingnowgolf.com/",
-    "urlLabel": "Visit the site",
+    "urlLabel": "Visit the site:",
     "slugFromTitle": true,
     "section": "projects"
   },
@@ -14,15 +14,15 @@
     {
       "id": "b_dbd20cf08a",
       "type": "canvas",
-      "height": 395,
+      "height": 594,
       "items": [
         {
           "id": "i_33f3281e80",
           "kind": "video",
           "x": 0,
           "y": 0,
-          "w": 703,
-          "h": 395,
+          "w": 1056,
+          "h": 594,
           "z": 0,
           "src": "/media/projects/pingnow-making-it-easier-to-get-your-golf-group-onto-the-course/pingnow-video-web.mp4",
           "poster": "/media/projects/pingnow-making-it-easier-to-get-your-golf-group-onto-the-course/pingnow-video-poster.jpg"
